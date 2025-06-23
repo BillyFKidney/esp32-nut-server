@@ -2,7 +2,8 @@
 
 #include "cc.h"
 #include <sys/un.h>
-#include "../lwip/lwip/src/include/lwip/sockets.h"
+//#include "../lwip/lwip/src/include/lwip/sockets.h" // for PIO
+#include "../lwip/src/include/lwip/sockets.h" // for ESP-IDF
 
 int af_unix_accept(int s, struct sockaddr *addr, socklen_t *addrlen);
 int af_unix_bind(int s, const struct sockaddr *name, socklen_t namelen);
