@@ -3205,7 +3205,7 @@ static void vupslog(int priority, const char *fmt, va_list va, int use_strerror)
 	 * format string (we should not get it from configs etc.
 	 * or the calling methods should check it against their
 	 * "fmt_dynamic" expectations). */
-	do {
+//	do {
 #ifdef HAVE_VA_COPY_VARIANT
 		va_list	va_snprintf;
 
@@ -3289,9 +3289,9 @@ vupslog_too_long:
 					"output can be truncated",
 					bufsize);
 			}
-			break;
+//			break;
 		}
-	} while(1);
+//	} while(1); // loops endlessly here
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
