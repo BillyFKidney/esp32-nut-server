@@ -29,7 +29,8 @@
 #include <sys/types.h>
 #ifndef WIN32
 #include <sys/wait.h>
-#include <sys/socket.h>
+//#include <sys/socket.h>
+#include "af_unix_socket.h"
 #include <sys/un.h>
 #else	/* WIN32 */
 #include "wincompat.h"

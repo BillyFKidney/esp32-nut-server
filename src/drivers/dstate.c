@@ -30,7 +30,8 @@
 # include <sys/stat.h>
 # include <pwd.h>
 # include <sys/types.h>
-# include <sys/socket.h>
+//# include <sys/socket.h>
+#include "af_unix_socket.h"
 # include <sys/un.h>
 #else	/* WIN32 */
 # include <strings.h>
