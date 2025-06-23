@@ -14,6 +14,7 @@
 /_install_pkgprotodir/
 Makefile
 Makefile.in
+build
 
 ## Parent directory only
 /aclocal.m4
@@ -69,6 +70,7 @@ Makefile.in
 /.ci*.log.*
 .dirstamp
 *.exe
+managed_components
 
 # Python precompiled files
 __pycache__/

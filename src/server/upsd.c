@@ -1122,7 +1122,7 @@ static void poll_reload(void)
 	long	ret;
 	size_t	maxalloc;
 
-	ret = sysconf(_SC_OPEN_MAX);
+	ret = _SC_OPEN_MAX;// doesn't work on esp32 // sysconf(_SC_OPEN_MAX);
 
 	if ((intmax_t)ret < (intmax_t)maxconn) {
 		fatalx(EXIT_FAILURE,
@@ -2248,7 +2248,7 @@ int main(int argc, char **argv)
 
 	become_user(new_uid);
 #ifndef WIN32
-	if (chdir(statepath)) {
+	if (false /* returns error on esp32 */ && chdir(statepath)) {
 		fatal_with_errno(EXIT_FAILURE, "Can't chdir to %s", statepath);
 	} else {
 		upsdebugx(1, "chdired into statepath %s for driver sockets", statepath);
@@ -2256,7 +2256,7 @@ int main(int argc, char **argv)
 #endif	/* !WIN32 */
 
 	/* check statepath perms */
-	check_perms(statepath);
+	// causes error on esp32 // check_perms(statepath);
 
 	/* handle ups.conf */
 	read_upsconf(1);	/* 1 = may abort upon fundamental errors */
@@ -2300,6 +2300,7 @@ int main(int argc, char **argv)
 	while (!exit_flag) {
 		/* Note: mainloop() calls upsnotify(NOTIFY_STATE_WATCHDOG, NULL); */
 		mainloop();
+		rtos_yield();	/* yield to other tasks */
 	}
 
 	upslogx(LOG_INFO, "Signal %d: exiting", exit_flag);

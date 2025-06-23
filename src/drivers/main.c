@@ -2038,7 +2038,7 @@ void setup_signals(void)
  * behavior - using a production driver skeleton, but their own main().
  */
 #ifndef DRIVERS_MAIN_WITHOUT_MAIN
-int main(int argc, char **argv)
+int drivers_main(int argc, char **argv)
 {
 	struct	passwd	*new_uid = NULL;
 	int	i, do_forceshutdown = 0;
@@ -2398,7 +2398,7 @@ int main(int argc, char **argv)
 	 * or dump data).  This check avoids aborting in case where
 	 * i.e. /var is unmounted already during shut down.
 	 */
-	i = chdir(dflt_statepath());
+	i = 0;// returns error on esp32 // chdir(dflt_statepath());
 	if (do_forceshutdown || dump_data) {
 		if (i < 0)
 			upslog_with_errno(LOG_WARNING,
@@ -3127,6 +3127,7 @@ sockname_ownership_finished:
 		}
 
 		handle_reload_flag();
+		rtos_yield();	/* yield to other tasks */
 	}
 
 	/* if we get here, the exit flag was set by a signal handler */
