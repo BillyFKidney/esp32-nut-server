@@ -1,19 +1,8 @@
 #pragma once
 
 #include "cc.h"
-//#include <net/if.h>
-
-#define SOCK_STREAM     1
-#define O_NDELAY    O_NONBLOCK /* same as O_NONBLOCK, for compatibility */
-
-typedef u8_t sa_family_t;
-typedef u32_t socklen_t;
-
-struct sockaddr {
-  u8_t        sa_len;
-  sa_family_t sa_family;
-  char        sa_data[14];
-};
+#include <sys/un.h>
+#include "../lwip/lwip/src/include/lwip/sockets.h"
 
 int af_unix_accept(int s, struct sockaddr *addr, socklen_t *addrlen);
 int af_unix_bind(int s, const struct sockaddr *name, socklen_t namelen);

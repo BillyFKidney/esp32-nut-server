@@ -32,7 +32,7 @@
 #include "nut_common.h"
 
 #ifndef WIN32
-#include <sys/socket.h>
+//#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #endif	/* !WIN32 */
