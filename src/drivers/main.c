@@ -1544,7 +1544,15 @@ static void do_global_args(const char *var, const char *val)
 	/* unrecognized */
 }
 
-void do_upsconf_args(char *confupsname, char *var, char *val)
+int read_upsconf_driver(int fatal_errors)
+{
+	upsconf_driver = 1;
+	int res = read_upsconf(fatal_errors);
+	upsconf_driver = 0;
+	return res;
+}
+
+void do_upsconf_args_driver(char *confupsname, char *var, char *val)
 {
 	char	tmp[SMALLBUF];
 
@@ -1736,7 +1744,7 @@ static int handle_reload_flag(void) {
 	 */
 	reload_requires_restart = -1;
 	/* 0 - Do not abort drivers started with '-s TMP_UPS_NAME' */
-	if (read_upsconf(0) < 0) {
+	if (read_upsconf_driver(0) < 0) {
 		upsdebugx(1, "%s: read_upsconf() failed fundamentally; "
 			"is this driver running via ups.conf at all?",
 			__func__);
@@ -2166,7 +2174,7 @@ int main(int argc, char **argv)
 
 				upsname = optarg;
 
-				read_upsconf(1);
+				read_upsconf_driver(1);
 
 				if (!upsname_found)
 					fatalx(EXIT_FAILURE, "Error: Section %s not found in ups.conf",

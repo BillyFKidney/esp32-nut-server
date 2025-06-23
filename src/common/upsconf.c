@@ -30,6 +30,20 @@
 
 	static	char	*ups_section;
 
+extern void do_upsconf_args_driver(char *upsname, char *var, char *val);
+
+void call_do_upsconf_args(char *section, char *var, char *val)
+{
+	if (upsconf_driver > 0)
+	{
+		do_upsconf_args_driver(section, var, val);
+	}
+	else
+	{
+		do_upsconf_args(section, var, val);
+	}
+}
+
 /* handle arguments separated by parseconf */
 static void conf_args(size_t numargs, char **arg)
 {
@@ -48,7 +62,7 @@ static void conf_args(size_t numargs, char **arg)
 
 	/* handle 'foo' (flag) */
 	if (numargs == 1) {
-		do_upsconf_args(ups_section, arg[0], NULL);
+		call_do_upsconf_args(ups_section, arg[0], NULL);
 		return;
 	}
 
@@ -57,7 +71,7 @@ static void conf_args(size_t numargs, char **arg)
 
 	/* handle 'foo = bar', 'foo=bar', 'foo =bar' or 'foo= bar' forms */
 	if (!strcmp(arg[1], "=")) {
-		do_upsconf_args(ups_section, arg[0], arg[2]);
+		call_do_upsconf_args(ups_section, arg[0], arg[2]);
 		return;
 	}
 }
