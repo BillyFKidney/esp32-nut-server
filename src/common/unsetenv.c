@@ -4,7 +4,7 @@
 #ifndef HAVE_UNSETENV
 #include <stdlib.h>
 #include <string.h>
-#include "common.h"
+#include "nut_common.h"
 #include "proto.h"
 
 int nut_unsetenv(const char *name)

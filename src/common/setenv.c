@@ -4,7 +4,7 @@
 #ifndef HAVE_SETENV
 #include <stdlib.h>
 #include <string.h>
-#include "common.h"
+#include "nut_common.h"
 
 int nut_setenv(const char *name, const char *value, int overwrite)
 {

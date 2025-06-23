@@ -6,7 +6,7 @@
 #ifndef HAVE_ATEXIT
 
 #include <errno.h>
-#include "common.h"
+#include "nut_common.h"
 
 int atexit(fn)
     void (*fn)();
