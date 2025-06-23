@@ -685,7 +685,7 @@ ssize_t ssl_read(nut_ctype_t *client, char *buf, size_t buflen)
 #endif /* WITH_OPENSSL | WITH_NSS */
 
 	if (ret < 1) {
-		ssl_error(client->ssl, ret);
+//		ssl_error(client->ssl, ret);
 		return -1;
 	}
 

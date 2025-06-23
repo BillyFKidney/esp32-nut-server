@@ -45,26 +45,26 @@
 #endif	/* WIN32 */
 
 /* include all known subdrivers */
-#include "mge-hid.h"
+//#include "mge-hid.h"
 
 #if !((defined SHUT_MODE) && SHUT_MODE)
 	/* explore stub goes first, others alphabetically */
 #	include "explore-hid.h"
 #	include "apc-hid.h"
-#	include "arduino-hid.h"
-#	include "belkin-hid.h"
+//#	include "arduino-hid.h"
+//#	include "belkin-hid.h"
 #	include "cps-hid.h"
-#	include "delta_ups-hid.h"
-#	include "ecoflow-hid.h"
-#	include "ever-hid.h"
-#	include "idowell-hid.h"
-#	include "legrand-hid.h"
-#	include "liebert-hid.h"
-#	include "openups-hid.h"
-#	include "powercom-hid.h"
-#	include "powervar-hid.h"
-#	include "salicru-hid.h"
-#	include "tripplite-hid.h"
+//#	include "delta_ups-hid.h"
+//#	include "ecoflow-hid.h"
+//#	include "ever-hid.h"
+//#	include "idowell-hid.h"
+//#	include "legrand-hid.h"
+//#	include "liebert-hid.h"
+//#	include "openups-hid.h"
+//#	include "powercom-hid.h"
+//#	include "powervar-hid.h"
+//#	include "salicru-hid.h"
+//#	include "tripplite-hid.h"
 #endif	/* !SHUT_MODE => USB */
 
 /* Reference list of available subdrivers */
@@ -73,23 +73,23 @@ static subdriver_t *subdriver_list[] = {
 	&explore_subdriver,
 #endif	/* !SHUT_MODE => USB */
 	/* mge-hid.c supports both SHUT and USB */
-	&mge_subdriver,
+//	&mge_subdriver,
 #if !((defined SHUT_MODE) && SHUT_MODE)
 	&apc_subdriver,
-	&arduino_subdriver,
-	&belkin_subdriver,
+//	&arduino_subdriver,
+//	&belkin_subdriver,
 	&cps_subdriver,
-	&delta_ups_subdriver,
-	&ecoflow_subdriver,
-	&ever_subdriver,
-	&idowell_subdriver,
-	&legrand_subdriver,
-	&liebert_subdriver,
-	&openups_subdriver,
-	&powercom_subdriver,
-	&powervar_subdriver,
-	&salicru_subdriver,
-	&tripplite_subdriver,
+//	&delta_ups_subdriver,
+//	&ecoflow_subdriver,
+//	&ever_subdriver,
+//	&idowell_subdriver,
+//	&legrand_subdriver,
+//	&liebert_subdriver,
+//	&openups_subdriver,
+//	&powercom_subdriver,
+//	&powervar_subdriver,
+//	&salicru_subdriver,
+//	&tripplite_subdriver,
 #endif	/* !SHUT_MODE => USB */
 	NULL
 };
