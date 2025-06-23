@@ -414,7 +414,7 @@ static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 				upslogx(LOG_WARNING,
 					"%s: LogMax is less than LogMin. "
 					"Vendor HID report descriptor may be incorrect; "
-					"interpreting LogMax %ld as %u in ReportID: 0x%02x",
+					"interpreting LogMax %ld as %lu in ReportID: 0x%02x",
 					__func__,
 					pParser->Data.LogMax,
 					pParser->Value,

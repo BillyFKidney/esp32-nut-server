@@ -890,7 +890,7 @@ static int8_t get_unit_expo(const HIDData_t *hiddata)
 	int	i;
 	int8_t	unit_expo = hiddata->UnitExp;
 
-	upsdebugx(5, "Unit = %08x, UnitExp = %d", (uint32_t)(hiddata->Unit), hiddata->UnitExp);
+	upsdebugx(5, "Unit = %08lx, UnitExp = %d", (uint32_t)(hiddata->Unit), hiddata->UnitExp);
 
 	for (i = 0; i < NB_HID_UNITS; i++) {
 
@@ -1010,12 +1010,12 @@ static int path_to_string(char *string, size_t size, const HIDPath_t *path, usag
 		/* indexed collection */
 		if ((path->Node[i] & 0xffff0000) == 0x00ff0000)
 		{
-			snprintfcat(string, size, "[%u]", path->Node[i] & 0x0000ffff);
+			snprintfcat(string, size, "[%lu]", path->Node[i] & 0x0000ffff);
 			continue;
 		}
 
 		/* unnamed path components such as "ff860024" */
-		snprintfcat(string, size, "%08x", path->Node[i]);
+		snprintfcat(string, size, "%08lx", path->Node[i]);
 	}
 
 	return i;
@@ -1036,7 +1036,7 @@ static long hid_lookup_usage(const char *name, usage_tables_t *utab)
 				continue;
 
 			/* Note: currently per hidtypes.h, HIDNode_t == uint32_t */
-			upsdebugx(5, "hid_lookup_usage: %s -> %08x", name, (uint32_t)utab[i][j].usage_code);
+			upsdebugx(5, "hid_lookup_usage: %s -> %08lx", name, (uint32_t)utab[i][j].usage_code);
 			return (long)(utab[i][j].usage_code);
 		}
 	}
