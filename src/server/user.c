@@ -26,7 +26,7 @@
 #include <arpa/inet.h>
 #endif	/* !WIN32 */
 
-#include "common.h"
+#include "nut_common.h"
 #include "parseconf.h"
 
 #include "user.h"

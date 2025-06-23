@@ -18,7 +18,7 @@
 */
 
 #include "config.h"	/* must be first */
-#include "common.h"
+#include "nut_common.h"
 #include "usb-common.h"
 
 int is_usb_device_supported(usb_device_id_t *usb_device_id_list, USBDevice_t *device)

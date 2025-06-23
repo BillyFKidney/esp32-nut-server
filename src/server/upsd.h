@@ -29,7 +29,7 @@
 
 #include "attribute.h"
 
-#include "common.h"
+#include "nut_common.h"
 
 #ifndef WIN32
 #include <sys/socket.h>

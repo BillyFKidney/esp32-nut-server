@@ -78,7 +78,7 @@
 
 #include "config.h" /* should be first */
 
-#include "common.h"
+#include "nut_common.h"
 
 #include <ctype.h>
 #include <errno.h>

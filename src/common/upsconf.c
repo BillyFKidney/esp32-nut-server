@@ -25,7 +25,7 @@
 #include <string.h>
 
 #include "upsconf.h"
-#include "common.h"
+#include "nut_common.h"
 #include "parseconf.h"
 
 	static	char	*ups_section;

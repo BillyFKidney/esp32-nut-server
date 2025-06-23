@@ -1,7 +1,7 @@
 #ifndef NUT_MAIN_H_SEEN
 #define NUT_MAIN_H_SEEN 1
 
-#include "common.h"
+#include "nut_common.h"
 #include "upsconf.h"
 #include "upshandler.h"
 #include "dstate.h"

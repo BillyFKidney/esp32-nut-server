@@ -29,7 +29,7 @@
 
 #include "hidparser.h"
 #include "nut_stdint.h"  /* for int8_t, int16_t, int32_t */
-#include "common.h"      /* for fatalx() */
+#include "nut_common.h"      /* for fatalx() */
 
 static const uint8_t ItemSize[4] = { 0, 1, 2, 4 };
 

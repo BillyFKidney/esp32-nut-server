@@ -22,7 +22,7 @@
 #ifndef NUT_UPSDRVQUERY_H_SEEN
 #define NUT_UPSDRVQUERY_H_SEEN 1
 
-#include "common.h"	/* TYPE_FD etc. */
+#include "nut_common.h"	/* TYPE_FD etc. */
 #include "timehead.h"
 
 typedef struct udq_pipe_conn_s {

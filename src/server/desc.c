@@ -21,7 +21,7 @@
 
 #include <string.h>
 
-#include "common.h"
+#include "nut_common.h"
 #include "parseconf.h"
 
 #include "desc.h"

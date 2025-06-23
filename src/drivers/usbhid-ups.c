@@ -39,7 +39,7 @@
 #include "usbhid-ups.h"
 #include "hidparser.h"
 #include "hidtypes.h"
-#include "common.h"
+#include "nut_common.h"
 #ifdef WIN32
 #include "wincompat.h"
 #endif	/* WIN32 */

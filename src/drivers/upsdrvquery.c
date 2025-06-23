@@ -35,7 +35,7 @@
 #include "wincompat.h"
 #endif	/* WIN32 */
 
-#include "common.h"
+#include "nut_common.h"
 #include "upsdrvquery.h"
 #include "nut_stdint.h"
 

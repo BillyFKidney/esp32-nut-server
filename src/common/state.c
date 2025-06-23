@@ -32,7 +32,7 @@
 #include <sys/un.h>
 #endif	/* !WIN32 */
 
-#include "common.h"
+#include "nut_common.h"
 #include "state.h"
 #include "parseconf.h"
 

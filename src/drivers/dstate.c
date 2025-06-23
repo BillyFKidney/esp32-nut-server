@@ -37,7 +37,7 @@
 # include "wincompat.h"
 #endif	/* WIN32 */
 
-#include "common.h"
+#include "nut_common.h"
 #include "dstate.h"
 #include "state.h"
 #include "parseconf.h"

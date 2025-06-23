@@ -69,7 +69,7 @@
  * so not looping the includes ;)
  */
 #include "nut_stdint.h"	/* for uint16_t, UINT16_MAX, PRIsize, etc. */
-#include "common.h"		/* for fatalx() etc. */
+#include "nut_common.h"		/* for fatalx() etc. */
 
 #if defined HAVE_LIMITS_H
 #  include <limits.h>	/* PATH_MAX for usb.h, among other stuff */

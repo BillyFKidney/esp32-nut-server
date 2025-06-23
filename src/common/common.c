@@ -20,7 +20,7 @@
 
 #define NUT_WANT_INET_NTOP_XX	1
 
-#include "common.h"
+#include "nut_common.h"
 #include "timehead.h"
 
 #include <ctype.h>

@@ -24,7 +24,7 @@
 */
 
 #include "config.h" /* must be the first header */
-#include "common.h" /* for upsdebugx() etc */
+#include "nut_common.h" /* for upsdebugx() etc */
 
 #include <sys/types.h>
 #ifndef WIN32

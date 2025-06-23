@@ -23,7 +23,7 @@
 #ifndef DSTATE_H_SEEN
 #define DSTATE_H_SEEN 1
 
-#include "common.h"
+#include "nut_common.h"
 #include "timehead.h"
 #include "state.h"
 #include "attribute.h"

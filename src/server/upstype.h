@@ -23,7 +23,7 @@
 #define NUT_UPSTYPE_H_SEEN 1
 
 #include "parseconf.h"
-#include "common.h"
+#include "nut_common.h"
 
 #ifdef __cplusplus
 /* *INDENT-OFF* */

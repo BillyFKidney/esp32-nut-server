@@ -42,7 +42,7 @@
 /* #include "nut_float.h" */
 #include "libhid.h"
 #include "hidparser.h"
-#include "common.h" /* for xmalloc, upsdebugx prototypes */
+#include "nut_common.h" /* for xmalloc, upsdebugx prototypes */
 #include "nut_stdint.h"
 
 /* Communication layers and drivers (USB and MGE SHUT) */

@@ -21,7 +21,7 @@
 #ifndef NUT_STYPE_H_SEEN
 #define NUT_STYPE_H_SEEN 1
 
-#include "common.h"
+#include "nut_common.h"
 
 #ifndef WIN32
 #include <netdb.h>

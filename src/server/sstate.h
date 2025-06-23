@@ -23,7 +23,7 @@
 #ifndef NUT_SSTATE_H_SEEN
 #define NUT_SSTATE_H_SEEN 1
 
-#include "common.h"	/* TYPE_FD */
+#include "nut_common.h"	/* TYPE_FD */
 #include "state.h"
 #include "upstype.h"
 
