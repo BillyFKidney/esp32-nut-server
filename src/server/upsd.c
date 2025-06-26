@@ -1122,7 +1122,7 @@ static void poll_reload(void)
 	long	ret;
 	size_t	maxalloc;
 
-	ret = _SC_OPEN_MAX;// doesn't work on esp32 // sysconf(_SC_OPEN_MAX);
+	ret = CONFIG_LWIP_MAX_SOCKETS; // sysconf doesn't work on esp32 // sysconf(_SC_OPEN_MAX);
 
 	if ((intmax_t)ret < (intmax_t)maxconn) {
 		fatalx(EXIT_FAILURE,
@@ -2181,7 +2181,7 @@ int main(int argc, char **argv)
 #ifndef WIN32
 	/* default to system limit (may be overridden in upsd.conf) */
 	/* FIXME: Check for overflows (and int size of nfds_t vs. long) - see get_max_pid_t() for example */
-	maxconn = (nfds_t)sysconf(_SC_OPEN_MAX);
+	maxconn = (nfds_t)CONFIG_LWIP_MAX_SOCKETS; // sysconf doesn't work on esp32 // (nfds_t)sysconf(_SC_OPEN_MAX);
 #else	/* WIN32 */
 	maxconn = 64;  /*FIXME NUT_WIN32_INCOMPLETE : arbitrary value, need adjustement */
 #endif	/* WIN32 */

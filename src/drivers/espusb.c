@@ -28,7 +28,7 @@
 #define USB_DRIVER_NAME "USB communication driver (espusb)"
 #define USB_DRIVER_VERSION "0.01"
 
-#define MAX_REPORT_SIZE         0x1800
+#define MAX_REPORT_SIZE 0x1800
 
 struct espusb_device
 {
@@ -120,11 +120,13 @@ void nut_usb_addvars(void)
 }
 
 /* invoke matcher against device */
-static inline int matches(USBDeviceMatcher_t *matcher, USBDevice_t *device) {
-	if (!matcher) {
-		return 1;
-	}
-	return matcher->match_function(device, matcher->privdata);
+static inline int matches(USBDeviceMatcher_t *matcher, USBDevice_t *device)
+{
+    if (!matcher)
+    {
+        return 1;
+    }
+    return matcher->match_function(device, matcher->privdata);
 }
 
 static int nut_espusb_open(espusb_device_handle **udevp,
@@ -145,7 +147,7 @@ static int nut_espusb_open(espusb_device_handle **udevp,
 
         snprintf(cur_device->interface, 4, "%03u", cur_device->dev_params.iface_num);
         snprintf(cur_device->device, 4, "%03u", cur_device->dev_params.addr);
-        
+
         __wcstombs(cur_device->vendor, cur_device->dev_info.iManufacturer, 32);
         __wcstombs(cur_device->product, cur_device->dev_info.iProduct, 32);
         __wcstombs(cur_device->serial, cur_device->dev_info.iSerialNumber, 32);
@@ -153,7 +155,7 @@ static int nut_espusb_open(espusb_device_handle **udevp,
         curDevice->Vendor = cur_device->vendor;
         curDevice->Product = cur_device->product;
         curDevice->Serial = cur_device->serial;
-        
+
         curDevice->VendorID = cur_device->dev_info.VID;
         curDevice->ProductID = cur_device->dev_info.PID;
 
@@ -162,55 +164,62 @@ static int nut_espusb_open(espusb_device_handle **udevp,
         curDevice->bcdDevice = 0x0100;
 
         upsdebugx(2, "- VendorID: %04x", curDevice->VendorID);
-		upsdebugx(2, "- ProductID: %04x", curDevice->ProductID);
-		upsdebugx(2, "- Manufacturer: %s", curDevice->Vendor ? curDevice->Vendor : "unknown");
-		upsdebugx(2, "- Product: %s", curDevice->Product ? curDevice->Product : "unknown");
-		upsdebugx(2, "- Serial Number: %s", curDevice->Serial ? curDevice->Serial : "unknown");
-		upsdebugx(2, "- Bus: %s", curDevice->Bus ? curDevice->Bus : "unknown");
+        upsdebugx(2, "- ProductID: %04x", curDevice->ProductID);
+        upsdebugx(2, "- Manufacturer: %s", curDevice->Vendor ? curDevice->Vendor : "unknown");
+        upsdebugx(2, "- Product: %s", curDevice->Product ? curDevice->Product : "unknown");
+        upsdebugx(2, "- Serial Number: %s", curDevice->Serial ? curDevice->Serial : "unknown");
+        upsdebugx(2, "- Bus: %s", curDevice->Bus ? curDevice->Bus : "unknown");
 #if (defined WITH_USB_BUSPORT) && (WITH_USB_BUSPORT)
-		upsdebugx(2, "- Bus Port: %s", curDevice->BusPort ? curDevice->BusPort : "unknown");
+        upsdebugx(2, "- Bus Port: %s", curDevice->BusPort ? curDevice->BusPort : "unknown");
 #endif
-		upsdebugx(2, "- Device: %s", curDevice->Device ? curDevice->Device : "unknown");
-		upsdebugx(2, "- Device release number: %04x", curDevice->bcdDevice);
+        upsdebugx(2, "- Device: %s", curDevice->Device ? curDevice->Device : "unknown");
+        upsdebugx(2, "- Device release number: %04x", curDevice->bcdDevice);
 
         upsdebugx(2, "Trying to match device");
 
-	    USBDeviceMatcher_t *m;
+        USBDeviceMatcher_t *m;
         int ret, res;
 
         /* report descriptor */
-        uint8_t *	rdbuf;
-        size_t		rdlen;
+        uint8_t *rdbuf;
+        size_t rdlen;
 
-		for (m = matcher; m; m=m->next) {
-			ret = matches(m, curDevice);
-			if (ret==0) {
-				upsdebugx(2, "Device does not match - skipping");
-				return -1;
-			} else if (ret==-1) {
-				fatal_with_errno(EXIT_FAILURE, "matcher");
-			} else if (ret==-2) {
-				upsdebugx(2, "matcher: unspecified error");
-				return -1;
-			}
-		}
+        for (m = matcher; m; m = m->next)
+        {
+            ret = matches(m, curDevice);
+            if (ret == 0)
+            {
+                upsdebugx(2, "Device does not match - skipping");
+                return -1;
+            }
+            else if (ret == -1)
+            {
+                fatal_with_errno(EXIT_FAILURE, "matcher");
+            }
+            else if (ret == -2)
+            {
+                upsdebugx(2, "matcher: unspecified error");
+                return -1;
+            }
+        }
 
-		/* If we got here, none of the matchers said
-		 * that the device is not what we want. */
-		upsdebugx(2, "Device matches");
+        /* If we got here, none of the matchers said
+         * that the device is not what we want. */
+        upsdebugx(2, "Device matches");
 
         espusb_device_handle *curHandle = (espusb_device_handle *)malloc(sizeof(espusb_device_handle));
         curHandle->dev = cur_device;
 
         rdbuf = hid_host_get_report_descriptor(
-                    espusb_hid_device_handle,
-                    &rdlen);
+            espusb_hid_device_handle,
+            &rdlen);
 
         res = callback(curHandle, curDevice, rdbuf, (usb_ctrl_charbufsize)rdlen);
-		if (res < 1) {
-			upsdebugx(2, "Caller doesn't like this device");
-			return -1;
-		}
+        if (res < 1)
+        {
+            upsdebugx(2, "Caller doesn't like this device");
+            return -1;
+        }
 
         udevp[0] = curHandle;
     }
@@ -234,7 +243,16 @@ static int nut_espusb_get_report(
     usb_ctrl_charbuf raw_buf,
     usb_ctrl_charbufsize ReportSize)
 {
-    return 0;
+    size_t report_length = ReportSize;
+
+    ESP_ERROR_CHECK(hid_class_request_get_report(
+        udev->dev->parent_dev,
+        0x03,
+        ReportId,
+        raw_buf,
+        &report_length));
+
+    return report_length;
 }
 
 static int nut_espusb_set_report(
@@ -243,6 +261,13 @@ static int nut_espusb_set_report(
     usb_ctrl_charbuf raw_buf,
     usb_ctrl_charbufsize ReportSize)
 {
+    ESP_ERROR_CHECK(hid_class_request_set_report(
+        udev->dev->parent_dev,
+        0x03,
+        ReportId,
+        raw_buf,
+        ReportSize));
+
     return 0;
 }
 
