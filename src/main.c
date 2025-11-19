@@ -40,7 +40,7 @@ void mountFS(void)
         return;
     }
 
-    if (mkdir("/var/db", 0777) < 0 || mkdir("/var/db/nut", 0777) < 0)
+    if (mkdir("/var/db", 0755) < 0 || mkdir("/var/db/nut", 0755) < 0)
     {
         if (errno != EEXIST)
         {
@@ -93,11 +93,11 @@ void mountFS(void)
     err = esp_vfs_fat_spiflash_mount_rw_wl("/usr", "usr", &mount_config, &s_usr_wl_handle);
     if (err != ESP_OK)
     {
-        ESP_LOGE(PACKAGE, "Failed to mount FATFS (%s)", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Failed to mount FATFS (%s)", esp_err_to_name(err));
         return;
     }
 
-    if (mkdir("/usr/local", 0777) < 0 || mkdir("/usr/local/etc", 0777) < 0 || mkdir("/usr/local/etc/nut", 0777) < 0)
+    if (mkdir("/usr/local", 0755) < 0 || mkdir("/usr/local/etc", 0755) < 0 || mkdir("/usr/local/etc/nut", 0755) < 0)
     {
         if (errno != EEXIST)
         {
@@ -117,6 +117,9 @@ void mountFS(void)
     fseek(f, 0, SEEK_END);
     if (0 == ftell(f))
     {
+        // WARNING: Using default credentials - CHANGE THESE IN PRODUCTION!
+        // Default password "espdonut" should be changed immediately after deployment
+        // TODO: Implement secure credential storage using ESP32 NVS with encryption
         fprintf(f, "[nut]\n");
         fprintf(f, "  password = espdonut\n");
         fprintf(f, "  actions = SET\n");
@@ -286,13 +289,27 @@ const char *gai_strerror(int ecode)
     return s;
 }
 
+/*
+ * ESP32 Platform Stubs
+ * 
+ * The following functions are stubs for POSIX functions that are not
+ * applicable or implemented on the ESP32 platform. They return success
+ * to allow the NUT codebase to compile and run, but do not perform
+ * actual operations.
+ * 
+ * WARNING: Code expecting these functions to enforce security or modify
+ * system state will not work as expected on ESP32.
+ */
+
 int sigaction(int, const struct sigaction *, struct sigaction *)
 {
+    // ESP32 stub: Signal handling not implemented
     return 0;
 }
 
 _sig_func_ptr signal(int, _sig_func_ptr)
 {
+    // ESP32 stub: Signal handling not implemented
     return 0;
 }
 
@@ -420,8 +437,13 @@ void clean_dir(const char *path)
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL)
     {
-        char full_path[64] = {0};
-        snprintf(full_path, sizeof(full_path), "%.20s/%.40s", path, entry->d_name);
+        char full_path[256] = {0};
+        int written = snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+        if (written < 0 || written >= sizeof(full_path))
+        {
+            ESP_LOGE(TAG, "Path too long: %s/%s", path, entry->d_name);
+            continue;
+        }
         if (entry->d_type == DT_DIR)
             clean_dir(full_path);
         if (remove(full_path) != 0)

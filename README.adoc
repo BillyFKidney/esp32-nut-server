@@ -325,6 +325,27 @@ included example configuration files, and auxiliary documentation for the
 parts that you intend to use.
 
 
+ESP32 Platform Support
+----------------------
+
+NUT includes experimental support for ESP32 microcontrollers, enabling
+UPS monitoring on embedded devices. The ESP32 port supports:
+
+- USB HID UPS devices via ESP32 USB Host
+- WiFi connectivity (Station and Access Point modes)
+- NUT server (upsd) running directly on ESP32
+- Persistent configuration storage
+
+For ESP32-specific documentation, see:
+
+- {linksrcdoc}docs/ESP32_README.md[ESP32 Setup and Usage Guide]
+- {linksrcdoc}docs/ESP32_SECURITY.md[ESP32 Security Considerations]
+
+*Note:* The ESP32 port is currently in active development. Some features
+may be limited compared to traditional platforms, and security hardening
+is essential for production deployments.
+
+
 Network Information
 -------------------
 

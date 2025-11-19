@@ -140,6 +140,11 @@ static int nut_espusb_open(espusb_device_handle **udevp,
     if (espusb_hid_device_handle != NULL)
     {
         espusb_device *cur_device = (espusb_device *)calloc(1, sizeof(espusb_device));
+        if (cur_device == NULL)
+        {
+            ESP_LOGE(TAG, "Failed to allocate memory for device");
+            return -1;
+        }
         cur_device->parent_dev = espusb_hid_device_handle;
 
         ESP_ERROR_CHECK(hid_host_device_get_params(espusb_hid_device_handle, &cur_device->dev_params));
@@ -208,6 +213,12 @@ static int nut_espusb_open(espusb_device_handle **udevp,
         upsdebugx(2, "Device matches");
 
         espusb_device_handle *curHandle = (espusb_device_handle *)malloc(sizeof(espusb_device_handle));
+        if (curHandle == NULL)
+        {
+            ESP_LOGE(TAG, "Failed to allocate memory for device handle");
+            free(cur_device);
+            return -1;
+        }
         curHandle->dev = cur_device;
 
         rdbuf = hid_host_get_report_descriptor(
@@ -218,6 +229,8 @@ static int nut_espusb_open(espusb_device_handle **udevp,
         if (res < 1)
         {
             upsdebugx(2, "Caller doesn't like this device");
+            free(curHandle);
+            free(cur_device);
             return -1;
         }
 
@@ -271,21 +284,43 @@ static int nut_espusb_set_report(
     return 0;
 }
 
+/**
+ * @brief Get a string descriptor from the USB device
+ * 
+ * @note ESP32 stub implementation - not currently supported
+ * @param udev USB device handle
+ * @param StringIdx String descriptor index
+ * @param buf Buffer to store the string
+ * @param buflen Buffer length
+ * @return 0 (stub implementation)
+ */
 static int nut_espusb_get_string(
     espusb_device_handle *udev,
     usb_ctrl_strindex StringIdx,
     char *buf,
     usb_ctrl_charbufsize buflen)
 {
+    // TODO: Implement string descriptor retrieval
     return 0;
 }
 
+/**
+ * @brief Get an interrupt transfer from the USB device
+ * 
+ * @note ESP32 stub implementation - not currently supported
+ * @param udev USB device handle
+ * @param buf Buffer to store the data
+ * @param bufsize Buffer size
+ * @param timeout Timeout in milliseconds
+ * @return 0 (stub implementation)
+ */
 static int nut_espusb_get_interrupt(
     espusb_device_handle *udev,
     usb_ctrl_charbuf buf,
     usb_ctrl_charbufsize bufsize,
     usb_ctrl_timeout_msec timeout)
 {
+    // TODO: Implement interrupt transfer
     return 0;
 }
 
