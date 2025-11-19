@@ -11,6 +11,10 @@
 
 #define TAG "nut"
 
+// WARNING: SECURITY RISK - Default credentials exposed!
+// These hardcoded WiFi credentials should be changed for production use.
+// TODO: Implement WiFi provisioning (BLE, WPS, or web-based configuration)
+// TODO: Store credentials securely in NVS (Non-Volatile Storage)
 #define EXAMPLE_ESP_WIFI_SSID "nut"
 #define EXAMPLE_ESP_WIFI_PASS "espdonut"
 #define EXAMPLE_ESP_MAXIMUM_RETRY 5
