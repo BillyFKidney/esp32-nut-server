@@ -1,55 +1,70 @@
-# Prerequisites
-*.d
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
 
-# Object files
+# iCloud metadata and temporary files
+*.icloud
+.*.icloud
+
+# Visual Studio Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# ESP-IDF generated files
+build/
+sdkconfig
+sdkconfig.old
+sdkconfig.ci
+sdkconfig.defaults.local
+dependencies.lock.tmp
+
+# ESP-IDF managed components
+managed_components/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# C and C++ build artifacts
+*.d
 *.o
 *.ko
 *.obj
 *.elf
-
-# Linker output
 *.ilk
 *.map
 *.exp
-
-# Precompiled Headers
 *.gch
 *.pch
-
-# Libraries
 *.lib
 *.a
 *.la
 *.lo
-
-# Shared objects (inc. Windows DLLs)
 *.dll
 *.so
 *.so.*
 *.dylib
-
-# Executables
 *.exe
 *.out
 *.app
 *.i*86
 *.x86_64
 *.hex
-
-# Debug files
 *.dSYM/
 *.su
 *.idb
 *.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
-
-# debug information files
 *.dwo
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
