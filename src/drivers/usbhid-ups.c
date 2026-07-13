@@ -78,7 +78,7 @@ static subdriver_t *subdriver_list[] = {
 	&apc_subdriver,
 //	&arduino_subdriver,
 //	&belkin_subdriver,
-//	&cps_subdriver,
+	&cps_subdriver,
 //	&delta_ups_subdriver,
 //	&ecoflow_subdriver,
 //	&ever_subdriver,

@@ -213,10 +213,12 @@ docs/
 Currently tested and supported:
 - APC Back-UPS (USB HID interface)
 
-The ESP32 branch includes a CyberPower header but not the corresponding
-`cps-hid.c` implementation, and the CyberPower subdriver is disabled in the
-driver table. CyberPower support must therefore be restored from upstream and
-validated after raw USB discovery; it is not currently supported by this port.
+The inherited ESP32 branch included a CyberPower header but omitted the
+corresponding `cps-hid.c` implementation and disabled the CyberPower subdriver.
+This downstream restores `cps-hid.c` from upstream NUT commit `2dce981e`, the
+exact merge base of the ESP32 port, and enables its subdriver table entry. Raw
+USB discovery is validated; NUT runtime communication remains a separate
+milestone.
 
 For a complete list of supported devices, see the [NUT Hardware Compatibility List](https://networkupstools.org/stable-hcl.html).
 

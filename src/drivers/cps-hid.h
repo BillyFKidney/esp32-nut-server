@@ -25,6 +25,6 @@
 
 #include "usbhid-ups.h"
 
-/*extern*/ subdriver_t cps_subdriver;
+extern subdriver_t cps_subdriver;
 
 #endif /* CPS_HID_H */
