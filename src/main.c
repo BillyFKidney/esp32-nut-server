@@ -197,7 +197,7 @@ extern void class_driver_task(void *);
 
 extern void esp_vfs_af_unix_register(void);
 
-static void nut_main(void *pvParameter)
+static void __attribute__((unused)) nut_main(void *pvParameter)
 {
     while (1)
     {
@@ -208,7 +208,7 @@ static void nut_main(void *pvParameter)
     }
 }
 
-static void drv_main(void *pvParameter)
+static void __attribute__((unused)) drv_main(void *pvParameter)
 {
     while (1)
     {
@@ -241,25 +241,14 @@ void app_main()
 
     mountFS();
 
-    BaseType_t task_created;
-
     hidHostInstall();
 
-    task_created = xTaskCreatePinnedToCore(drv_main, "drv_main", 8192 * 2, NULL, 5, NULL, 0);
-
-    assert(task_created == pdTRUE);
-
-    ulTaskNotifyTake(false, 1000);
-
-    task_created = xTaskCreatePinnedToCore(nut_main, "nut_main", 8192 * 2, NULL, 5, NULL, 0);
-
-    assert(task_created == pdTRUE);
-
-    ulTaskNotifyTake(false, 1000);
+    ESP_LOGI(TAG, "Read-only USB discovery mode active");
+    ESP_LOGI(TAG, "NUT driver and server startup is paused until UPS discovery succeeds");
 
     while (1)
     {
-        taskYIELD();
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 

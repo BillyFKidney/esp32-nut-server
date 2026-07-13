@@ -35,6 +35,12 @@ The inherited `nut_fat_8MB.csv` partition table is intentionally retained for
 the first ESP-IDF 6.0.2 build-and-boot milestone. It uses only the lower 8 MB
 of the available flash; expanding the storage layout is a separate change.
 
+On YD-ESP32-23 boards, the native connector's D+/D- lines are wired to the
+ESP32-S3 but its VBUS is not supplied when the `USB-OTG` solder jumper is open.
+The jumper must be verified against the exact board revision before bridging
+it. Closing it ties the two connector VBUS rails together, so external 5 V
+sources must not be connected in a way that can backfeed either USB host.
+
 ## Software Requirements
 
 - ESP-IDF v5.4.0 or later
@@ -80,6 +86,12 @@ This downstream tree is validated with ESP-IDF v6.0.2. The first local build
 creates `sdkconfig`, `dependencies.lock`, `managed_components/`, and `build/`;
 all are generated and remain untracked. Portable target settings live in
 `sdkconfig.defaults`.
+
+The current downstream milestone runs in read-only USB discovery mode. It
+waits for connect and disconnect events and prints the device, configuration,
+interface, endpoint, and cached string descriptors. NUT driver/server startup
+is paused until discovery is successful, preventing an absent device from
+calling `exit()` and rebooting ESP-IDF.
 
 ## Configuration
 
@@ -200,7 +212,11 @@ docs/
 
 Currently tested and supported:
 - APC Back-UPS (USB HID interface)
-- Other USB HID Power Device Class (PDC) UPS devices
+
+The ESP32 branch includes a CyberPower header but not the corresponding
+`cps-hid.c` implementation, and the CyberPower subdriver is disabled in the
+driver table. CyberPower support must therefore be restored from upstream and
+validated after raw USB discovery; it is not currently supported by this port.
 
 For a complete list of supported devices, see the [NUT Hardware Compatibility List](https://networkupstools.org/stable-hcl.html).
 

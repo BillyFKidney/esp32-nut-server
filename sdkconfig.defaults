@@ -18,6 +18,10 @@ CONFIG_SPIRAM_SPEED_80M=y
 CONFIG_SPIRAM_BOOT_INIT=y
 CONFIG_SPIRAM_MEMTEST=y
 
+# Leave room for complete UPS configuration and string descriptors during
+# read-only USB discovery.
+CONFIG_USB_HOST_CONTROL_TRANSFER_MAX_SIZE=1024
+
 # Preserve logs on the direct USB Serial/JTAG development connection while
 # retaining the upstream UART console.
 CONFIG_ESP_CONSOLE_UART_DEFAULT=y
