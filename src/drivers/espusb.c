@@ -30,6 +30,8 @@
 
 #define MAX_REPORT_SIZE 0x1800
 
+#define ESPUSB_READ_ONLY 1
+
 struct espusb_device
 {
     hid_host_device_handle_t parent_dev;
@@ -135,9 +137,10 @@ static int nut_espusb_open(espusb_device_handle **udevp,
                                            USBDevice_t *hd, usb_ctrl_charbuf rdbuf, usb_ctrl_charbufsize rdlen))
 {
     usb_host_lib_info_t lib_info;
+    hid_host_device_handle_t hid_device_handle = espusb_hid_device_handle;
     ESP_ERROR_CHECK(usb_host_lib_info(&lib_info));
 
-    if (espusb_hid_device_handle != NULL)
+    if (hid_device_handle != NULL)
     {
         espusb_device *cur_device = (espusb_device *)calloc(1, sizeof(espusb_device));
         if (cur_device == NULL)
@@ -145,10 +148,10 @@ static int nut_espusb_open(espusb_device_handle **udevp,
             ESP_LOGE(TAG, "Failed to allocate memory for device");
             return -1;
         }
-        cur_device->parent_dev = espusb_hid_device_handle;
+        cur_device->parent_dev = hid_device_handle;
 
-        ESP_ERROR_CHECK(hid_host_device_get_params(espusb_hid_device_handle, &cur_device->dev_params));
-        ESP_ERROR_CHECK(hid_host_get_device_info(espusb_hid_device_handle, &cur_device->dev_info));
+        ESP_ERROR_CHECK(hid_host_device_get_params(hid_device_handle, &cur_device->dev_params));
+        ESP_ERROR_CHECK(hid_host_get_device_info(hid_device_handle, &cur_device->dev_info));
 
         snprintf(cur_device->interface, 4, "%03u", cur_device->dev_params.iface_num);
         snprintf(cur_device->device, 4, "%03u", cur_device->dev_params.addr);
@@ -195,6 +198,7 @@ static int nut_espusb_open(espusb_device_handle **udevp,
             if (ret == 0)
             {
                 upsdebugx(2, "Device does not match - skipping");
+                free(cur_device);
                 return -1;
             }
             else if (ret == -1)
@@ -204,6 +208,7 @@ static int nut_espusb_open(espusb_device_handle **udevp,
             else if (ret == -2)
             {
                 upsdebugx(2, "matcher: unspecified error");
+                free(cur_device);
                 return -1;
             }
         }
@@ -221,8 +226,20 @@ static int nut_espusb_open(espusb_device_handle **udevp,
         }
         curHandle->dev = cur_device;
 
+        /*
+         * NUT supplies the descriptor callback only during initial driver
+         * setup.  A NULL callback means this is a reconnect to an already
+         * accepted device, so return the new handle without reparsing the
+         * report descriptor.  This matches the libusb backend contract.
+         */
+        if (callback == NULL)
+        {
+            *udevp = curHandle;
+            return 1;
+        }
+
         rdbuf = hid_host_get_report_descriptor(
-            espusb_hid_device_handle,
+            hid_device_handle,
             &rdlen);
 
         res = callback(curHandle, curDevice, rdbuf, (usb_ctrl_charbufsize)rdlen);
@@ -234,11 +251,12 @@ static int nut_espusb_open(espusb_device_handle **udevp,
             return -1;
         }
 
-        udevp[0] = curHandle;
+        *udevp = curHandle;
     }
     else
     {
         ESP_LOGE(TAG, "No device attached");
+        return 0;
     }
 
     return lib_info.num_devices;
@@ -246,8 +264,30 @@ static int nut_espusb_open(espusb_device_handle **udevp,
 
 static void nut_espusb_close(espusb_device_handle *udev)
 {
-    hid_host_device_close(udev->dev->parent_dev);
-    free(udev->dev);
+    if (udev == NULL)
+    {
+        return;
+    }
+
+    if (udev->dev != NULL)
+    {
+        /* The HID event callback already closes a physically removed device. */
+        if (udev->dev->parent_dev != NULL &&
+            espusb_hid_device_handle == udev->dev->parent_dev)
+        {
+            esp_err_t err = hid_host_device_close(udev->dev->parent_dev);
+            if (err != ESP_OK)
+            {
+                ESP_LOGW(TAG, "Unable to close HID device: %s", esp_err_to_name(err));
+            }
+            if (espusb_hid_device_handle == udev->dev->parent_dev)
+            {
+                espusb_hid_device_handle = NULL;
+            }
+        }
+        free(udev->dev);
+    }
+    free(udev);
 }
 
 static int nut_espusb_get_report(
@@ -258,12 +298,26 @@ static int nut_espusb_get_report(
 {
     size_t report_length = ReportSize;
 
-    ESP_ERROR_CHECK(hid_class_request_get_report(
-        udev->dev->parent_dev,
+    esp_err_t err = espusb_control_get_report(
         0x03,
         ReportId,
+        udev->dev->dev_params.iface_num,
         raw_buf,
-        &report_length));
+        &report_length);
+
+    if (err == ESP_ERR_INVALID_STATE)
+    {
+        return LIBUSB_ERROR_NO_DEVICE;
+    }
+    if (err == ESP_ERR_TIMEOUT)
+    {
+        return LIBUSB_ERROR_TIMEOUT;
+    }
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "GET_REPORT 0x%02x failed: %s", ReportId, esp_err_to_name(err));
+        return LIBUSB_ERROR_IO;
+    }
 
     return report_length;
 }
@@ -274,14 +328,29 @@ static int nut_espusb_set_report(
     usb_ctrl_charbuf raw_buf,
     usb_ctrl_charbufsize ReportSize)
 {
-    ESP_ERROR_CHECK(hid_class_request_set_report(
+#if ESPUSB_READ_ONLY
+    NUT_UNUSED_VARIABLE(udev);
+    NUT_UNUSED_VARIABLE(ReportId);
+    NUT_UNUSED_VARIABLE(raw_buf);
+    NUT_UNUSED_VARIABLE(ReportSize);
+    ESP_LOGW(TAG, "Blocked HID SET_REPORT while ESP USB backend is read-only");
+    return LIBUSB_ERROR_ACCESS;
+#else
+    esp_err_t err = hid_class_request_set_report(
         udev->dev->parent_dev,
         0x03,
         ReportId,
         raw_buf,
-        ReportSize));
+        ReportSize);
 
-    return 0;
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "SET_REPORT 0x%02x failed: %s", ReportId, esp_err_to_name(err));
+        return LIBUSB_ERROR_IO;
+    }
+
+    return ReportSize;
+#endif
 }
 
 /**

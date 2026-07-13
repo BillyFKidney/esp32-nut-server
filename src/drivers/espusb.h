@@ -31,6 +31,13 @@ typedef struct espusb_device_handle espusb_device_handle;
 
 typedef struct espusb_device espusb_device;
 
+esp_err_t espusb_control_get_report(
+    uint8_t report_type,
+    uint8_t report_id,
+    uint16_t interface_number,
+    uint8_t *report,
+    size_t *report_length);
+
 /* Structures */
 /* #define usb_dev_handle libusb_device_handle */
 // typedef espusb_device_handle usb_dev_handle;

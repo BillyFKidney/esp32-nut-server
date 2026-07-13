@@ -2,14 +2,16 @@
 
 ## Overview
 
-This is an ESP32 port of the Network UPS Tools (NUT), enabling UPS monitoring and management on ESP32-based devices. The port allows ESP32 microcontrollers to act as UPS servers, providing status information and control capabilities over WiFi.
+This is an ESP32 port of the Network UPS Tools (NUT). The current downstream
+milestone provides read-only USB HID UPS monitoring on ESP32-S3. Network-server
+and UPS-control capabilities inherited from the alpha port are not enabled yet.
 
 ## Features
 
 - USB HID UPS support via ESP32 USB Host
 - WiFi connectivity (Station and Access Point modes)
-- NUT server (upsd) running on ESP32
-- APC HID driver support
+- NUT `usbhid-ups` driver running on ESP32
+- CyberPower HID subdriver support
 - Web-based monitoring (when configured)
 - Persistent configuration storage using FAT filesystem
 
@@ -18,7 +20,7 @@ This is an ESP32 port of the Network UPS Tools (NUT), enabling UPS monitoring an
 - ESP32-S3 DevKit C-1 (or compatible ESP32 board with USB host support)
 - USB cable for connecting UPS
 - Power supply for ESP32
-- Compatible UPS device (tested with APC HID devices)
+- Compatible UPS device (currently tested with CyberPower CST150UC2)
 
 ### Squirrel Powered Labs target
 
@@ -43,7 +45,7 @@ sources must not be connected in a way that can backfeed either USB host.
 
 ## Software Requirements
 
-- ESP-IDF v5.4.0 or later
+- ESP-IDF v6.0.2 (validated downstream version)
 - PlatformIO (optional, for easier building)
 - Python 3.x (for ESP-IDF tools)
 
@@ -87,11 +89,12 @@ creates `sdkconfig`, `dependencies.lock`, `managed_components/`, and `build/`;
 all are generated and remain untracked. Portable target settings live in
 `sdkconfig.defaults`.
 
-The current downstream milestone runs in read-only USB discovery mode. It
-waits for connect and disconnect events and prints the device, configuration,
-interface, endpoint, and cached string descriptors. NUT driver/server startup
-is paused until discovery is successful, preventing an absent device from
-calling `exit()` and rebooting ESP-IDF.
+The current downstream milestone runs USB discovery and the NUT HID driver in
+read-only mode. Discovery prints connect/disconnect events and the device,
+configuration, interface, endpoint, and cached string descriptors. The driver
+uses explicit CyberPower VID/PID matching and polling; its ESP USB backend
+blocks HID writes and returns report-read failures to NUT instead of aborting
+ESP-IDF. NUT network-server startup remains paused.
 
 ## Configuration
 
@@ -168,8 +171,8 @@ ESP32 Application (app_main)
 │   ├── /var - Runtime data
 │   └── /usr - Configuration files
 ├── NUT Driver Task (drv_main)
-│   └── apc-hid driver
-└── NUT Server Task (nut_main)
+│   └── usbhid-ups with CyberPower HID subdriver
+└── NUT Server Task (nut_main, currently paused)
     └── upsd server
 ```
 
@@ -189,7 +192,7 @@ The application uses FreeRTOS tasks:
 1. **USB Library Task**: Handles USB host events
 2. **HID Background Task**: Processes HID device events
 3. **Driver Task** (drv_main): Runs the UPS driver
-4. **Server Task** (nut_main): Runs the upsd server
+4. **Server Task** (nut_main): Present but not started in this milestone
 5. **Main Task**: Monitors system state
 
 ## File Structure
@@ -211,14 +214,32 @@ docs/
 ## Supported UPS Devices
 
 Currently tested and supported:
-- APC Back-UPS (USB HID interface)
+
+- CyberPower CST150UC2 (`0764:0601`, USB HID, `pollonly`)
 
 The inherited ESP32 branch included a CyberPower header but omitted the
 corresponding `cps-hid.c` implementation and disabled the CyberPower subdriver.
 This downstream restores `cps-hid.c` from upstream NUT commit `2dce981e`, the
-exact merge base of the ESP32 port, and enables its subdriver table entry. Raw
-USB discovery is validated; NUT runtime communication remains a separate
-milestone.
+exact merge base of the ESP32 port, and enables its subdriver table entry. The
+driver reads standard CyberPower telemetry through the existing NUT HID stack.
+
+### Hardware validation
+
+The following behavior was validated on the Squirrel Powered Labs target with
+ESP-IDF v6.0.2 and a CyberPower CST150UC2:
+
+- Cold boot with the UPS absent and with it already attached
+- VID, PID, manufacturer, model, serial, configuration, interface, and endpoint
+  discovery
+- CyberPower HID report-descriptor parsing and regular two-second polling
+- Battery capacity, runtime, voltage, load, power, and `OL` status reporting
+- Clean disconnect, `DATASTALE`, re-enumeration, reconnect, and resumed full
+  polling without a reboot
+
+The ESP USB backend performs control `GET_REPORT` transfers through the raw USB
+Host Library client. Receive buffers are rounded for the ESP32-S3 endpoint-zero
+DMA requirements while the HID request length remains exact. This avoids the
+ESP-IDF HID host component assertion seen with exact 64-byte reports.
 
 For a complete list of supported devices, see the [NUT Hardware Compatibility List](https://networkupstools.org/stable-hcl.html).
 
@@ -242,9 +263,19 @@ For a complete list of supported devices, see the [NUT Hardware Compatibility Li
 
 ### Functional Limitations
 
-1. **USB Support**: Only HID devices currently supported
-2. **Filesystem**: FAT filesystem with wear leveling
-3. **Configuration**: No runtime configuration UI
+1. **Read-only USB**: HID `SET_REPORT` is blocked. UPS commands and writable
+   variables are not supported by this milestone.
+2. **Polling only**: The ESP USB backend's interrupt-transfer and string-read
+   entry points remain stubs; `pollonly` is required.
+3. **Vendor-private reports**: CyberPower reports `0x28` and `0x29` currently
+   return an invalid-response error when the host controller reports padded
+   bytes beyond the requested length. These reports contain vendor-private
+   usages not mapped into the standard telemetry validated above.
+4. **Network server paused**: `upsd` is not started, so network clients cannot
+   query this build yet.
+5. **USB scope**: Only HID devices are currently supported.
+6. **Filesystem**: FAT filesystem with wear leveling.
+7. **Configuration**: No runtime configuration UI.
 
 ## Troubleshooting
 
@@ -348,14 +379,9 @@ xtensa-esp32s3-elf-gdb build/nut.elf
 
 ### Testing
 
-Test UPS communication:
-```bash
-# From another machine on the network
-upsc ups@<esp32-ip>
-
-# List available commands
-upscmd -l ups@<esp32-ip>
-```
+Until `upsd` is enabled, validate the driver over the serial console. A complete
+test includes cold boot, initial `DATAOK`, disconnect to `DATASTALE`, reconnect,
+and at least one subsequent full poll without a reset.
 
 ## Contributing
 
@@ -395,9 +421,10 @@ For general NUT questions:
 ## Changelog
 
 ### Current Version
-- Initial ESP32 port
-- Security improvements and documentation
-- Buffer overflow fixes
-- Memory leak fixes
+
+- ESP-IDF v6.0.2 and ESP32-S3-N16R8 build support
+- Read-only USB discovery and CyberPower NUT HID polling
+- Endpoint-zero control-transfer workaround for 64-byte reports
+- Clean USB disconnect and hot reconnect handling
 
 See git history for detailed changes.

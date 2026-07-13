@@ -6,6 +6,8 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
+#include <string.h>
+
 #define CLIENT_NUM_EVENT_MSG 5
 
 #define DEV_MAX_COUNT 128
@@ -29,7 +31,157 @@ typedef struct
     usb_device_handle_t device_handle;
     uint8_t device_address;
     uint32_t actions;
+    SemaphoreHandle_t device_mutex;
+    volatile bool device_available;
 } UsbDiscoveryState;
+
+static UsbDiscoveryState s_usb_discovery_state = {0};
+
+static void usb_control_transfer_callback(usb_transfer_t *transfer)
+{
+    SemaphoreHandle_t transfer_done = (SemaphoreHandle_t)transfer->context;
+    xSemaphoreGive(transfer_done);
+}
+
+esp_err_t espusb_control_get_report(
+    uint8_t report_type,
+    uint8_t report_id,
+    uint16_t interface_number,
+    uint8_t *report,
+    size_t *report_length)
+{
+    UsbDiscoveryState *state = &s_usb_discovery_state;
+    usb_device_info_t device_info;
+    usb_transfer_t *transfer = NULL;
+    SemaphoreHandle_t transfer_done = NULL;
+    esp_err_t err = ESP_FAIL;
+
+    if (report == NULL || report_length == NULL || *report_length == 0)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (state->device_mutex == NULL)
+    {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    xSemaphoreTake(state->device_mutex, portMAX_DELAY);
+
+    if (!state->device_available ||
+        state->client_handle == NULL ||
+        state->device_handle == NULL)
+    {
+        err = ESP_ERR_INVALID_STATE;
+        goto cleanup;
+    }
+
+    err = usb_host_device_info(state->device_handle, &device_info);
+    if (err != ESP_OK)
+    {
+        goto cleanup;
+    }
+
+    /*
+     * ESP32-S3 DWC control-IN DMA descriptors need a receive length that is
+     * an integer multiple of EP0's MPS. Keep the HID request's wLength exact,
+     * but reserve one additional byte before rounding so an exact-MPS report
+     * also has a spare packet in the DMA descriptor.
+     */
+    int data_buffer_length = usb_round_up_to_mps(
+        (int)*report_length + 1,
+        device_info.bMaxPacketSize0);
+    if (data_buffer_length <= 0)
+    {
+        err = ESP_ERR_INVALID_SIZE;
+        goto cleanup;
+    }
+
+    size_t transfer_length = sizeof(usb_setup_packet_t) + (size_t)data_buffer_length;
+    err = usb_host_transfer_alloc(transfer_length, 0, &transfer);
+    if (err != ESP_OK)
+    {
+        goto cleanup;
+    }
+
+    transfer_done = xSemaphoreCreateBinary();
+    if (transfer_done == NULL)
+    {
+        err = ESP_ERR_NO_MEM;
+        goto cleanup;
+    }
+
+    usb_setup_packet_t *setup = (usb_setup_packet_t *)transfer->data_buffer;
+    setup->bmRequestType = USB_BM_REQUEST_TYPE_DIR_IN |
+                           USB_BM_REQUEST_TYPE_TYPE_CLASS |
+                           USB_BM_REQUEST_TYPE_RECIP_INTERFACE;
+    setup->bRequest = HID_CLASS_SPECIFIC_REQ_GET_REPORT;
+    setup->wValue = ((uint16_t)report_type << 8) | report_id;
+    setup->wIndex = interface_number;
+    setup->wLength = (uint16_t)*report_length;
+
+    transfer->device_handle = state->device_handle;
+    transfer->bEndpointAddress = 0;
+    transfer->callback = usb_control_transfer_callback;
+    transfer->context = transfer_done;
+    transfer->num_bytes = transfer_length;
+    transfer->timeout_ms = 5000;
+
+    err = usb_host_transfer_submit_control(state->client_handle, transfer);
+    if (err != ESP_OK)
+    {
+        goto cleanup;
+    }
+
+    xSemaphoreTake(transfer_done, portMAX_DELAY);
+
+    if (transfer->status == USB_TRANSFER_STATUS_NO_DEVICE)
+    {
+        err = ESP_ERR_INVALID_STATE;
+        goto cleanup;
+    }
+    if (transfer->status == USB_TRANSFER_STATUS_TIMED_OUT)
+    {
+        err = ESP_ERR_TIMEOUT;
+        goto cleanup;
+    }
+    if (transfer->status != USB_TRANSFER_STATUS_COMPLETED)
+    {
+        ESP_LOGE(TAG, "GET_REPORT control transfer failed with status %d", transfer->status);
+        err = ESP_FAIL;
+        goto cleanup;
+    }
+    if (transfer->actual_num_bytes < sizeof(usb_setup_packet_t))
+    {
+        err = ESP_ERR_INVALID_SIZE;
+        goto cleanup;
+    }
+
+    size_t actual_report_length =
+        transfer->actual_num_bytes - sizeof(usb_setup_packet_t);
+    if (actual_report_length > *report_length)
+    {
+        err = ESP_ERR_INVALID_RESPONSE;
+        goto cleanup;
+    }
+
+    memcpy(report,
+           transfer->data_buffer + sizeof(usb_setup_packet_t),
+           actual_report_length);
+    *report_length = actual_report_length;
+    err = ESP_OK;
+
+cleanup:
+    if (transfer_done != NULL)
+    {
+        vSemaphoreDelete(transfer_done);
+    }
+    if (transfer != NULL)
+    {
+        usb_host_transfer_free(transfer);
+    }
+    xSemaphoreGive(state->device_mutex);
+    return err;
+}
 
 static const char *usb_speed_name(usb_speed_t speed)
 {
@@ -61,6 +213,7 @@ static void usb_discovery_client_event_callback(
     case USB_HOST_CLIENT_EVENT_DEV_GONE:
         if (state->device_handle == event_msg->dev_gone.dev_hdl)
         {
+            state->device_available = false;
             state->actions = USB_DISCOVERY_ACTION_CLOSE_DEVICE;
         }
         break;
@@ -83,6 +236,8 @@ static void usb_discovery_print_device(UsbDiscoveryState *state)
     const usb_config_desc_t *config_descriptor = NULL;
     esp_err_t err;
 
+    xSemaphoreTake(state->device_mutex, portMAX_DELAY);
+
     err = usb_host_device_open(
         state->client_handle,
         state->device_address,
@@ -92,6 +247,7 @@ static void usb_discovery_print_device(UsbDiscoveryState *state)
         ESP_LOGE(TAG, "Unable to open USB device %u: %s",
                  state->device_address, esp_err_to_name(err));
         state->device_address = 0;
+        xSemaphoreGive(state->device_mutex);
         return;
     }
 
@@ -153,14 +309,20 @@ static void usb_discovery_print_device(UsbDiscoveryState *state)
             usb_print_string_descriptor(device_info.str_desc_serial_num);
         }
     }
+
+    state->device_available = true;
+    xSemaphoreGive(state->device_mutex);
 }
 
 static void usb_discovery_close_device(UsbDiscoveryState *state)
 {
     esp_err_t err;
 
+    xSemaphoreTake(state->device_mutex, portMAX_DELAY);
+
     if (state->device_handle == NULL)
     {
+        xSemaphoreGive(state->device_mutex);
         return;
     }
 
@@ -176,26 +338,27 @@ static void usb_discovery_close_device(UsbDiscoveryState *state)
 
     state->device_handle = NULL;
     state->device_address = 0;
+    xSemaphoreGive(state->device_mutex);
 }
 
 static void usb_discovery_task(void *arg)
 {
-    UsbDiscoveryState state = {0};
+    UsbDiscoveryState *state = &s_usb_discovery_state;
     const usb_host_client_config_t client_config = {
         .is_synchronous = false,
         .max_num_event_msg = USB_DISCOVERY_CLIENT_EVENT_MSGS,
         .async = {
             .client_event_callback = usb_discovery_client_event_callback,
-            .callback_arg = &state,
+            .callback_arg = state,
         },
     };
 
-    ESP_ERROR_CHECK(usb_host_client_register(&client_config, &state.client_handle));
+    ESP_ERROR_CHECK(usb_host_client_register(&client_config, &state->client_handle));
     ESP_LOGI(TAG, "Read-only USB discovery client ready; waiting for a device");
 
     while (true)
     {
-        esp_err_t err = usb_host_client_handle_events(state.client_handle, portMAX_DELAY);
+        esp_err_t err = usb_host_client_handle_events(state->client_handle, portMAX_DELAY);
         if (err != ESP_OK)
         {
             ESP_LOGE(TAG, "USB discovery event handling failed: %s", esp_err_to_name(err));
@@ -203,16 +366,16 @@ static void usb_discovery_task(void *arg)
             continue;
         }
 
-        uint32_t actions = state.actions;
-        state.actions = USB_DISCOVERY_ACTION_NONE;
+        uint32_t actions = state->actions;
+        state->actions = USB_DISCOVERY_ACTION_NONE;
 
         if (actions & USB_DISCOVERY_ACTION_CLOSE_DEVICE)
         {
-            usb_discovery_close_device(&state);
+            usb_discovery_close_device(state);
         }
         if (actions & USB_DISCOVERY_ACTION_OPEN_DEVICE)
         {
-            usb_discovery_print_device(&state);
+            usb_discovery_print_device(state);
         }
     }
 }
@@ -234,6 +397,12 @@ typedef struct
 QueueHandle_t espusb_event_queue = NULL;
 
 hid_host_device_handle_t espusb_hid_device_handle = NULL;
+
+bool usb_hid_device_ready(void)
+{
+    return espusb_hid_device_handle != NULL &&
+           s_usb_discovery_state.device_available;
+}
 
 /**
  * @brief Start USB Host install and handle common USB host library events while app pin not low
@@ -380,6 +549,9 @@ void hid_host_device_callback(hid_host_device_handle_t hid_device_handle,
 void hidHostInstall()
 {
     BaseType_t task_created;
+
+    s_usb_discovery_state.device_mutex = xSemaphoreCreateMutex();
+    assert(s_usb_discovery_state.device_mutex != NULL);
 
     /*
      * Create usb_lib_task to:

@@ -49,47 +49,6 @@ void mountFS(void)
         }
     }
 
-    FILE *f = fopen("/var/db/nut/nut.pid", "wb");
-    if (f == NULL)
-    {
-        perror("fopen"); // Print reason why fopen failed
-        ESP_LOGE(TAG, "Failed to open file for writing");
-        return;
-    }
-
-    fseek(f, 0, SEEK_END);
-    if (0 == ftell(f))
-    {
-        fprintf(f, "empty");
-        fflush(f);
-    }
-    fclose(f);
-
-    f = fopen("/var/db/nut/apc-hid-hidapc.pid", "wb");
-    if (f == NULL)
-    {
-        perror("fopen"); // Print reason why fopen failed
-        ESP_LOGE(TAG, "Failed to open file for writing");
-        return;
-    }
-
-    fseek(f, 0, SEEK_END);
-    if (0 == ftell(f))
-    {
-        fprintf(f, "empty");
-        fflush(f);
-    }
-    fclose(f);
-
-    f = fopen("/var/db/nut/apc-hid-hidapc", "wb");
-    if (f == NULL)
-    {
-        perror("fopen"); // Print reason why fopen failed
-        ESP_LOGE(TAG, "Failed to open file for writing");
-        return;
-    }
-    fclose(f);
-
     err = esp_vfs_fat_spiflash_mount_rw_wl("/usr", "usr", &mount_config, &s_usr_wl_handle);
     if (err != ESP_OK)
     {
@@ -106,7 +65,7 @@ void mountFS(void)
         }
     }
 
-    f = fopen("/usr/local/etc/nut/upsd.users", "wb");
+    FILE *f = fopen("/usr/local/etc/nut/upsd.users", "wb");
     if (f == NULL)
     {
         perror("fopen"); // Print reason why fopen failed
@@ -162,10 +121,13 @@ void mountFS(void)
     fseek(f, 0, SEEK_END);
     if (0 == ftell(f))
     {
-        fprintf(f, "[hidapc]\n");
-        fprintf(f, "  driver = apc-hid\n");
+        fprintf(f, "[cyberpower]\n");
+        fprintf(f, "  driver = usbhid-ups\n");
         fprintf(f, "  port = auto\n");
-        fprintf(f, "  desc = \"APC\"\n");
+        fprintf(f, "  desc = \"CyberPower CST150UC2\"\n");
+        fprintf(f, "  vendorid = 0764\n");
+        fprintf(f, "  productid = 0601\n");
+        fprintf(f, "  pollonly\n");
         fprintf(f, "\n");
         fflush(f);
     }
@@ -189,6 +151,7 @@ void mountFS(void)
 }
 
 extern void hidHostInstall(void);
+extern bool usb_hid_device_ready(void);
 
 extern void wifi_init_sta(void);
 extern void wifi_init_softap(void);
@@ -208,15 +171,19 @@ static void __attribute__((unused)) nut_main(void *pvParameter)
     }
 }
 
-static void __attribute__((unused)) drv_main(void *pvParameter)
+static void drv_main(void *pvParameter)
 {
-    while (1)
+    while (!usb_hid_device_ready())
     {
-        optind = 0;
-        char *args[3] = {"apc-hid", "-F", "-ahidapc"};
-        drivers_main(3, args);
-        vTaskDelay(1);
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
+
+    ESP_LOGI(TAG, "Starting read-only NUT HID driver for CyberPower UPS");
+    optind = 0;
+    char *args[3] = {"usbhid-ups", "-F", "-acyberpower"};
+    int result = drivers_main(3, args);
+    ESP_LOGE(TAG, "NUT HID driver stopped unexpectedly with result %d", result);
+    vTaskSuspend(NULL);
 }
 
 void rtos_yield(void)
@@ -243,8 +210,12 @@ void app_main()
 
     hidHostInstall();
 
-    ESP_LOGI(TAG, "Read-only USB discovery mode active");
-    ESP_LOGI(TAG, "NUT driver and server startup is paused until UPS discovery succeeds");
+    BaseType_t task_created = xTaskCreatePinnedToCore(
+        drv_main, "drv_main", 8192 * 2, NULL, 5, NULL, 0);
+    assert(task_created == pdTRUE);
+
+    ESP_LOGI(TAG, "Read-only USB discovery and NUT driver mode active");
+    ESP_LOGI(TAG, "NUT network server startup remains paused");
 
     while (1)
     {
