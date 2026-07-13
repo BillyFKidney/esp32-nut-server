@@ -1,0 +1,24 @@
+# YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8
+CONFIG_IDF_TARGET="esp32s3"
+
+# 16 MB quad-SPI flash, using the mode already verified on this board.
+CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+
+# Keep the upstream 8 MB partition layout for the initial compatibility and
+# boot milestone. The upper half of flash is intentionally unused for now.
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="nut_fat_8MB.csv"
+
+# 8 MB octal PSRAM at the module's verified operating speed.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_SPIRAM_BOOT_INIT=y
+CONFIG_SPIRAM_MEMTEST=y
+
+# Preserve logs on the direct USB Serial/JTAG development connection while
+# retaining the upstream UART console.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y

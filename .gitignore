@@ -15,6 +15,7 @@
 Makefile
 Makefile.in
 build
+/build/
 
 ## Parent directory only
 /aclocal.m4
@@ -71,6 +72,18 @@ build
 .dirstamp
 *.exe
 managed_components
+/managed_components/
+
+# ESP-IDF generated and machine-local configuration
+/sdkconfig
+/sdkconfig.old
+/sdkconfig.ci
+/sdkconfig.defaults.local
+/dependencies.lock
+/dependencies.lock.tmp
+
+# Machine-local editor configuration
+/.vscode/settings.json
 
 # Python precompiled files
 __pycache__/

@@ -1,9 +1,6 @@
 #ifndef _SYS_SYSLOG_H
 #define _SYS_SYSLOG_H 1
 
-#include <sys/cdefs.h>
-#include <sys/features.h>
-#define __need___va_list
 #include <stdarg.h>
 
 /* This file defines _PATH_LOG.  */
@@ -136,7 +133,9 @@ CODE facilitynames[] =
 #define        LOG_NOWAIT        0x10        /* don't wait for console forks: DEPRECATED */
 #define        LOG_PERROR        0x20        /* log to stderr as well */
 
-__BEGIN_DECLS
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Close descriptor used to write to system logger.
 
@@ -148,16 +147,16 @@ extern void closelog (void);
 
    This function is a possible cancellation point and therefore not
    marked with __THROW.  */
-extern void openlog (__const char *__ident, int __option, int __facility);
+extern void openlog (const char *ident, int option, int facility);
 
 /* Set the log mask level.  */
-extern int setlogmask (int __mask) __THROW;
+extern int setlogmask (int mask);
 
 /* Generate a log message using FMT string and option arguments.
 
    This function is a possible cancellation point and therefore not
    marked with __THROW.  */
-extern void syslog (int __pri, __const char *__fmt, ...)
+extern void syslog (int priority, const char *format, ...)
      __attribute__ ((__format__ (__printf__, 2, 3)));
 
 #ifdef __USE_BSD
@@ -167,19 +166,13 @@ extern void syslog (int __pri, __const char *__fmt, ...)
    cancellation point.  But due to similarity with an POSIX interface
    or due to the implementation it is a cancellation point and
    therefore not marked with __THROW.  */
-extern void vsyslog (int __pri, __const char *__fmt, __gnuc_va_list __ap)
+extern void vsyslog (int priority, const char *format, va_list arguments)
      __attribute__ ((__format__ (__printf__, 2, 0)));
 #endif
 
 
-/* Define some macros helping to catch buffer overflows.  */
-#if __USE_FORTIFY_LEVEL > 0 && defined __extern_always_inline
-# include <bits/syslog.h>
+#ifdef __cplusplus
+}
 #endif
-#ifdef __LDBL_COMPAT
-# include <bits/syslog-ldbl.h>
-#endif
-
-__END_DECLS
 
 #endif /* sys/syslog.h */

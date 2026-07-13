@@ -2,8 +2,28 @@
 
 void closelog (void) {}
 
-void openlog (__const char *__ident, int __option, int __facility) {}
+void openlog (const char *ident, int option, int facility)
+{
+	(void)ident;
+	(void)option;
+	(void)facility;
+}
 
-int setlogmask (int __mask) { return 0;}
+int setlogmask (int mask)
+{
+	(void)mask;
+	return 0;
+}
 
-void syslog (int __pri, __const char *__fmt, ...) {}
+void syslog (int priority, const char *format, ...)
+{
+	(void)priority;
+	(void)format;
+}
+
+void vsyslog (int priority, const char *format, va_list arguments)
+{
+	(void)priority;
+	(void)format;
+	(void)arguments;
+}

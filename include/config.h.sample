@@ -440,11 +440,11 @@ const char *gai_strerror(int errcode);
 
 /* define if your compiler has #pragma GCC diagnostic ignored
    "-Wcovered-switch-default" */
-#define HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_COVERED_SWITCH_DEFAULT 1
+/* #undef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_COVERED_SWITCH_DEFAULT */
 
 /* define if your compiler has #pragma GCC diagnostic ignored
    "-Wcovered-switch-default" (outside functions) */
-#define HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_COVERED_SWITCH_DEFAULT_BESIDEFUNC 1
+/* #undef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_COVERED_SWITCH_DEFAULT_BESIDEFUNC */
 
 /* define if your compiler has #pragma GCC diagnostic ignored "-Wc++98-compat"
    */
@@ -560,27 +560,27 @@ const char *gai_strerror(int errcode);
 
 /* define if your compiler has #pragma GCC diagnostic ignored
    "-Wtautological-constant-out-of-range-compare" */
-#define HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE 1
+/* #undef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE */
 
 /* define if your compiler has #pragma GCC diagnostic ignored
    "-Wtautological-constant-out-of-range-compare" (outside functions) */
-#define HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE_BESIDEFUNC 1
+/* #undef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE_BESIDEFUNC */
 
 /* define if your compiler has #pragma GCC diagnostic ignored
    "-Wtautological-type-limit-compare" */
-#define HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_TYPE_LIMIT_COMPARE 1
+/* #undef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_TYPE_LIMIT_COMPARE */
 
 /* define if your compiler has #pragma GCC diagnostic ignored
    "-Wtautological-type-limit-compare" (outside functions) */
-#define HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_TYPE_LIMIT_COMPARE_BESIDEFUNC 1
+/* #undef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_TYPE_LIMIT_COMPARE_BESIDEFUNC */
 
 /* define if your compiler has #pragma GCC diagnostic ignored
    "-Wtautological-unsigned-zero-compare" */
-#define HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_UNSIGNED_ZERO_COMPARE 1
+/* #undef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_UNSIGNED_ZERO_COMPARE */
 
 /* define if your compiler has #pragma GCC diagnostic ignored
    "-Wtautological-unsigned-zero-compare" (outside functions) */
-#define HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_UNSIGNED_ZERO_COMPARE_BESIDEFUNC 1
+/* #undef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_UNSIGNED_ZERO_COMPARE_BESIDEFUNC */
 
 /* define if your compiler has #pragma GCC diagnostic ignored "-Wtype-limits"
    */
@@ -608,11 +608,11 @@ const char *gai_strerror(int errcode);
 
 /* define if your compiler has #pragma GCC diagnostic ignored
    "-Wunreachable-code-return" */
-#define HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_UNREACHABLE_CODE_RETURN 0
+/* #undef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_UNREACHABLE_CODE_RETURN */
 
 /* define if your compiler has #pragma GCC diagnostic ignored
    "-Wunreachable-code-return" (outside functions) */
-#define HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_UNREACHABLE_CODE_RETURN_BESIDEFUNC 1
+/* #undef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_UNREACHABLE_CODE_RETURN_BESIDEFUNC */
 
 /* define if your compiler has #pragma GCC diagnostic ignored
    "-Wunused-function" */
@@ -722,7 +722,7 @@ const char *gai_strerror(int errcode);
 #define HAVE_SYS_RESOURCE_H 1
 
 /* Define to 1 if you have <sys/signal.h>. */
-#define HAVE_SYS_SIGNAL_H 1
+/* #undef HAVE_SYS_SIGNAL_H */
 
 /* Define to 1 if you have the <sys/socket.h> header file. */
 #define HAVE_SYS_SOCKET_H 1

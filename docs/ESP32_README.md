@@ -20,6 +20,21 @@ This is an ESP32 port of the Network UPS Tools (NUT), enabling UPS monitoring an
 - Power supply for ESP32
 - Compatible UPS device (tested with APC HID devices)
 
+### Squirrel Powered Labs target
+
+The downstream ESP32-NUT build currently targets:
+
+- YD-ESP32-23 development board
+- ESP32-S3-WROOM-1-N16R8 module
+- 16 MB quad-SPI flash in DIO mode at 80 MHz
+- 8 MB octal PSRAM at 80 MHz
+- Direct USB Serial/JTAG development connection
+- Native USB host connection to a USB HID UPS
+
+The inherited `nut_fat_8MB.csv` partition table is intentionally retained for
+the first ESP-IDF 6.0.2 build-and-boot milestone. It uses only the lower 8 MB
+of the available flash; expanding the storage layout is a separate change.
+
 ## Software Requirements
 
 - ESP-IDF v5.4.0 or later
@@ -60,6 +75,11 @@ idf.py build
 # Flash
 idf.py -p /dev/ttyUSB0 flash monitor
 ```
+
+This downstream tree is validated with ESP-IDF v6.0.2. The first local build
+creates `sdkconfig`, `dependencies.lock`, `managed_components/`, and `build/`;
+all are generated and remain untracked. Portable target settings live in
+`sdkconfig.defaults`.
 
 ## Configuration
 
