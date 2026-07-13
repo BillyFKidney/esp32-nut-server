@@ -6,21 +6,19 @@ This document outlines security considerations and best practices for deploying 
 
 ## Critical Security Issues
 
-### 1. Default Credentials
+### 1. Credentials
 
-**⚠️ CRITICAL: Change all default credentials before production deployment!**
+**⚠️ CRITICAL: Change the default WiFi credentials before production deployment!**
 
-The ESP32 port of NUT includes several hardcoded default credentials that **MUST** be changed:
+The ESP32 port includes hardcoded development WiFi credentials that **MUST** be changed.
 
 #### UPS Daemon Credentials
 - **Location**: `/usr/local/etc/nut/upsd.users`
-- **Default passwords**:
-  - User `nut`: password `espdonut`
-  - User `monuser`: password `pass`
-- **Actions Required**:
-  1. Edit `/usr/local/etc/nut/upsd.users` after first boot
-  2. Use strong, unique passwords (minimum 12 characters)
-  3. Restrict access to configuration files
+- **Default**: No users are configured in the read-only milestone
+- **Behavior**: Unauthenticated `GET` and `LIST` requests are available;
+  login-dependent `SET`, `INSTCMD`, and `FSD` requests cannot be authorized
+- **If users are enabled later**: Use unique passwords, grant only required
+  permissions, and restrict access to the configuration file
 
 #### WiFi Credentials
 - **Location**: `src/wifi.c` (compile-time)
@@ -60,9 +58,8 @@ The current implementation uses relaxed file permissions that have been improved
 
 ### Before Deployment
 
-- [ ] Change all default passwords
-  - [ ] UPS daemon users
-  - [ ] WiFi credentials
+- [ ] Change the default WiFi credentials
+- [ ] Keep NUT users disabled unless authenticated operations are required
 - [ ] Review and restrict file permissions
 - [ ] Enable WPA2/WPA3 WiFi encryption
 - [ ] Configure network access controls

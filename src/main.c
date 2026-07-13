@@ -76,18 +76,7 @@ void mountFS(void)
     fseek(f, 0, SEEK_END);
     if (0 == ftell(f))
     {
-        // WARNING: Using default credentials - CHANGE THESE IN PRODUCTION!
-        // Default password "espdonut" should be changed immediately after deployment
-        // TODO: Implement secure credential storage using ESP32 NVS with encryption
-        fprintf(f, "[nut]\n");
-        fprintf(f, "  password = espdonut\n");
-        fprintf(f, "  actions = SET\n");
-        fprintf(f, "  instcmds = ALL\n");
-        fprintf(f, "\n");
-        fprintf(f, "[monuser]\n");
-        fprintf(f, "  password = pass\n");
-        fprintf(f, "  upsmon primary\n");
-        fprintf(f, "\n");
+        fprintf(f, "# Read-only server: no authenticated NUT users are configured.\n");
         fflush(f);
     }
     fclose(f);
@@ -160,15 +149,14 @@ extern void class_driver_task(void *);
 
 extern void esp_vfs_af_unix_register(void);
 
-static void __attribute__((unused)) nut_main(void *pvParameter)
+static void nut_main(void *pvParameter)
 {
-    while (1)
-    {
-        optind = 0;
-        char *args[2] = {PACKAGE_NAME, "-F"};
-        main(2, args);
-        vTaskDelay(1);
-    }
+    ESP_LOGI(TAG, "Starting read-only NUT network server");
+    optind = 0;
+    char *args[2] = {PACKAGE_NAME, "-F"};
+    int result = main(2, args);
+    ESP_LOGE(TAG, "NUT network server stopped unexpectedly with result %d", result);
+    vTaskSuspend(NULL);
 }
 
 static void drv_main(void *pvParameter)
@@ -214,8 +202,13 @@ void app_main()
         drv_main, "drv_main", 8192 * 2, NULL, 5, NULL, 0);
     assert(task_created == pdTRUE);
 
-    ESP_LOGI(TAG, "Read-only USB discovery and NUT driver mode active");
-    ESP_LOGI(TAG, "NUT network server startup remains paused");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    task_created = xTaskCreatePinnedToCore(
+        nut_main, "nut_main", 8192 * 2, NULL, 5, NULL, 0);
+    assert(task_created == pdTRUE);
+
+    ESP_LOGI(TAG, "Read-only USB discovery, NUT driver, and network server active");
 
     while (1)
     {
