@@ -3,14 +3,15 @@
 ## Overview
 
 This is an ESP32 port of the Network UPS Tools (NUT). The current downstream
-milestone provides read-only USB HID UPS monitoring on ESP32-S3. Network-server
-and UPS-control capabilities inherited from the alpha port are not enabled yet.
+milestone provides read-only USB HID UPS monitoring and NUT network access on
+ESP32-S3. UPS-control capabilities inherited from the alpha port are disabled.
 
 ## Features
 
 - USB HID UPS support via ESP32 USB Host
 - WiFi connectivity (Station and Access Point modes)
 - NUT `usbhid-ups` driver running on ESP32
+- Read-only NUT `upsd` server on TCP port 3493
 - CyberPower HID subdriver support
 - Web-based monitoring (when configured)
 - Persistent configuration storage using FAT filesystem
@@ -94,7 +95,8 @@ read-only mode. Discovery prints connect/disconnect events and the device,
 configuration, interface, endpoint, and cached string descriptors. The driver
 uses explicit CyberPower VID/PID matching and polling; its ESP USB backend
 blocks HID writes and returns report-read failures to NUT instead of aborting
-ESP-IDF. NUT network-server startup remains paused.
+ESP-IDF. The NUT network server exposes read-only `GET` and `LIST` requests;
+no authenticated NUT users are configured.
 
 ## Configuration
 
@@ -117,13 +119,11 @@ After the device boots, configuration files are automatically created in the vir
 
 - `/usr/local/etc/nut/ups.conf` - UPS device configuration
 - `/usr/local/etc/nut/upsd.conf` - Server configuration
-- `/usr/local/etc/nut/upsd.users` - User authentication
+- `/usr/local/etc/nut/upsd.users` - User authentication (empty by default)
 
-**⚠️ SECURITY WARNING**: Default passwords are set!
-
-Default credentials (MUST be changed for production):
-- User `nut`: password `espdonut`
-- User `monuser`: password `pass`
+The read-only milestone does not configure NUT user accounts. NUT `GET` and
+`LIST` requests do not require authentication. Login-dependent operations such
+as `SET`, `INSTCMD`, and `FSD` cannot be authorized.
 
 ### Network Access
 
@@ -133,7 +133,7 @@ The NUT server listens on:
 
 Access the server using any NUT client:
 ```bash
-upsc ups@<esp32-ip-address>
+upsc cyberpower@<esp32-ip-address>
 ```
 
 ## Security Considerations
@@ -151,7 +151,7 @@ See [ESP32_SECURITY.md](ESP32_SECURITY.md) for detailed security considerations 
 
 Before production deployment:
 - [ ] Change WiFi SSID and password
-- [ ] Change all UPS daemon user passwords
+- [ ] Keep `upsd.users` empty unless authenticated operations are required
 - [ ] Review file permissions on configuration files
 - [ ] Configure network access controls
 - [ ] Enable WPA2/WPA3 WiFi encryption
@@ -172,7 +172,7 @@ ESP32 Application (app_main)
 │   └── /usr - Configuration files
 ├── NUT Driver Task (drv_main)
 │   └── usbhid-ups with CyberPower HID subdriver
-└── NUT Server Task (nut_main, currently paused)
+└── NUT Server Task (nut_main)
     └── upsd server
 ```
 
@@ -192,7 +192,7 @@ The application uses FreeRTOS tasks:
 1. **USB Library Task**: Handles USB host events
 2. **HID Background Task**: Processes HID device events
 3. **Driver Task** (drv_main): Runs the UPS driver
-4. **Server Task** (nut_main): Present but not started in this milestone
+4. **Server Task** (nut_main): Serves read-only NUT network requests
 5. **Main Task**: Monitors system state
 
 ## File Structure
@@ -235,6 +235,11 @@ ESP-IDF v6.0.2 and a CyberPower CST150UC2:
 - Battery capacity, runtime, voltage, load, power, and `OL` status reporting
 - Clean disconnect, `DATASTALE`, re-enumeration, reconnect, and resumed full
   polling without a reboot
+- SoftAP reachability at `192.168.4.1` and NUT service on TCP port 3493
+- `LIST UPS` and live `GET VAR` responses from a network client
+- Rejection of the removed legacy credential with `ERR ACCESS-DENIED`
+- `ERR DATA-STALE` over the network after disconnect and resumed live telemetry
+  after reconnect, without restarting `upsd`
 
 The ESP USB backend performs control `GET_REPORT` transfers through the raw USB
 Host Library client. Receive buffers are rounded for the ESP32-S3 endpoint-zero
@@ -271,8 +276,8 @@ For a complete list of supported devices, see the [NUT Hardware Compatibility Li
    return an invalid-response error when the host controller reports padded
    bytes beyond the requested length. These reports contain vendor-private
    usages not mapped into the standard telemetry validated above.
-4. **Network server paused**: `upsd` is not started, so network clients cannot
-   query this build yet.
+4. **Read-only network server**: `upsd` serves unauthenticated `GET` and `LIST`
+   requests. No authenticated users or TLS support are configured.
 5. **USB scope**: Only HID devices are currently supported.
 6. **Filesystem**: FAT filesystem with wear leveling.
 7. **Configuration**: No runtime configuration UI.
@@ -379,9 +384,9 @@ xtensa-esp32s3-elf-gdb build/nut.elf
 
 ### Testing
 
-Until `upsd` is enabled, validate the driver over the serial console. A complete
-test includes cold boot, initial `DATAOK`, disconnect to `DATASTALE`, reconnect,
-and at least one subsequent full poll without a reset.
+Validate the driver over the serial console and query `upsd` over the network.
+A complete test includes cold boot, live `GET VAR` responses, disconnect to
+`ERR DATA-STALE`, reconnect, and resumed live responses without a reset.
 
 ## Contributing
 

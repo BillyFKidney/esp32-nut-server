@@ -1,8 +1,1 @@
-[nut]
-  password = espdonut
-  actions = SET
-  instcmds = ALL
-
-[monuser]
-  password = pass
-  upsmon primary
+# Read-only server: no authenticated NUT users are configured.
