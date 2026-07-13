@@ -1,0 +1,12 @@
+// #pragma once
+
+#define NUT_WEBSITE_BASE "https://networkupstools.org/"
+// #define NUT_SOURCE_GITREV "2.8.2.695.1-696+g0e00f0777"
+// #define NUT_SOURCE_GITREV_SEMVER 2.8.2
+// #define NUT_SOURCE_GITREV_NUMERIC 2.8.2.695.1
+// #define NUT_SOURCE_GITREV_IS_RELEASE false
+// #define NUT_SOURCE_GITREV_DEVREL "development iteration"
+#define NUT_VERSION_MACRO "2.8.2.695.1-696+g0e00f0777" //"$NUT_VERSION"
+#define NUT_VERSION_SEMVER_MACRO "2.8.2" //"$GITREV_SEMVER"
+#define NUT_VERSION_IS_RELEASE 0
+#define NUT_VERSION_IS_PRERELEASE 1
