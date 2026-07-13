@@ -19,6 +19,7 @@ sdkconfig
 sdkconfig.old
 sdkconfig.ci
 sdkconfig.defaults.local
+dependencies.lock
 dependencies.lock.tmp
 
 # ESP-IDF managed components
