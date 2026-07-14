@@ -26,3 +26,8 @@ CONFIG_USB_HOST_CONTROL_TRANSFER_MAX_SIZE=1024
 # retaining the upstream UART console.
 CONFIG_ESP_CONSOLE_UART_DEFAULT=y
 CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y
+
+# This network's DHCP server successfully ACKs the ESP32 lease, but the
+# ESP32-side ARP probe falsely rejects the offered address. Rely on the DHCP
+# server's address management rather than repeating that client-side probe.
+CONFIG_LWIP_DHCP_DOES_NOT_CHECK_OFFERED_IP=y

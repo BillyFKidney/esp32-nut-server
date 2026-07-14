@@ -13,6 +13,7 @@
 #include "esp_vfs.h"
 #include "esp_vfs_fat.h"
 #include "esp_task_wdt.h"
+#include "wifi-provisioning.h"
 
 #define TAG PACKAGE
 
@@ -142,8 +143,6 @@ void mountFS(void)
 extern void hidHostInstall(void);
 extern bool usb_hid_device_ready(void);
 
-extern void wifi_init_sta(void);
-extern void wifi_init_softap(void);
 extern void usb_host_lib_task(void *);
 extern void class_driver_task(void *);
 
@@ -192,7 +191,7 @@ void app_main()
 
     ESP_ERROR_CHECK(esp_task_wdt_reconfigure(&twdt_config));
 
-    wifi_init_softap();
+    wifi_provisioning_init();
 
     mountFS();
 
