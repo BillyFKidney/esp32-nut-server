@@ -8,9 +8,11 @@ This document outlines security considerations and best practices for deploying 
 
 ### 1. Credentials
 
-**⚠️ CRITICAL: Change the default WiFi credentials before production deployment!**
+**⚠️ CRITICAL: Wi-Fi provisioning is intentionally open by project policy.**
 
-The ESP32 port includes hardcoded development WiFi credentials that **MUST** be changed.
+ESP32-NUT does not include hardcoded Wi-Fi credentials. It stores submitted
+credentials as pending in NVS, then promotes them after a station-only
+connection test.
 
 #### UPS Daemon Credentials
 - **Location**: `/usr/local/etc/nut/upsd.users`
@@ -20,15 +22,22 @@ The ESP32 port includes hardcoded development WiFi credentials that **MUST** be 
 - **If users are enabled later**: Use unique passwords, grant only required
   permissions, and restrict access to the configuration file
 
-#### WiFi Credentials
-- **Location**: `src/wifi.c` (compile-time)
-- **Default credentials**:
-  - SSID: `nut`
-  - Password: `espdonut`
+#### Wi-Fi Credentials
+- **Location**: NVS namespace `wifi-config` on the device
+- **Default**: No network is configured
+- **Setup behavior**: If no saved network connects, the device starts an open
+  access point and an unauthenticated HTTP captive portal at `192.168.4.1`.
+- **Risk**: Anyone within radio range can join the setup network while it is
+  active, observe portal traffic, and submit different network credentials.
+  Wi-Fi passwords are exposed on the open setup link and stored in NVS without
+  flash encryption unless the device owner enables platform security features.
 - **Actions Required**:
-  1. Modify `EXAMPLE_ESP_WIFI_SSID` and `EXAMPLE_ESP_WIFI_PASS` before compilation
-  2. Use WPA3 authentication when available
-  3. Consider implementing WiFi provisioning (BLE, WPS, or web interface)
+  1. Provision from a trusted physical location and complete it promptly.
+  2. Use WPA2/WPA3 on the target Wi-Fi network.
+  3. Hold **BOOT** for three seconds during startup to erase Wi-Fi credentials
+     before transferring or decommissioning a device.
+  4. Enable flash encryption and secure boot before a hostile-environment
+     deployment; these are not enabled by this project by default.
 
 ### 2. File Permissions
 
@@ -45,11 +54,12 @@ The current implementation uses relaxed file permissions that have been improved
 ### 3. Network Security
 
 #### Default Network Configuration
-- **WiFi AP Mode**: Creates an open access point by default
+- **Wi-Fi setup mode**: Creates an open access point only when setup or
+  recovery is required
 - **UPS Server**: Listens on `0.0.0.0:3493` (all interfaces)
 
 **Recommended Actions**:
-1. Use WPA2/WPA3 encryption for WiFi AP mode
+1. Restrict physical proximity while the open setup portal is active
 2. Implement network access controls
 3. Consider using TLS/SSL for UPS server connections
 4. Restrict `LISTEN` directive to specific interfaces if possible
@@ -58,7 +68,7 @@ The current implementation uses relaxed file permissions that have been improved
 
 ### Before Deployment
 
-- [ ] Change the default WiFi credentials
+- [ ] Provision Wi-Fi from a trusted location
 - [ ] Keep NUT users disabled unless authenticated operations are required
 - [ ] Review and restrict file permissions
 - [ ] Enable WPA2/WPA3 WiFi encryption

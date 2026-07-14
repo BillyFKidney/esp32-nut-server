@@ -9,7 +9,7 @@ ESP32-S3. UPS-control capabilities inherited from the alpha port are disabled.
 ## Features
 
 - USB HID UPS support via ESP32 USB Host
-- WiFi connectivity (Station and Access Point modes)
+- Wi-Fi provisioning with station mode and a fallback captive portal
 - NUT `usbhid-ups` driver running on ESP32
 - Read-only NUT `upsd` server on TCP port 3493
 - CyberPower HID subdriver support
@@ -102,16 +102,35 @@ no authenticated NUT users are configured.
 
 ### WiFi Configuration
 
-**⚠️ SECURITY WARNING**: Default WiFi credentials are hardcoded!
+Wi-Fi credentials are not compiled into the firmware. On a new device, or when
+saved credentials cannot connect, ESP32-NUT starts an open setup access point
+named `ESP32-NUT-<MAC suffix>` at `192.168.4.1`. Connect to it and use the
+captive portal to select or enter a Wi-Fi network and its password.
 
-Before deployment, modify the WiFi credentials in `src/wifi.c`:
+The portal saves submitted credentials as *pending*, then restarts the device
+to test them in station-only mode. A valid DHCP address promotes them to the
+saved configuration. If association or DHCP fails, the pending credentials are
+retained for automatic retries after future restarts and the setup access point
+returns. Submitting new credentials replaces the pending values; holding
+**BOOT** for three seconds during startup erases all saved Wi-Fi credentials.
+This avoids testing a new network while the captive AP is active on the same
+radio.
 
-```c
-#define EXAMPLE_ESP_WIFI_SSID "your-ssid-here"
-#define EXAMPLE_ESP_WIFI_PASS "your-password-here"
-```
+### DHCP compatibility
 
-**Recommended**: Implement WiFi provisioning using BLE, WPS, or a web interface.
+The ESP-IDF client-side ARP probe for a newly offered DHCP address is disabled
+in the project defaults. On the validated UniFi network, the DHCP server ACKed
+the ESP32 address but that probe falsely rejected the lease. The device still
+uses DHCP; do not assign it a conflicting static IPv4 address.
+
+The setup access point and portal are intentionally unauthenticated by project
+policy. Complete setup promptly, and do not use them where untrusted people can
+join the setup network. The password reveal control only changes the local
+browser display; it does not log the password.
+
+To erase the saved Wi-Fi configuration, hold the board's **BOOT** button for
+three seconds during startup. This only clears Wi-Fi configuration; it does not
+erase NUT or firmware data.
 
 ### UPS Configuration
 
@@ -142,7 +161,7 @@ upsc cyberpower@<esp32-ip-address>
 
 See [ESP32_SECURITY.md](ESP32_SECURITY.md) for detailed security considerations including:
 
-- Changing default credentials
+- Open setup portal exposure and stored Wi-Fi credentials
 - File permission hardening
 - Network security configuration
 - Secure deployment checklist
@@ -150,7 +169,7 @@ See [ESP32_SECURITY.md](ESP32_SECURITY.md) for detailed security considerations 
 ### Quick Security Checklist
 
 Before production deployment:
-- [ ] Change WiFi SSID and password
+- [ ] Provision Wi-Fi from a trusted location
 - [ ] Keep `upsd.users` empty unless authenticated operations are required
 - [ ] Review file permissions on configuration files
 - [ ] Configure network access controls
@@ -164,7 +183,7 @@ Before production deployment:
 
 ```
 ESP32 Application (app_main)
-├── WiFi Configuration (wifi_init_softap/sta)
+├── Wi-Fi Provisioning (wifi_provisioning_init)
 ├── USB Host Stack (hidHostInstall)
 │   └── HID Device Driver
 ├── Filesystem (mountFS)
