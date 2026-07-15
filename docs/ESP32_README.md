@@ -134,33 +134,31 @@ browser display; it does not log the password.
 
 To erase the saved Wi-Fi configuration, hold the board's **BOOT** button for
 three seconds during startup. This only clears Wi-Fi configuration; it does not
-erase NUT or firmware data.
+erase NUT or firmware data. Continue holding through fifteen seconds to perform
+a factory reset: Wi-Fi, administrator credentials, API credentials, device
+identity, and the device HTTPS certificate are erased, while the current
+firmware and OTA recovery slot remain bootable.
 
-### Development OTA updates
+### Operational Management HTTPS transition
 
-The retained partition table already contains two 3.3 MB OTA application slots.
-When the station interface is connected, ESP32-NUT starts a development-only
-OTA server on TCP port `8080`. Its status endpoint is:
+The `feature/operational-management` branch replaces the development HTTP OTA
+listener with a LAN-only HTTPS administration service on TCP port `443`. On its
+first Wi-Fi connection, the ESP32 creates and stores a unique self-signed
+certificate and private key. The browser will require the owner to explicitly
+accept or trust that certificate during this milestone.
 
-```
-http://<esp32-ip>:8080/
-```
+The first administration page requires the owner to create the per-device
+ADMIN password twice. Passwords are stored only as salted PBKDF2-HMAC-SHA-256
+verifiers. Authenticated browser sessions use Secure, HttpOnly, SameSite cookies
+and expire after fifteen minutes of idle time. The HTTPS management API also
+uses CSRF protection and throttles repeated failed password attempts.
 
-Upload a complete ESP-IDF application image to `POST /ota`; for example, from
-the development Mac:
+The existing dual 3.3 MB OTA slots and bootloader rollback behavior remain in
+place. Firmware upload is being moved to the authenticated HTTPS management
+API; do not rely on the former unauthenticated TCP port `8080` service.
 
-```
-curl --fail --data-binary @build/nut-esp32s3.bin \
-  http://<esp32-ip>:8080/ota
-```
-
-The server writes only to the inactive OTA slot, verifies the image, selects
-it for the next boot, then restarts the ESP32. Bootloader rollback is enabled:
-a new image that fails before core services start returns to the prior image.
-
-**This endpoint is intentionally unauthenticated for development only.** Do
-not expose TCP port `8080` outside a trusted LAN. Production OTA must add TLS,
-firmware signing, and an authenticated update policy before it is enabled.
+HTTPS does not add TLS to the read-only NUT service on TCP port `3493`; keep
+that service within a trusted management network.
 
 ### UPS Configuration
 
@@ -312,7 +310,8 @@ For a complete list of supported devices, see the [NUT Hardware Compatibility Li
    - No fork/exec support
 
 3. **Network**:
-   - No SSL/TLS support in current implementation
+   - The Operational Management branch provides HTTPS for the administration
+     console; the read-only NUT service itself does not yet support TLS.
    - Single network interface
 
 ### Functional Limitations

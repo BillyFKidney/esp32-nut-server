@@ -53,13 +53,26 @@ The current implementation uses relaxed file permissions that have been improved
 
 ### 3. Network Security
 
-#### Development OTA endpoint
+#### HTTPS administration and OTA transition
 
-When station Wi-Fi is connected, the development build exposes an
-unauthenticated OTA upload endpoint on TCP port `8080`. Anyone able to reach
-that port can replace the firmware. Restrict it to a trusted development LAN.
-It is not a production update mechanism; production OTA requires TLS,
-firmware signing, and authenticated authorization.
+The Operational Management branch removes the unauthenticated development OTA
+endpoint on TCP port `8080`. When station Wi-Fi receives an IPv4 address, the
+device starts a LAN-only HTTPS administration service on TCP port `443`.
+
+- A unique self-signed certificate and private key are generated on first use
+  and stored in the management NVS namespace until factory reset.
+- Initial setup requires the owner to choose the ADMIN password twice. The
+  device retains only a salted PBKDF2-HMAC-SHA-256 verifier.
+- Browser sessions use Secure, HttpOnly, SameSite cookies, expire after a
+  fifteen-minute idle period, and state-changing browser requests require a
+  CSRF header.
+- Password login attempts are throttled after repeated failures.
+
+The certificate is self-signed for Milestone 2, so browsers will show a trust
+warning until the owner explicitly accepts it. Milestone 3 replaces it with a
+certificate issued by the local CA and adds production OTA source/signature
+verification. HTTPS protects the administration interface, not the read-only
+NUT service on TCP port `3493`.
 
 #### Default Network Configuration
 - **Wi-Fi setup mode**: Creates an open access point only when setup or
@@ -83,6 +96,8 @@ firmware signing, and authenticated authorization.
 - [ ] Configure network access controls
 - [ ] Review and limit exposed services
 - [ ] Test security configuration
+- [ ] Accept or install the device HTTPS certificate only after confirming the
+      expected device address and certificate fingerprint
 
 ### Runtime Security
 
@@ -91,6 +106,7 @@ firmware signing, and authenticated authorization.
 - [ ] Audit configuration changes
 - [ ] Implement rate limiting for authentication attempts
 - [ ] Use secure channels for remote access
+- [ ] Reauthenticate when the HTTPS administrator session expires
 
 ### Network Configuration
 

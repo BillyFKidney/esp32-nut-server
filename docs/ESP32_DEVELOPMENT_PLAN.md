@@ -44,10 +44,10 @@ connected upstream NUT history.
 | Project release 1.0.0 | Complete | `v1.0.0` is tagged on `main` and published on GitHub. |
 | Development OTA baseline | Complete | `v1.1.0` validated a Wi-Fi upload between both OTA slots, automatic restart, rollback support, NUT access, and CyberPower `ups.status = OL`. |
 
-## Current development OTA milestone
+## Development OTA baseline
 
-The current `feature/development-ota` work adds a development-only OTA HTTP
-server after station Wi-Fi connects.
+Release `v1.1.0` included a development-only OTA HTTP server after station
+Wi-Fi connected.
 
 - `GET http://<device-ip>:8080/` reports the running and next OTA slots.
 - `POST http://<device-ip>:8080/ota` accepts a complete ESP-IDF application
@@ -57,8 +57,9 @@ server after station Wi-Fi connects.
 - The first full OTA update was validated from `app0` to `app1`, followed by
   Wi-Fi, NUT TCP, and CyberPower `ups.status = OL` checks.
 
-This endpoint is intentionally unauthenticated for trusted-LAN development.
-It must not be treated as a production update mechanism.
+That endpoint was intentionally unauthenticated for trusted-LAN development.
+The Operational Management branch retires it in favor of an authenticated
+HTTPS management route; it must never be restored as a production mechanism.
 
 ## Next milestones
 
@@ -114,8 +115,8 @@ and recovery without a COM connection.
 
 ### 3. Production OTA design
 
-- Replace the unauthenticated development LAN upload endpoint with an
-  authenticated update policy.
+- Build on the authenticated HTTPS local-upload route delivered by Operational
+  Management; do not restore the unauthenticated development LAN endpoint.
 - Replace the self-signed device certificate with one issued by the local CA,
   and harden certificate trust/management.
 - Use HTTPS with certificate validation for an update source.
