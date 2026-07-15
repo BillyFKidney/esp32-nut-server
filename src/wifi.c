@@ -27,6 +27,7 @@
 #include "lwip/tcpip.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "management.h"
 #include "wifi-portal.h"
 
 #define WIFI_CONFIG_NAMESPACE "wifi-config"
@@ -43,11 +44,13 @@
 #define WIFI_PORTAL_START_TIMEOUT_MS 5000
 #define WIFI_PORTAL_TASK_STACK_SIZE 4096
 #define WIFI_RESTART_TASK_STACK_SIZE 2048
+#define WIFI_MANAGEMENT_TASK_STACK_SIZE 12288
 #define WIFI_SCAN_RESULT_LIMIT 20
 #define WIFI_REQUEST_BODY_LIMIT 256
 #define WIFI_CONNECTION_DIAGNOSTIC_LENGTH 192
 #define WIFI_BOOT_BUTTON GPIO_NUM_0
 #define WIFI_BOOT_RESET_HOLD_MS 3000
+#define WIFI_BOOT_FACTORY_RESET_HOLD_MS 15000
 
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAILED_BIT BIT1
@@ -78,12 +81,29 @@ static DnsServerHandle portal_dns_server;
 static bool connection_requested;
 static bool portal_active;
 static bool portal_start_scheduled;
+static bool management_start_scheduled;
 static unsigned int connection_retry_count;
 static bool station_associated;
 static char connection_diagnostic[WIFI_CONNECTION_DIAGNOSTIC_LENGTH];
 static portMUX_TYPE wifi_state_lock = portMUX_INITIALIZER_UNLOCKED;
 
 static void wifi_schedule_portal(void);
+
+static void wifi_start_management_task(void *argument)
+{
+    (void)argument;
+    const esp_err_t management_result = management_server_start();
+    if (management_result != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Unable to start HTTPS management after Wi-Fi connection: %s",
+                 esp_err_to_name(management_result));
+    }
+
+    taskENTER_CRITICAL(&wifi_state_lock);
+    management_start_scheduled = false;
+    taskEXIT_CRITICAL(&wifi_state_lock);
+    vTaskDelete(NULL);
+}
 
 static void wifi_set_connection_diagnostic(const char *message)
 {
@@ -348,10 +368,19 @@ static void wifi_reset_credentials_if_requested(void)
 
     ESP_LOGW(TAG, "BOOT held; keep holding for three seconds to erase saved Wi-Fi credentials");
     vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_RESET_HOLD_MS));
+    if (gpio_get_level(WIFI_BOOT_BUTTON) != 0)
+    {
+        return;
+    }
+
+    ESP_ERROR_CHECK(wifi_credentials_erase());
+    ESP_LOGW(TAG, "Saved Wi-Fi credentials erased; release BOOT now or keep holding for factory reset at fifteen seconds");
+
+    vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_FACTORY_RESET_HOLD_MS - WIFI_BOOT_RESET_HOLD_MS));
     if (gpio_get_level(WIFI_BOOT_BUTTON) == 0)
     {
-        ESP_ERROR_CHECK(wifi_credentials_erase());
-        ESP_LOGW(TAG, "Saved Wi-Fi credentials erased; starting setup mode");
+        ESP_ERROR_CHECK(management_factory_reset());
+        ESP_LOGW(TAG, "Factory reset complete; Wi-Fi, ADMIN credentials, API credentials, and device HTTPS identity were erased");
     }
 }
 
@@ -401,6 +430,19 @@ static void wifi_event_handler(void *argument, esp_event_base_t event_base,
         xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
         wifi_set_connection_diagnostic("Wi-Fi connected and a DHCP address was assigned.");
         ESP_LOGI(TAG, "Connected with address " IPSTR, IP2STR(&event->ip_info.ip));
+        taskENTER_CRITICAL(&wifi_state_lock);
+        const bool start_management = !management_start_scheduled;
+        management_start_scheduled = true;
+        taskEXIT_CRITICAL(&wifi_state_lock);
+        if (start_management &&
+            xTaskCreate(wifi_start_management_task, "management-start",
+                        WIFI_MANAGEMENT_TASK_STACK_SIZE, NULL, 5, NULL) != pdPASS)
+        {
+            taskENTER_CRITICAL(&wifi_state_lock);
+            management_start_scheduled = false;
+            taskEXIT_CRITICAL(&wifi_state_lock);
+            ESP_LOGE(TAG, "Unable to create HTTPS management startup task");
+        }
         return;
     }
 

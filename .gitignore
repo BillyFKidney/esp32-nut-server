@@ -82,6 +82,9 @@ managed_components
 /dependencies.lock
 /dependencies.lock.tmp
 
+# Retained local diagnostic artifacts
+/cleanup/artifacts/
+
 # Machine-local editor configuration
 /.vscode/settings.json
 

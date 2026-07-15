@@ -7,6 +7,9 @@ roadmap, not a replacement for upstream Network UPS Tools (NUT) documentation.
 The project extends the existing `banoz/nut` ESP32 port and preserves its
 connected upstream NUT history.
 
+Current repository, firmware, hardware-validation, and connection state is
+recorded in [ESP32_CURRENT_STATUS.md](ESP32_CURRENT_STATUS.md).
+
 ## Project guardrails
 
 - Keep the existing NUT daemon and driver architecture. Do not create a
@@ -44,10 +47,10 @@ connected upstream NUT history.
 | Project release 1.0.0 | Complete | `v1.0.0` is tagged on `main` and published on GitHub. |
 | Development OTA baseline | Complete | `v1.1.0` validated a Wi-Fi upload between both OTA slots, automatic restart, rollback support, NUT access, and CyberPower `ups.status = OL`. |
 
-## Current development OTA milestone
+## Development OTA baseline
 
-The current `feature/development-ota` work adds a development-only OTA HTTP
-server after station Wi-Fi connects.
+Release `v1.1.0` included a development-only OTA HTTP server after station
+Wi-Fi connected.
 
 - `GET http://<device-ip>:8080/` reports the running and next OTA slots.
 - `POST http://<device-ip>:8080/ota` accepts a complete ESP-IDF application
@@ -57,8 +60,9 @@ server after station Wi-Fi connects.
 - The first full OTA update was validated from `app0` to `app1`, followed by
   Wi-Fi, NUT TCP, and CyberPower `ups.status = OL` checks.
 
-This endpoint is intentionally unauthenticated for trusted-LAN development.
-It must not be treated as a production update mechanism.
+That endpoint was intentionally unauthenticated for trusted-LAN development.
+The Operational Management branch retires it in favor of an authenticated
+HTTPS management route; it must never be restored as a production mechanism.
 
 ## Next milestones
 
@@ -101,6 +105,33 @@ This milestone is the planned `v2.0.0` scope.
   the agreed configuration scope.
 - No UPS controls in this milestone.
 
+#### Implementation slices
+
+Operational Management is an umbrella milestone, not a single long-running
+feature branch. Deliver it through small branches that begin at the latest
+`main`, have one coherent acceptance boundary, and merge independently after
+proportional build and target-hardware validation.
+
+| Order | Branch | Scope and merge boundary |
+| --- | --- | --- |
+| 1 | `feature/operational-management` | HTTPS and ADMIN authentication foundation: device certificate, initial password setup, secure browser session, CSRF and login throttling, initial status/OTA routes, and stack-safe startup. Delivered by PR #10. |
+| 2 | `feature/admin-password-management` | Complete and validate initial setup, password change, session expiration, login throttling, and physical password recovery. |
+| 3 | `feature/api-tokens` | Create, list, identify, and delete named non-expiring API tokens with the required confirmation flow. |
+| 4 | `feature/management-dashboard` | Expose and render the required firmware, Wi-Fi, NUT, UPS, voltage, battery, load, runtime, and update diagnostics. |
+| 5 | `feature/wifi-management` | Scan supported networks, show signal strength, confirm credential changes, reconnect, and never reveal the stored password. |
+| 6 | `feature/local-ota-management` | Add the management UI and validation flow for known-good local firmware while rejecting corrupt images. |
+| 7 | `feature/live-diagnostics` | Add bounded live browser logs and reviewed remote service controls without high-frequency flash writes. |
+| 8 | `feature/time-configuration` | Add configurable NTP and IANA time-zone management with the recorded defaults. |
+| 9 | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
+| 10 | `feature/operational-management-acceptance` | Integrate and validate the definition of done from iPhone and MacBook Air, close documentation gaps, and prepare the `v2.0.0` release candidate. |
+
+The console and REST API are cross-cutting design requirements applied to each
+slice rather than separate branches. A slice may be split further when review
+or hardware evidence shows that it has more than one independent risk boundary.
+Merging an implementation slice does not mark the umbrella milestone complete;
+that happens only after the acceptance slice satisfies the locked definition of
+done.
+
 #### Lock criteria
 
 The requirements in the linked Q&A were locked on 2026-07-14. Management
@@ -114,8 +145,8 @@ and recovery without a COM connection.
 
 ### 3. Production OTA design
 
-- Replace the unauthenticated development LAN upload endpoint with an
-  authenticated update policy.
+- Build on the authenticated HTTPS local-upload route delivered by Operational
+  Management; do not restore the unauthenticated development LAN endpoint.
 - Replace the self-signed device certificate with one issued by the local CA,
   and harden certificate trust/management.
 - Use HTTPS with certificate validation for an update source.
@@ -175,8 +206,9 @@ review, especially any UPS write/control operation.
 
 ## Change tracking conventions
 
-- Use one feature branch and pull request per milestone or independently
-  reviewable change.
+- Use one feature branch and pull request per independently reviewable slice.
+  Large milestones must be divided into small slices with explicit merge
+  boundaries.
 - Prefer merge commits when merging into `main` to preserve upstream and
   downstream history.
 - Record hardware validation in the pull request description and relevant
