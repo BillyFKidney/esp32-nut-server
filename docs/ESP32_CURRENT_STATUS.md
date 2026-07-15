@@ -19,9 +19,9 @@ private keys, or Wi-Fi credentials here.
 | --- | --- |
 | Updated | 2026-07-15, America/Los_Angeles |
 | Active milestone | Operational Management, planned for `v2.0.0` |
-| Repository branch | `feature/operational-management` |
+| Repository branch | `feature/admin-password-management`, created from `main` after PR #10 |
 | Validated implementation commit | `0fcd9e1f9` (`fix: start HTTPS management outside system event task`) |
-| Remote state | `feature/operational-management` synchronized through the 2026-07-15 documentation checkpoint; verify before new work |
+| Remote state | PR #10 merged the HTTPS foundation into `main`; the next feature branch begins the ADMIN password-management slice |
 | Source worktree | Expected clean after the checkpoint except ignored generated files and the retained serial diagnostic artifact |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | `0fcd9e1f9` builds successfully; application image is about 1.2 MB with 63% of the smallest application partition free |
@@ -57,6 +57,8 @@ The authoritative scope and security decisions are in
   in its own FreeRTOS task.
 - Built the stack-safety fix, installed it through OTA, and committed the tested
   working-tree change as `0fcd9e1f9`.
+- Merged the independently validated HTTPS foundation through PR #10 and split
+  the remaining Operational Management scope into small implementation branches.
 
 ## Installed firmware and hardware evidence
 
@@ -113,8 +115,8 @@ certificate or HTTPS startup work back into the system event callback.
 1. Confirm the board's current IP in UniFi and verify HTTPS on TCP 443 and NUT
    on TCP 3493 without opening the serial port.
 2. Exercise first-run ADMIN setup and authentication behavior in a browser.
-3. Implement ADMIN password management and named API tokens as the next
-   independently reviewable feature slice.
+3. Complete ADMIN password change, expiration/throttling validation, and
+   physical password recovery on `feature/admin-password-management`.
 
 ## Operational procedures
 
