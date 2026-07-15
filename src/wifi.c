@@ -27,6 +27,7 @@
 #include "lwip/tcpip.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "management.h"
 #include "wifi-portal.h"
 
 #define WIFI_CONFIG_NAMESPACE "wifi-config"
@@ -48,6 +49,7 @@
 #define WIFI_CONNECTION_DIAGNOSTIC_LENGTH 192
 #define WIFI_BOOT_BUTTON GPIO_NUM_0
 #define WIFI_BOOT_RESET_HOLD_MS 3000
+#define WIFI_BOOT_FACTORY_RESET_HOLD_MS 15000
 
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAILED_BIT BIT1
@@ -348,10 +350,19 @@ static void wifi_reset_credentials_if_requested(void)
 
     ESP_LOGW(TAG, "BOOT held; keep holding for three seconds to erase saved Wi-Fi credentials");
     vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_RESET_HOLD_MS));
+    if (gpio_get_level(WIFI_BOOT_BUTTON) != 0)
+    {
+        return;
+    }
+
+    ESP_ERROR_CHECK(wifi_credentials_erase());
+    ESP_LOGW(TAG, "Saved Wi-Fi credentials erased; release BOOT now or keep holding for factory reset at fifteen seconds");
+
+    vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_FACTORY_RESET_HOLD_MS - WIFI_BOOT_RESET_HOLD_MS));
     if (gpio_get_level(WIFI_BOOT_BUTTON) == 0)
     {
-        ESP_ERROR_CHECK(wifi_credentials_erase());
-        ESP_LOGW(TAG, "Saved Wi-Fi credentials erased; starting setup mode");
+        ESP_ERROR_CHECK(management_factory_reset());
+        ESP_LOGW(TAG, "Factory reset complete; Wi-Fi, ADMIN credentials, API credentials, and device HTTPS identity were erased");
     }
 }
 
@@ -401,6 +412,12 @@ static void wifi_event_handler(void *argument, esp_event_base_t event_base,
         xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
         wifi_set_connection_diagnostic("Wi-Fi connected and a DHCP address was assigned.");
         ESP_LOGI(TAG, "Connected with address " IPSTR, IP2STR(&event->ip_info.ip));
+        const esp_err_t management_result = management_server_start();
+        if (management_result != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Unable to start HTTPS management after Wi-Fi connection: %s",
+                     esp_err_to_name(management_result));
+        }
         return;
     }
 

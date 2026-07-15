@@ -35,3 +35,9 @@ CONFIG_LWIP_DHCP_DOES_NOT_CHECK_OFFERED_IP=y
 # Boot a newly installed OTA application in pending-verification state. The
 # application marks itself valid only after core services have started.
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
+# Operational Management v2.0.0 foundation: the device hosts its administration
+# console over HTTPS. The certificate and private key are generated per device
+# on first boot and retained in NVS until factory reset.
+CONFIG_ESP_HTTPS_SERVER_ENABLE=y
+CONFIG_MBEDTLS_X509_CREATE_C=y

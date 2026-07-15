@@ -194,11 +194,6 @@ void app_main()
 
     wifi_provisioning_init();
 
-    if (wifi_provisioning_is_connected())
-    {
-        ESP_ERROR_CHECK(ota_server_start());
-    }
-
     mountFS();
 
     hidHostInstall();

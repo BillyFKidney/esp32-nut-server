@@ -13,11 +13,9 @@
 #include "freertos/task.h"
 
 #define TAG "nut-ota"
-#define OTA_HTTP_PORT 8080
 #define OTA_RECEIVE_BUFFER_SIZE 4096
 #define OTA_REBOOT_DELAY_MS 1000
 
-static httpd_handle_t ota_http_server;
 static bool ota_update_in_progress;
 
 static void ota_set_response_headers(httpd_req_t *request)
@@ -43,24 +41,7 @@ static void ota_reboot_task(void *parameter)
     esp_restart();
 }
 
-static esp_err_t ota_status_handler(httpd_req_t *request)
-{
-    const esp_partition_t *running_partition = esp_ota_get_running_partition();
-    const esp_partition_t *next_partition = esp_ota_get_next_update_partition(NULL);
-
-    ota_set_response_headers(request);
-    char response[256];
-    snprintf(response, sizeof(response),
-             "{\"status\":\"ready\",\"port\":%d,\"running_partition\":\"%s\","
-             "\"next_partition\":\"%s\",\"max_image_bytes\":%lu}",
-             OTA_HTTP_PORT,
-             running_partition != NULL ? running_partition->label : "unknown",
-             next_partition != NULL ? next_partition->label : "unknown",
-             next_partition != NULL ? (unsigned long)next_partition->size : 0UL);
-    return httpd_resp_sendstr(request, response);
-}
-
-static esp_err_t ota_upload_handler(httpd_req_t *request)
+esp_err_t ota_install_from_request(httpd_req_t *request)
 {
     if (ota_update_in_progress)
     {
@@ -158,57 +139,6 @@ static esp_err_t ota_upload_handler(httpd_req_t *request)
         ESP_LOGE(TAG, "Unable to schedule OTA reboot");
     }
     return response_result;
-}
-
-esp_err_t ota_server_start(void)
-{
-    if (ota_http_server != NULL)
-    {
-        return ESP_OK;
-    }
-
-    httpd_config_t configuration = HTTPD_DEFAULT_CONFIG();
-    configuration.server_port = OTA_HTTP_PORT;
-    configuration.ctrl_port = OTA_HTTP_PORT + 1;
-    configuration.stack_size = 8192;
-    configuration.max_open_sockets = 2;
-    configuration.recv_wait_timeout = 30;
-    configuration.send_wait_timeout = 30;
-    configuration.lru_purge_enable = true;
-
-    esp_err_t result = httpd_start(&ota_http_server, &configuration);
-    if (result != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Unable to start development OTA server: %s", esp_err_to_name(result));
-        ota_http_server = NULL;
-        return result;
-    }
-
-    const httpd_uri_t status = {
-        .uri = "/",
-        .method = HTTP_GET,
-        .handler = ota_status_handler,
-    };
-    const httpd_uri_t upload = {
-        .uri = "/ota",
-        .method = HTTP_POST,
-        .handler = ota_upload_handler,
-    };
-    result = httpd_register_uri_handler(ota_http_server, &status);
-    if (result == ESP_OK)
-    {
-        result = httpd_register_uri_handler(ota_http_server, &upload);
-    }
-    if (result != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Unable to register OTA HTTP handlers: %s", esp_err_to_name(result));
-        httpd_stop(ota_http_server);
-        ota_http_server = NULL;
-        return result;
-    }
-
-    ESP_LOGW(TAG, "Development OTA server is listening on TCP port %d without authentication", OTA_HTTP_PORT);
-    return ESP_OK;
 }
 
 void ota_mark_running_image_valid(void)
