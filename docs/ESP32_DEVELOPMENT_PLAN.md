@@ -42,7 +42,7 @@ connected upstream NUT history.
 | Wi-Fi provisioning and recovery | Complete | Open fallback AP/captive portal, saved credentials, and recovery reset path validated. |
 | DHCP compatibility | Complete | ESP32-side offered-address probe is disabled after validated UniFi interoperability testing. |
 | Project release 1.0.0 | Complete | `v1.0.0` is tagged on `main` and published on GitHub. |
-| Development OTA baseline | In progress | Dual OTA slots and rollback are enabled; a Wi-Fi upload to the inactive slot was validated on-device. |
+| Development OTA baseline | Complete | `v1.1.0` validated a Wi-Fi upload between both OTA slots, automatic restart, rollback support, NUT access, and CyberPower `ups.status = OL`. |
 
 ## Current development OTA milestone
 
@@ -62,42 +62,73 @@ It must not be treated as a production update mechanism.
 
 ## Next milestones
 
-### 1. Finish the development OTA feature
+### 1. Finish the development OTA feature — Complete
 
-- Review the local implementation and documentation.
-- Commit it on `feature/development-ota`, open a pull request, and merge with
-  a merge commit after validation.
-- Release a post-1.0 version only after the intended release scope is chosen.
+Released as `v1.1.0`. A clean ESP-IDF v6.0.2 build was installed over Wi-Fi,
+alternated OTA slots, restarted automatically, and preserved Wi-Fi, NUT, and
+CyberPower UPS monitoring.
 
-Success criterion: a clean rebuild can update the deployed board repeatedly
-over Wi-Fi, alternate OTA slots, and preserve Wi-Fi/UPS/NUT operation.
+### 2. Operational management — Locked for implementation
 
-### 2. Production OTA design
+The detailed requirements and recorded decisions are in
+[ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
+This milestone is the planned `v2.0.0` scope.
 
-- Replace the unauthenticated LAN upload endpoint with an authenticated update
-  policy.
+#### Intended scope
+
+- A utilitarian mobile-friendly browser administration console backed by an
+  emerging REST API. Dedicated API testing is out of scope for `v2.0.0`.
+- LAN-only ADMIN access with per-device password authentication. USER role is
+  explicitly deferred. This milestone uses device-hosted HTTPS with a
+  self-signed certificate.
+- Administrator password setup/change/recovery, including twice-entered
+  password fields and a show-password control.
+- Named non-expiring API tokens: issue at least two; display name, issue date,
+  and final four characters; require an acknowledgement and explicit
+  confirmation to delete.
+- Dashboard/device diagnostics: firmware version, uptime, Wi-Fi IP/signal,
+  UPS identity and serial number, `ups.status`, battery/load/runtime,
+  input/output voltage, NUT service status, and last update result.
+- Wi-Fi scan and configuration with signal strength, only 2.4 GHz-capable scan
+  results, no stored-password display, and a confirmation before committing
+  changes.
+- Manual firmware file selection with check/download/install controls;
+  known-good images install and corrupt images are rejected.
+- Remote service controls, live browser diagnostics, public NTP via
+  `pool.ntp.org` with configurable manual time zone (default
+  `America/Los_Angeles`), and physical recovery.
+- BOOT gestures: three seconds clears Wi-Fi; fifteen seconds factory-resets
+  the agreed configuration scope.
+- No UPS controls in this milestone.
+
+#### Lock criteria
+
+The requirements in the linked Q&A were locked on 2026-07-14. Management
+remains LAN-only; Milestone 3 replaces the self-signed certificate with one
+issued by the local CA. Material scope or security changes require another
+review before implementation.
+
+Success criterion: from an iPhone or MacBook Air, an owner can safely manage
+Wi-Fi, ADMIN credentials, named tokens, diagnostics, local firmware updates,
+and recovery without a COM connection.
+
+### 3. Production OTA design
+
+- Replace the unauthenticated development LAN upload endpoint with an
+  authenticated update policy.
+- Replace the self-signed device certificate with one issued by the local CA,
+  and harden certificate trust/management.
 - Use HTTPS with certificate validation for an update source.
 - Verify a signed firmware manifest or enable an ESP-IDF-supported signed-image
   and secure-boot strategy before enabling unattended updates.
 - Define a release-asset and version-manifest workflow, preferably tied to
   GitHub releases or a controlled update service.
-- Decide whether updates are manually approved, scheduled, or automatically
-  installed.
+- Support manual check/download/install first; keep automatic installation
+  disabled by default. When enabled, let ADMIN select daily, weekly, or
+  monthly checks and a time of day.
 
 Success criterion: an unauthorized LAN client and a compromised download path
 cannot cause firmware installation; a failed approved image rolls back.
-
-### 3. Operational management
-
-- Add a deliberate administrative status/configuration interface once its
-  authentication model is defined.
-- Expose device firmware version, Wi-Fi state, UPS identity, uptime, and OTA
-  status without exposing credentials.
-- Add a supported way to reset configuration and recover from a failed Wi-Fi
-  deployment.
-
-Success criterion: a maintainer can diagnose and recover a device remotely
-without a serial cable under normal network conditions.
 
 ### 4. NUT and UPS compatibility hardening
 
@@ -123,6 +154,24 @@ monitoring across the tested clients.
 
 Success criterion: reproducible release artifacts, documented recovery paths,
 and a validated upgrade/downgrade policy.
+
+### 6. Expanded functionality
+
+Defer the following capabilities until the Operational Management and
+Production OTA security foundations are complete:
+
+- MQTT, including broker/security/topic contract and bounded publication
+  cadence.
+- Home Assistant discovery and integration.
+- mDNS discovery.
+- Read-only USER role.
+- Explicitly reviewed UPS controls: mute/silence, display always-on, and
+  battery test.
+- Configuration backup/restore immediately before the mDNS/Home Assistant
+  work, excluding Wi-Fi credentials and administrator secrets by default.
+
+Success criterion: each capability has its own security and hardware-safety
+review, especially any UPS write/control operation.
 
 ## Change tracking conventions
 
