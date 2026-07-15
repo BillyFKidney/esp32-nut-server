@@ -7,6 +7,9 @@ roadmap, not a replacement for upstream Network UPS Tools (NUT) documentation.
 The project extends the existing `banoz/nut` ESP32 port and preserves its
 connected upstream NUT history.
 
+Current repository, firmware, hardware-validation, and connection state is
+recorded in [ESP32_CURRENT_STATUS.md](ESP32_CURRENT_STATUS.md).
+
 ## Project guardrails
 
 - Keep the existing NUT daemon and driver architecture. Do not create a

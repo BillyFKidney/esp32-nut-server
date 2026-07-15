@@ -9,6 +9,11 @@ ESP32-S3. UPS-control capabilities inherited from the alpha port are disabled.
 See [ESP32_DEVELOPMENT_PLAN.md](ESP32_DEVELOPMENT_PLAN.md) for the downstream
 roadmap, completed milestones, and feature tracking.
 
+See [ESP32_CURRENT_STATUS.md](ESP32_CURRENT_STATUS.md) for the active branch,
+installed-firmware evidence, and exact next action. Before hardware work, use
+[ESP32_PREFLIGHT.md](ESP32_PREFLIGHT.md); team authority and responsibilities
+are defined in [ESP32_DEVELOPMENT_ROLES.md](ESP32_DEVELOPMENT_ROLES.md).
+
 ## Features
 
 - USB HID UPS support via ESP32 USB Host
