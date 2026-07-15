@@ -53,6 +53,14 @@ The current implementation uses relaxed file permissions that have been improved
 
 ### 3. Network Security
 
+#### Development OTA endpoint
+
+When station Wi-Fi is connected, the development build exposes an
+unauthenticated OTA upload endpoint on TCP port `8080`. Anyone able to reach
+that port can replace the firmware. Restrict it to a trusted development LAN.
+It is not a production update mechanism; production OTA requires TLS,
+firmware signing, and authenticated authorization.
+
 #### Default Network Configuration
 - **Wi-Fi setup mode**: Creates an open access point only when setup or
   recovery is required

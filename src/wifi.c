@@ -1004,3 +1004,9 @@ void wifi_provisioning_init(void)
         ESP_LOGE(TAG, "Fallback setup portal did not start");
     }
 }
+
+bool wifi_provisioning_is_connected(void)
+{
+    return wifi_event_group != NULL &&
+           (xEventGroupGetBits(wifi_event_group) & WIFI_CONNECTED_BIT) != 0;
+}
