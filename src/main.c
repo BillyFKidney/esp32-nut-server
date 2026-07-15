@@ -13,6 +13,7 @@
 #include "esp_vfs.h"
 #include "esp_vfs_fat.h"
 #include "esp_task_wdt.h"
+#include "ota.h"
 #include "wifi-provisioning.h"
 
 #define TAG PACKAGE
@@ -193,6 +194,11 @@ void app_main()
 
     wifi_provisioning_init();
 
+    if (wifi_provisioning_is_connected())
+    {
+        ESP_ERROR_CHECK(ota_server_start());
+    }
+
     mountFS();
 
     hidHostInstall();
@@ -208,6 +214,7 @@ void app_main()
     assert(task_created == pdTRUE);
 
     ESP_LOGI(TAG, "Read-only USB discovery, NUT driver, and network server active");
+    ota_mark_running_image_valid();
 
     while (1)
     {

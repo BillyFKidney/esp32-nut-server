@@ -31,3 +31,7 @@ CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y
 # ESP32-side ARP probe falsely rejects the offered address. Rely on the DHCP
 # server's address management rather than repeating that client-side probe.
 CONFIG_LWIP_DHCP_DOES_NOT_CHECK_OFFERED_IP=y
+
+# Boot a newly installed OTA application in pending-verification state. The
+# application marks itself valid only after core services have started.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y

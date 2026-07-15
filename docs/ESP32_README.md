@@ -6,10 +6,14 @@ This is an ESP32 port of the Network UPS Tools (NUT). The current downstream
 milestone provides read-only USB HID UPS monitoring and NUT network access on
 ESP32-S3. UPS-control capabilities inherited from the alpha port are disabled.
 
+See [ESP32_DEVELOPMENT_PLAN.md](ESP32_DEVELOPMENT_PLAN.md) for the downstream
+roadmap, completed milestones, and feature tracking.
+
 ## Features
 
 - USB HID UPS support via ESP32 USB Host
 - Wi-Fi provisioning with station mode and a fallback captive portal
+- Development OTA firmware uploads over the connected Wi-Fi network
 - NUT `usbhid-ups` driver running on ESP32
 - Read-only NUT `upsd` server on TCP port 3493
 - CyberPower HID subdriver support
@@ -131,6 +135,32 @@ browser display; it does not log the password.
 To erase the saved Wi-Fi configuration, hold the board's **BOOT** button for
 three seconds during startup. This only clears Wi-Fi configuration; it does not
 erase NUT or firmware data.
+
+### Development OTA updates
+
+The retained partition table already contains two 3.3 MB OTA application slots.
+When the station interface is connected, ESP32-NUT starts a development-only
+OTA server on TCP port `8080`. Its status endpoint is:
+
+```
+http://<esp32-ip>:8080/
+```
+
+Upload a complete ESP-IDF application image to `POST /ota`; for example, from
+the development Mac:
+
+```
+curl --fail --data-binary @build/nut-esp32s3.bin \
+  http://<esp32-ip>:8080/ota
+```
+
+The server writes only to the inactive OTA slot, verifies the image, selects
+it for the next boot, then restarts the ESP32. Bootloader rollback is enabled:
+a new image that fails before core services start returns to the prior image.
+
+**This endpoint is intentionally unauthenticated for development only.** Do
+not expose TCP port `8080` outside a trusted LAN. Production OTA must add TLS,
+firmware signing, and an authenticated update policy before it is enabled.
 
 ### UPS Configuration
 
