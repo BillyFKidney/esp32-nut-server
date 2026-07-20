@@ -17,21 +17,21 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-19 18:36 PDT, America/Los_Angeles |
+| Updated | 2026-07-19 22:54 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | ADMIN password management `v2.1.0` |
 | Repository branch | `feature/admin-password-management`, created from `main` after PR #10 |
-| Validated implementation commit | `c91430f89` (`feat: complete ADMIN password management`) |
+| Validated implementation state | Runtime physical recovery and the corrected versioned ADMIN credential derived from branch base `1883655d0` passed target-hardware validation |
 | Remote state | `feature/admin-password-management` is tracked by draft PR #12 and remains unmerged; `main` and `origin/main` include merged documentation PR #13. `v2.1.0` is not tagged or released |
-| Source worktree | The starter-kit update is committed on this branch as `e13da8e00` and published independently through PR #13 and `v2.0.1`; generated ESP-IDF outputs and macOS `.DS_Store` files are ignored |
+| Source worktree | Runtime-safe physical recovery, the corrected `admin-cred` NVS key, and their documentation comprise the authorized branch publication; generated ESP-IDF outputs, captures, and macOS `.DS_Store` files are ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | The `c91430f89` ADMIN password-management source builds successfully with ESP-IDF v6.0.2; latest image size is `0x1329f0` bytes with 62% of the smallest application partition free |
+| Latest local build | The runtime-recovery worktree based on `1883655d0` builds successfully with ESP-IDF v6.0.2; image size is `0x132d50` bytes with 62% of the smallest application partition free |
 | Latest published release | Documentation-only patch `v2.0.1`, tagged at PR #13 merge commit `0252977e6` and published with the versioned ESP32-S3 application image and SHA-256 checksum asset |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173` on 2026-07-19; verify with UniFi at the start of a new session |
-| Last observed development USB path | Normal COM rediscovered as `/dev/cu.usbmodem54E20396741`; native USB ROM download used `/dev/cu.usbmodem1101` for recovery and installation |
-| Physical intervention required | None; normal UPS connectivity is restored and no RESET is required |
+| Last observed development USB path | Normal COM rediscovered as `/dev/cu.usbmodem54E20396741` with no monitor owner; native USB ROM download used `/dev/cu.usbmodem1101` for corrective installation |
+| Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
 ## Current objective
 
@@ -364,6 +364,78 @@ GitHub hosts both the firmware and checksum assets. The release is public,
 final, and neither a draft nor a prerelease. Hardware reinstallation was not
 required for this documentation-only patch.
 
+**Observed in source on 2026-07-19:** the original recovery implementation
+sampled BOOT only once during application startup. Because BOOT is GPIO0, a
+BOOT-plus-RESET sequence selects the ESP32-S3 ROM downloader instead of running
+that application check. A normal BOOT press after startup was not monitored.
+The worktree now runs a small polling task throughout normal application
+operation. A three-second hold erases saved Wi-Fi; continuing through fifteen
+seconds arms the management factory reset. The task waits for BOOT to be
+released before erasing management NVS and restarting, so the restart cannot
+sample GPIO0 low and enter the ROM downloader. The fifteen-second scope remains
+Wi-Fi, ADMIN and session state, future API credentials, and the self-signed
+HTTPS identity; firmware and OTA slots remain intact.
+
+**Observed build and network evidence:** ESP-IDF v6.0.2 built
+`build/nut-esp32s3.bin` successfully at 1,256,784 bytes (`0x132d50`), SHA-256
+`d0f7d97e2a8cecea0eff97db7f9f753ea8d2f61217a6812114e2ccb99adcf4a8`.
+The current device was rediscovered at `192.168.40.173` by its ESP32-NUT HTTPS
+login page; TCP 443 and read-only NUT TCP 3493 accepted connections,
+`cyberpower` reported `ups.status = OL`, and retired TCP 8080 refused the
+connection. The runtime gesture, erasure, restart, fallback AP, Wi-Fi
+reprovisioning, regenerated certificate, and one-time ADMIN setup were **not yet
+hardware-tested** at build time.
+
+The Device Operator installed that image through authenticated Safari OTA and
+observed the page reconnect to the login screen with firmware
+`v2.0.1-6-g1883655d0-dirty`. A subsequent network-first check rediscovered its
+ESP32-NUT login page at `192.168.40.173`; HTTPS TCP 443 and read-only NUT TCP
+3493 accepted connections, `cyberpower` reported `ups.status = OL`, and TCP
+8080 refused the connection. Installation and healthy pre-recovery operation
+therefore **passed**. The physical gesture and destructive recovery outcome
+remain **not yet tested**.
+
+The Device Operator then held runtime BOOT for sixteen seconds and released it
+without pressing RESET. The device restarted into its unique fallback AP, the
+iPhone captive portal loaded, Wi-Fi credentials were accepted, and the device
+rejoined `ClubHouse_IoT` at `192.168.40.173`. Browsing to HTTPS displayed the
+one-time ADMIN setup page, proving that the previous ADMIN credential and HTTPS
+identity were cleared. The physical gesture, factory erasure, fallback AP,
+Wi-Fi reprovisioning, and return to one-time ADMIN setup therefore **passed**.
+
+Saving either a new or the former ADMIN password then returned `Unable to save
+the ADMIN password`. A targeted serial capture reproduced the failure and
+**observed** `ESP_ERR_NVS_KEY_TOO_LONG` from the management handler. The
+versioned key `admin-credential` contains sixteen characters, exceeding the
+ESP-IDF NVS limit of fifteen characters plus the null terminator. The worktree
+now uses `admin-cred` and compile-time assertions protect every management NVS
+namespace/key length. ESP-IDF v6.0.2 builds the correction successfully at
+1,256,784 bytes (`0x132d50`), SHA-256
+`01c0bc69665d2bc90527b56aced1d1854b999875ded2d27cb4e3207361e9fb55`.
+It is **not yet installed or hardware-tested**. The monitor was closed and the
+COM port released; its capture is retained under `cleanup/artifacts/serial/`.
+
+The corrected full image was installed through rediscovered native USB path
+`/dev/cu.usbmodem1101`; the ESP32-S3 MAC matched `30:30:f9:16:89:a4` and every
+written region passed hash verification. The flasher's automatic reset again
+left the board in native USB mode, so the Device Operator tapped RESET once.
+The setup page subsequently returned at `192.168.40.173`. The Device Operator
+entered a private matching ADMIN password, storage succeeded under the corrected
+NVS key, and the authenticated ADMIN console loaded automatically with firmware
+`v2.0.1-6-g1883655d0-dirty`. Physical ADMIN-password recovery therefore
+**passed end to end**.
+
+Normal cabling was restored without RESET. Network-first validation then
+observed HTTPS HTTP 200 at `192.168.40.173`, the CyberPower CST150UC2 with
+`ups.status = OL` through read-only NUT TCP 3493, and connection refusal on
+retired TCP 8080. Normal COM `/dev/cu.usbmodem54E20396741` was present with no
+monitor owner. Post-recovery HTTPS, NUT, UPS polling, service boundaries, and
+cable restoration therefore **passed**. The Device Operator also observed that
+login was much faster after recovery. **Inferred from the stored credential
+format:** the new password uses the intended 12,500-round versioned PBKDF2
+record rather than the former 100,000-round legacy verifier; exact timing was
+not measured and is **not tested**.
+
 ## Implemented versus remaining
 
 ### Implemented foundation
@@ -374,7 +446,8 @@ required for this documentation-only patch.
 - Initial status JSON endpoint
 - Authenticated local OTA installation endpoint
 - Authenticated Safari firmware file picker with confirmation and reconnect
-- Three-second Wi-Fi reset and fifteen-second management factory reset
+- Runtime-monitored three-second Wi-Fi reset and fifteen-second management
+  factory reset; the fifteen-second ADMIN recovery path passed end to end
 - Read-only NUT service on TCP port 3493
 - USB HID polling for the validated CyberPower UPS
 
@@ -390,13 +463,14 @@ required for this documentation-only patch.
 - Corrupt OTA image rejection validation
 - Remote service controls and live browser diagnostics
 - NTP and IANA time-zone configuration
-- Full three-second and fifteen-second physical recovery validation
+- Standalone three-second Wi-Fi-only recovery validation in the later physical
+  recovery slice
 - iPhone and MacBook Air acceptance testing
 
 ## Exact next action
 
-Validate physical ADMIN-password recovery, then complete the branch-level
-acceptance record for the prospective `v2.1.0` release.
+Review the updated draft PR #12 and decide separately whether to mark it ready,
+merge it, and publish the prospective `v2.1.0` release.
 
 ## Operational procedures
 
@@ -413,5 +487,8 @@ acceptance record for the prospective `v2.1.0` release.
   serial capture from the HTTPS foundation and stack-safety validation. It
   contains the original `sys_evt` overflow and the later successful
   HTTPS/USB/NUT run.
+- `cleanup/artifacts/serial/2026-07-19-admin-recovery-password-storage.txt`:
+  ignored targeted capture containing the decisive
+  `ESP_ERR_NVS_KEY_TOO_LONG` failure after physical ADMIN recovery.
 - `build/nut-esp32s3.bin`: ignored local build output; regenerate it from the
   recorded commit rather than treating the artifact as source of truth.

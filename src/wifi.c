@@ -44,6 +44,7 @@
 #define WIFI_PORTAL_START_TIMEOUT_MS 5000
 #define WIFI_PORTAL_TASK_STACK_SIZE 4096
 #define WIFI_RESTART_TASK_STACK_SIZE 2048
+#define WIFI_RECOVERY_TASK_STACK_SIZE 3072
 #define WIFI_MANAGEMENT_TASK_STACK_SIZE 12288
 #define WIFI_SCAN_RESULT_LIMIT 20
 #define WIFI_REQUEST_BODY_LIMIT 256
@@ -51,6 +52,8 @@
 #define WIFI_BOOT_BUTTON GPIO_NUM_0
 #define WIFI_BOOT_RESET_HOLD_MS 3000
 #define WIFI_BOOT_FACTORY_RESET_HOLD_MS 15000
+#define WIFI_BOOT_POLL_MS 50
+#define WIFI_RECOVERY_RESTART_DELAY_MS 250
 
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAILED_BIT BIT1
@@ -350,7 +353,91 @@ static esp_err_t wifi_credentials_erase(void)
     return result;
 }
 
-static void wifi_reset_credentials_if_requested(void)
+static void wifi_recovery_task(void *argument)
+{
+    (void)argument;
+
+    for (;;)
+    {
+        while (gpio_get_level(WIFI_BOOT_BUTTON) != 0)
+        {
+            vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_POLL_MS));
+        }
+
+        const TickType_t press_started = xTaskGetTickCount();
+        bool wifi_erased = false;
+        bool factory_requested = false;
+        bool factory_erased = false;
+
+        ESP_LOGW(TAG, "BOOT pressed; keep holding for three seconds to erase saved Wi-Fi credentials");
+
+        while (gpio_get_level(WIFI_BOOT_BUTTON) == 0)
+        {
+            const uint32_t held_ms = pdTICKS_TO_MS(xTaskGetTickCount() - press_started);
+            if (!wifi_erased && held_ms >= WIFI_BOOT_RESET_HOLD_MS)
+            {
+                const esp_err_t result = wifi_credentials_erase();
+                if (result != ESP_OK)
+                {
+                    ESP_LOGE(TAG, "Unable to erase saved Wi-Fi credentials: %s",
+                             esp_err_to_name(result));
+                    break;
+                }
+
+                wifi_erased = true;
+                ESP_LOGW(TAG, "Saved Wi-Fi credentials erased; release BOOT now or keep holding "
+                              "for factory reset at fifteen seconds");
+            }
+
+            if (wifi_erased && !factory_requested &&
+                held_ms >= WIFI_BOOT_FACTORY_RESET_HOLD_MS)
+            {
+                factory_requested = true;
+                ESP_LOGW(TAG, "Factory-reset threshold reached; release BOOT to erase management "
+                              "configuration and restart");
+            }
+
+            vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_POLL_MS));
+        }
+
+        while (gpio_get_level(WIFI_BOOT_BUTTON) == 0)
+        {
+            vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_POLL_MS));
+        }
+
+        const uint32_t held_ms = pdTICKS_TO_MS(xTaskGetTickCount() - press_started);
+        if (wifi_erased && held_ms >= WIFI_BOOT_FACTORY_RESET_HOLD_MS)
+        {
+            factory_requested = true;
+        }
+
+        if (factory_requested)
+        {
+            const esp_err_t result = management_factory_reset();
+            if (result == ESP_OK)
+            {
+                factory_erased = true;
+                ESP_LOGW(TAG, "Factory reset complete; Wi-Fi, ADMIN credentials, API credentials, "
+                              "and device HTTPS identity were erased");
+            }
+            else
+            {
+                ESP_LOGE(TAG, "Unable to erase management configuration: %s",
+                         esp_err_to_name(result));
+            }
+        }
+
+        if (wifi_erased)
+        {
+            ESP_LOGW(TAG, "%s recovery complete; restarting into provisioning mode",
+                     factory_erased ? "Factory" : "Wi-Fi");
+            vTaskDelay(pdMS_TO_TICKS(WIFI_RECOVERY_RESTART_DELAY_MS));
+            esp_restart();
+        }
+    }
+}
+
+static void wifi_start_recovery_monitor(void)
 {
     const gpio_config_t button_configuration = {
         .pin_bit_mask = 1ULL << WIFI_BOOT_BUTTON,
@@ -361,26 +448,10 @@ static void wifi_reset_credentials_if_requested(void)
     };
     ESP_ERROR_CHECK(gpio_config(&button_configuration));
 
-    if (gpio_get_level(WIFI_BOOT_BUTTON) != 0)
+    if (xTaskCreate(wifi_recovery_task, "wifi-recovery",
+                    WIFI_RECOVERY_TASK_STACK_SIZE, NULL, 5, NULL) != pdPASS)
     {
-        return;
-    }
-
-    ESP_LOGW(TAG, "BOOT held; keep holding for three seconds to erase saved Wi-Fi credentials");
-    vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_RESET_HOLD_MS));
-    if (gpio_get_level(WIFI_BOOT_BUTTON) != 0)
-    {
-        return;
-    }
-
-    ESP_ERROR_CHECK(wifi_credentials_erase());
-    ESP_LOGW(TAG, "Saved Wi-Fi credentials erased; release BOOT now or keep holding for factory reset at fifteen seconds");
-
-    vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_FACTORY_RESET_HOLD_MS - WIFI_BOOT_RESET_HOLD_MS));
-    if (gpio_get_level(WIFI_BOOT_BUTTON) == 0)
-    {
-        ESP_ERROR_CHECK(management_factory_reset());
-        ESP_LOGW(TAG, "Factory reset complete; Wi-Fi, ADMIN credentials, API credentials, and device HTTPS identity were erased");
+        ESP_LOGE(TAG, "Unable to create physical recovery task");
     }
 }
 
@@ -967,7 +1038,7 @@ static bool wifi_connect_with_timeout(const WifiCredentials *credentials,
 void wifi_provisioning_init(void)
 {
     nvs_initialize();
-    wifi_reset_credentials_if_requested();
+    wifi_start_recovery_monitor();
 
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_netif_init());

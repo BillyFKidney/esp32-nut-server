@@ -148,8 +148,11 @@ are deferred to Milestone 6, Expanded Functionality.
 
 **Question:** What should the BOOT button do?
 
-**Answer:** Holding BOOT for three seconds resets Wi-Fi. Holding BOOT for
-fifteen seconds performs a factory reset, subject to the reset-scope decision.
+**Answer:** With ESP32-NUT already running, holding BOOT for three seconds
+resets Wi-Fi. Continuing to hold BOOT for fifteen seconds requests a factory
+reset, subject to the reset-scope decision; release BOOT to complete the reset
+and application-controlled restart. This is not a BOOT-plus-RESET sequence,
+because GPIO0 low during chip reset selects the ESP32-S3 ROM downloader.
 
 ### 16. Backup and restore
 

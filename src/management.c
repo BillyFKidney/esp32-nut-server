@@ -32,7 +32,7 @@
 #define MANAGEMENT_NAMESPACE "management"
 #define MANAGEMENT_ADMIN_SALT_KEY "admin-salt"
 #define MANAGEMENT_ADMIN_HASH_KEY "admin-hash"
-#define MANAGEMENT_ADMIN_CREDENTIAL_KEY "admin-credential"
+#define MANAGEMENT_ADMIN_CREDENTIAL_KEY "admin-cred"
 #define MANAGEMENT_CERTIFICATE_KEY "https-cert"
 #define MANAGEMENT_PRIVATE_KEY_KEY "https-key"
 #define MANAGEMENT_DEVICE_NAME_KEY "device-name"
@@ -55,6 +55,21 @@
 #define MANAGEMENT_PRIVATE_KEY_BUFFER_SIZE 1024
 #define MANAGEMENT_LOGIN_MAX_FAILURES 5
 #define MANAGEMENT_LOGIN_COOLDOWN_US (60LL * 1000000LL)
+
+_Static_assert(sizeof(MANAGEMENT_NAMESPACE) <= NVS_NS_NAME_MAX_SIZE,
+               "Management NVS namespace exceeds the ESP-IDF limit");
+_Static_assert(sizeof(MANAGEMENT_ADMIN_SALT_KEY) <= NVS_KEY_NAME_MAX_SIZE,
+               "ADMIN salt NVS key exceeds the ESP-IDF limit");
+_Static_assert(sizeof(MANAGEMENT_ADMIN_HASH_KEY) <= NVS_KEY_NAME_MAX_SIZE,
+               "ADMIN hash NVS key exceeds the ESP-IDF limit");
+_Static_assert(sizeof(MANAGEMENT_ADMIN_CREDENTIAL_KEY) <= NVS_KEY_NAME_MAX_SIZE,
+               "ADMIN credential NVS key exceeds the ESP-IDF limit");
+_Static_assert(sizeof(MANAGEMENT_CERTIFICATE_KEY) <= NVS_KEY_NAME_MAX_SIZE,
+               "HTTPS certificate NVS key exceeds the ESP-IDF limit");
+_Static_assert(sizeof(MANAGEMENT_PRIVATE_KEY_KEY) <= NVS_KEY_NAME_MAX_SIZE,
+               "HTTPS private-key NVS key exceeds the ESP-IDF limit");
+_Static_assert(sizeof(MANAGEMENT_DEVICE_NAME_KEY) <= NVS_KEY_NAME_MAX_SIZE,
+               "Device-name NVS key exceeds the ESP-IDF limit");
 
 typedef struct
 {
