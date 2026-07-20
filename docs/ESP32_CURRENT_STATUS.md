@@ -17,15 +17,16 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-19 18:00 PDT, America/Los_Angeles |
+| Updated | 2026-07-19 18:13 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | ADMIN password management `v2.1.0` |
 | Repository branch | `feature/admin-password-management`, created from `main` after PR #10 |
 | Validated implementation commit | `c91430f89` (`feat: complete ADMIN password management`) |
-| Remote state | `feature/admin-password-management` is published to `origin` and tracked by draft PR #12 against `main`; it is not merged, tagged, or released |
+| Remote state | `feature/admin-password-management` is published to `origin` and tracked by draft PR #12 against `main`; it is not merged and `v2.1.0` is not tagged or released. The earlier PR #10 foundation is published separately as `v2.0.0` |
 | Source worktree | Clean at implementation publication; generated ESP-IDF outputs and macOS `.DS_Store` files are ignored. The refreshed `docs/for_next_project/Billy's Initial Project Files.zip` is tracked and excludes `.DS_Store` and `__MACOSX` metadata |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | The `c91430f89` ADMIN password-management source builds successfully with ESP-IDF v6.0.2; latest image size is `0x1329f0` bytes with 62% of the smallest application partition free |
+| Latest published release | `v2.0.0`, tagged at PR #10 merge commit `257a983b1` and published with the verified ESP32-S3 application image and SHA-256 checksum asset |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173` on 2026-07-19; verify with UniFi at the start of a new session |
@@ -335,8 +336,16 @@ questionnaires, templates, and relevant addenda.
 The validated implementation and documentation were committed as `c91430f89`,
 pushed to `origin/feature/admin-password-management`, and published for review
 as draft PR #12 against `main`. The PR remains draft because physical ADMIN
-password recovery has not yet been implemented and validated. No merge, version
-tag, or release publication has occurred.
+password recovery has not yet been implemented and validated. The branch has
+not been merged or published as `v2.1.0`.
+
+With explicit Project Maintainer authorization, the completed PR #10 foundation
+was tagged and published as `v2.0.0` on 2026-07-19. The release tag points to
+merge commit `257a983b116fc78789892f8c0edb7d6ae52b5e7a`. Its ESP-IDF v6.0.2
+application image reports `v2.0.0`, is 1,248,944 bytes (`0x130eb0`), and has
+SHA-256 `3055e875d0d8b74d52d4833c6b17bc041afa06dceb08531ed173694679b934b2`.
+GitHub hosts both `nut-esp32s3.bin` and `nut-esp32s3.bin.sha256`; the release is
+public, final, and neither a draft nor a prerelease.
 
 ## Implemented versus remaining
 

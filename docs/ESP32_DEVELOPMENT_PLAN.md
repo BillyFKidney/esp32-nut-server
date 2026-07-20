@@ -65,6 +65,7 @@ for that unstable API.
 | DHCP compatibility | Complete | ESP32-side offered-address probe is disabled after validated UniFi interoperability testing. |
 | Project release 1.0.0 | Complete | `v1.0.0` is tagged on `main` and published on GitHub. |
 | Development OTA baseline | Complete | `v1.1.0` validated a Wi-Fi upload between both OTA slots, automatic restart, rollback support, NUT access, and CyberPower `ups.status = OL`. |
+| Operational Management foundation | Complete | `v2.0.0` publishes the PR #10 LAN-only HTTPS, ADMIN-authentication, initial status/OTA-route, and stack-safe startup foundation. |
 
 ## Development OTA baseline
 
@@ -138,7 +139,7 @@ proportional build and target-hardware validation.
 
 | Order | Release target | Branch | Scope and merge boundary |
 | --- | --- | --- | --- |
-| 1 | `v2.0.0` | `feature/operational-management` | HTTPS and ADMIN authentication foundation: device certificate, initial password setup, secure browser session, CSRF and login throttling, initial status/OTA routes, and stack-safe startup. Delivered by PR #10. |
+| 1 | `v2.0.0` | `feature/operational-management` | HTTPS and ADMIN authentication foundation: device certificate, initial password setup, secure browser session, CSRF and login throttling, initial status/OTA routes, and stack-safe startup. Delivered by PR #10 and published as `v2.0.0`. |
 | 2 | `v2.1.0` | `feature/admin-password-management` | Complete and validate initial setup, password change, session expiration, login throttling, and physical password recovery. The authenticated Safari OTA picker was pulled forward with explicit approval to restore the development workflow before the retired service's replacement branch. |
 | 3 | `v2.2.0` | `feature/api-tokens` | Create, list, identify, and delete named non-expiring API tokens with the required confirmation flow, including a scoped path for Agent-driven OTA without ADMIN-password disclosure. |
 | 4 | `v2.3.0` | `feature/management-dashboard` | Expose and render the required firmware, Wi-Fi, NUT, UPS, voltage, battery, load, runtime, and update diagnostics. |
@@ -149,10 +150,11 @@ proportional build and target-hardware validation.
 | 9 | `v2.8.0` | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
 | 10 | `v2.9.0` | `feature/operational-management-acceptance` | Integrate and validate the definition of done from iPhone and MacBook Air, close documentation gaps, and publish the final `v2.x` acceptance release. |
 
-These are release targets, not existing tags. Only `v1.0.0` and `v1.1.0` are
-currently tagged. In particular, do not retroactively tag or publish PR #10 as
-`v2.0.0`, and do not publish this branch as `v2.1.0`, without separate explicit
-Project Maintainer authorization.
+These rows identify release targets; completed rows may also identify existing
+tags. `v1.0.0`, `v1.1.0`, and `v2.0.0` are currently tagged and published.
+Do not publish the ADMIN password-management branch as `v2.1.0` without
+separate explicit Project Maintainer authorization after its acceptance boundary
+is complete.
 
 The console and REST API are cross-cutting design requirements applied to each
 slice rather than separate branches. A slice may be split further when review
