@@ -97,6 +97,10 @@ or other secrets in any starter document or chat message.
 - Losing the relationship between a deployed artifact and its source commit
 - Ending a session without a clean handoff and exact next action
 - Merging or releasing without explicit human authority
+- Retiring a service because the Agent recommends it without obtaining explicit
+  approval naming that service
+- Removing Agent access or automation and silently making a previously
+  Agent-owned task the human's responsibility
 
 ## Working well with the Project Maintainer
 

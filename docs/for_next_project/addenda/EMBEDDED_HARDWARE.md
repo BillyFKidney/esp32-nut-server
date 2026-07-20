@@ -54,6 +54,9 @@ committed. Record that relationship explicitly.
 - [ ] Record which cable carries power versus data.
 - [ ] Confirm backup/recovery image, slot, or reflashing path.
 - [ ] Ensure no automatic monitor or IDE task will compete for the port.
+- [ ] Inventory Agent and human firmware-installation paths; do not retire one
+  or transfer its recurring work without explicit Maintainer approval and a
+  validated replacement.
 
 ## Recovery ladder additions
 

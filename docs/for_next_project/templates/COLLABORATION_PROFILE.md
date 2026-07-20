@@ -26,6 +26,16 @@ scope, and technical guardrails in the project-specific documents.
 - Documentation expected from the start: {{DOCUMENTS}}
 - Definition of done expectations: {{EXPECTATIONS}}
 
+## Service and workflow continuity
+
+- Services that require explicit named approval before retirement:
+  {{SERVICE_RETIREMENT_POLICY}}
+- Agent access, automation, deployment/update capability, or recurring work that
+  must not be removed or transferred without explicit approval:
+  {{WORKFLOW_CONTINUITY_POLICY}}
+- Required replacement-before-retirement and rollback expectations:
+  {{CUTOVER_POLICY}}
+
 ## Testing
 
 - Human testing role: {{ROLE}}

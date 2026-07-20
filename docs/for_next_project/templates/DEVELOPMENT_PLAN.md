@@ -77,3 +77,9 @@ Success criterion: {{MEASURABLE_OUTCOME}}.
 - Merge validated foundations without declaring the umbrella milestone complete.
 - Start the next branch from synchronized default branch after merge.
 - Update this plan when scope, sequence, guardrails, or completion status changes.
+- Do not retire a service without explicit Project Maintainer approval naming
+  it, and do not treat a security recommendation as approval.
+- Before removing Agent access, deployment/update ability, or automation—or
+  transferring recurring Agent work to a human—document the before/after
+  workflow, replacement, validation, responsibility owner, and rollback, then
+  obtain explicit approval.

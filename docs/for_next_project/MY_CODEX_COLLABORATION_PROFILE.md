@@ -30,6 +30,21 @@ project-specific brief, roles, guardrails, and access boundaries.
 - Merge validated foundations without falsely declaring the umbrella milestone
   complete.
 
+## Service and workflow continuity
+
+- Get my explicit approval before retiring, disabling, removing, or making any
+  service inaccessible. A security benefit or planned replacement does not
+  constitute approval.
+- Get my explicit approval before a change severely alters how we work
+  together. Before asking, explain the current workflow, proposed workflow,
+  capabilities I or Codex would lose, the replacement path, rollback, and who
+  will own each recurring task afterward.
+- Treat loss of Codex login/access, independent deployment or update ability,
+  automation, or a transfer of previously Agent-performed work to me as a
+  severe workflow change.
+- Put and validate the replacement path in place before retiring the prior path
+  unless I explicitly approve a different cutover.
+
 ## Git and publishing
 
 - Preserve existing work and inspect Git state before editing or cleanup.

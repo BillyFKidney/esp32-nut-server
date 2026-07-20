@@ -71,6 +71,23 @@ configuration, build inputs, or documentation into `cleanup/`.
 - Validate changes on the target ESP32-S3 in proportion to their risk before
   calling them complete.
 
+## Service and workflow continuity
+
+- Do not retire, disable, remove, or make inaccessible any service without
+  explicit Project Maintainer approval that names the service. A security
+  recommendation is not authorization to perform the retirement.
+- Before a change materially alters how the Project Maintainer, Device Operator,
+  or Codex Agent performs development or operations, describe the before/after
+  workflow, lost capabilities, replacement path, new human responsibilities,
+  and rollback plan. Obtain explicit Project Maintainer approval before making
+  the change.
+- Treat loss of Agent access, independent deployment/update capability, or
+  automation—and transfer of a recurring task from the Agent to a human—as a
+  severe workflow change requiring that approval.
+- Sequence replacements before retirements whenever practical. Validate the
+  replacement workflow before removing the previous path unless the Project
+  Maintainer explicitly approves a security-driven emergency cutoff.
+
 ## Build and hardware workflow
 
 Use the installed ESP-IDF environment:

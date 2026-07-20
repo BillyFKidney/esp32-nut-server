@@ -37,6 +37,8 @@ answer. Do not include secrets.
 - Existing tests/CI: `{{TESTS_AND_CI}}`
 - Current branch/version/deployment if known: `{{CURRENT_STATE}}`
 - Important prior decisions: `{{PRIOR_DECISIONS}}`
+- Existing services, listeners, deployment paths, automation, and Agent access
+  that must remain available until explicitly retired: `{{CONTINUITY_INVENTORY}}`
 
 ## Access and authority
 
@@ -45,6 +47,10 @@ answer. Do not include secrets.
 - What the Project Maintainer can administer: `{{MAINTAINER_ACCESS}}`
 - What Codex can reach through the workspace/tools: `{{AGENT_ACCESS}}`
 - Actions requiring explicit approval: `{{APPROVAL_BOUNDARIES}}`
+- Services that may not be retired without named explicit approval:
+  `{{SERVICE_RETIREMENT_BOUNDARIES}}`
+- Workflow changes that would remove Agent capabilities or transfer recurring
+  work to a human: `{{WORKFLOW_OWNERSHIP_BOUNDARIES}}`
 - Systems that are view-only: `{{VIEW_ONLY_SYSTEMS}}`
 
 ## Risk and security

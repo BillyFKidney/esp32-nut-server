@@ -85,6 +85,21 @@ implementation steps. Pushing, merging, releasing, deploying, modifying live
 services, destructive recovery, or affecting other people requires authority
 from the current request or an explicit approval.
 
+## Service and workflow continuity
+
+- Never retire, disable, remove, or make inaccessible a service without explicit
+  Project Maintainer approval naming that service. A recommendation or security
+  benefit does not supply authority.
+- Before materially changing the development or operating workflow, disclose
+  the before/after process, lost human or Agent capabilities, replacement path,
+  new responsibility owner, validation, and rollback. Obtain explicit approval
+  before implementation.
+- Loss of Agent access, independent deploy/update capability, or automation—and
+  transfer of a recurring Agent task to a human—always qualifies as a material
+  workflow change.
+- Implement and validate replacement access before retirement unless the
+  Project Maintainer explicitly approves another cutover sequence.
+
 ## Documentation and handoff
 
 - Keep `CURRENT_STATUS.md` factual whenever repository, environment,

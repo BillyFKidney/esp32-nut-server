@@ -88,6 +88,9 @@ managed_components
 # Machine-local editor configuration
 /.vscode/settings.json
 
+# macOS metadata
+.DS_Store
+
 # Python precompiled files
 __pycache__/
 *.pyc

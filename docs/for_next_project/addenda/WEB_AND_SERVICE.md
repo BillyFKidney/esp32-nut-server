@@ -11,6 +11,9 @@ services.
 - Databases, queues, caches, object stores, and third parties: `{{DEPENDENCIES}}`
 - Deployment and rollback mechanism: `{{DEPLOYMENT_MODEL}}`
 - Data classification and retention: `{{DATA_POLICY}}`
+- Current services/listeners and their consumers: `{{SERVICE_INVENTORY}}`
+- Human and Agent deployment/update/administration paths:
+  `{{WORKFLOW_AND_ACCESS_INVENTORY}}`
 
 ## Guardrails
 
@@ -22,6 +25,9 @@ services.
 - Enforce authorization at the backend/control boundary, not only in UI.
 - Avoid logging secrets, tokens, personal data, payment data, or full request
   bodies by default.
+- Do not retire a service or remove an administration/deployment path without
+  explicit Maintainer approval after documenting consumers, capability loss,
+  replacement, responsibility transfer, validation, and rollback.
 
 ## Preflight additions
 

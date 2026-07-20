@@ -44,6 +44,8 @@ acceptance, and authorization for consequential actions.
   actions.
 - Confirm whether work is ready to commit, merge, deploy, or release.
 - Provide evidence or access the Agent cannot obtain directly.
+- Explicitly approve or reject each service retirement and material transfer of
+  recurring work between the Agent and humans.
 
 ## Codex Agent
 
@@ -64,6 +66,8 @@ The Codex Agent is the implementation and diagnostic collaborator.
 - Cannot assume old addresses, device identifiers, versions, sessions, or
   deployments are current.
 - Must not infer authority for destructive or materially broader actions.
+- Must not infer authority to retire a service, remove Agent access or
+  automation, or transfer Agent-owned work to a human.
 
 ### Responsibilities
 
@@ -74,6 +78,9 @@ The Codex Agent is the implementation and diagnostic collaborator.
 - Keep status and decisions durable across chats.
 - Stop for Maintainer direction when a choice changes scope, security,
   architecture, acceptance, or authorization.
+- Explain before/after workflow, capability loss, replacement, responsibility
+  transfer, validation, and rollback before requesting approval for a material
+  workflow change.
 
 ## Responsibility matrix
 
@@ -84,6 +91,7 @@ The Codex Agent is the implementation and diagnostic collaborator.
 | Source changes | Observes | Reviews/authorizes | Implements |
 | Build/test | Supplies environment evidence | Accepts strategy | Runs/interprets |
 | External service changes | Assists | Authorizes | Performs only when authorized and accessible |
+| Service retirement/workflow ownership transfer | Reports impact | Explicitly approves or rejects | Proposes and documents; does not implement without approval |
 | Commit/push/merge/release | No | Owns authority | Performs only when requested |
 | Secrets | Keeps private | Administers | Avoids requesting/recording |
 | Final acceptance | Provides results | Owns decision | Provides evidence/recommendation |

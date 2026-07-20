@@ -42,9 +42,13 @@ Before implementation, show me:
 - the small-branch development plan
 - the validation strategy
 - the exact first implementation slice
+- any service retirement, loss of Agent access/automation, or transfer of a
+  recurring Agent task to me, including the replacement and rollback
 
 Keep status updates concise. Preserve my existing changes. Never record secrets.
 Do not claim completion without evidence from the environments that matter.
+Get my explicit approval before retiring any service or implementing any
+material change to how work is divided between us.
 ```
 
 For a tiny project, tell the Agent which documents may be combined. Do not drop

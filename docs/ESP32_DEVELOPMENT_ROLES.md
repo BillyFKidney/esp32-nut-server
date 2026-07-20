@@ -73,6 +73,9 @@ and diagnostic role and the human decision-maker for the project.
 - Confirm whether a result is ready to commit, push, merge, or release
 - Escalate physical or third-party administration tasks that the Agent cannot
   perform directly
+- Explicitly approve or reject each proposed service retirement and each change
+  that materially transfers development or operational work from the Agent to
+  a human
 
 ## Codex Agent
 
@@ -104,6 +107,8 @@ environment permits.
   pushes, releases, or materially broader external changes
 - May need the Maintainer to approve commands outside the workspace sandbox or
   actions that alter connected hardware or remote systems
+- Cannot infer approval to retire a service or to remove an existing Agent or
+  operator capability merely because the replacement is more secure
 
 ### Responsibilities
 
@@ -118,6 +123,9 @@ environment permits.
   reconstructing the previous session
 - Stop and ask the Maintainer when a choice changes scope, security posture, or
   authorization
+- Before changing a collaboration workflow, disclose lost Agent capabilities,
+  replacement access, new Device Operator or Maintainer tasks, and rollback;
+  obtain explicit approval before implementation
 
 ## Responsibility summary
 
@@ -130,6 +138,7 @@ environment permits.
 | Source implementation | Views only | Reviews or performs | Leads within authorized scope |
 | Build and automated checks | Observes results | Authorizes or performs | Runs and interprets |
 | Flash or OTA operation | Assists physically | Authorizes | Runs when authorized and available |
+| Service retirement or workflow ownership transfer | Reports impact | Explicitly approves or rejects | Proposes impact/replacement; does not implement without approval |
 | Commit, push, merge, release | No | Authorizes and owns | Performs only when requested |
 | Credentials and secrets | Keeps private | Administers and keeps private | Must not request or record unless strictly necessary and safely handled |
 | Final acceptance | Provides UX result | Owns decision | Provides evidence and recommendation |
