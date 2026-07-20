@@ -143,7 +143,7 @@ proportional build and target-hardware validation.
 | --- | --- | --- | --- |
 | 1 | `v2.0.0` | `feature/operational-management` | HTTPS and ADMIN authentication foundation: device certificate, initial password setup, secure browser session, CSRF and login throttling, initial status/OTA routes, and stack-safe startup. Delivered by PR #10 and published as `v2.0.0`. |
 | 2 | `v2.1.0` | `feature/admin-password-management` | Complete and validate initial setup, password change, session expiration, login throttling, and physical password recovery. The authenticated Safari OTA picker was pulled forward with explicit approval to restore the development workflow before the retired service's replacement branch. Delivered by PR #12 and published as `v2.1.0`. |
-| 3 | `v2.2.0` | `feature/time-configuration` | Establish device-owned time before timestamp-consuming slices: synchronize through configurable NTP with `pool.ntp.org` as the default, provide a manual date/time fallback, store the selected IANA time-zone name with `America/Los_Angeles` as the default, and expose UTC/local time plus synchronization state through the authenticated status API and console. |
+| 3 | `v2.2.0` | `feature/time-configuration` | Establish device-owned time before timestamp-consuming slices: synchronize through configurable NTP with `pool.ntp.org` as the default, provide a manual date/time fallback, store the selected IANA time-zone name with `America/Los_Angeles` as the default, and expose UTC/local time plus synchronization state through the authenticated status API and console. Delivered by PR #16 and published as `v2.2.0`. |
 | 4 | `v2.3.0` | `feature/api-tokens` | Create, list, identify, and delete named non-expiring API tokens with device-generated issue timestamps and the required confirmation flow, including a scoped path for Agent-driven OTA without ADMIN-password disclosure. |
 | 5 | `v2.4.0` | `feature/management-dashboard` | Expose and render the required firmware, Wi-Fi, NUT, UPS, voltage, battery, load, runtime, update, and time diagnostics. |
 | 6 | `v2.5.0` | `feature/wifi-management` | Scan supported networks, show signal strength, confirm credential changes, reconnect, and never reveal the stored password. |
@@ -161,9 +161,9 @@ perform the one additional browser-assisted `v2.2.0` installation needed before
 the Agent replacement path is delivered. No service is retired by this reorder.
 
 These rows identify release targets; completed rows may also identify existing
-tags. `v1.0.0`, `v1.1.0`, `v2.0.0`, `v2.0.1`, and `v2.1.0` are tagged and
-published. The Project Maintainer explicitly authorized `v2.1.0` after its
-acceptance boundary passed.
+tags. `v1.0.0`, `v1.1.0`, `v2.0.0`, `v2.0.1`, `v2.1.0`, and `v2.2.0` are
+tagged and published. The Project Maintainer explicitly authorized `v2.2.0`
+after its acceptance boundary passed.
 
 The console and REST API are cross-cutting design requirements applied to each
 slice rather than separate branches. A slice may be split further when review
