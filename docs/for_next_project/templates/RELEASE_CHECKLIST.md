@@ -14,12 +14,15 @@
 - [ ] Deferred or excluded work is explicit.
 - [ ] Changelog/release notes describe user impact and breaking changes.
 - [ ] Versioning follows `{{VERSION_POLICY}}`.
+- [ ] This version maps to the intended milestone/slice and does not imply that
+  unfinished umbrella scope is complete.
 
 ## Repository
 
 - [ ] Default branch is synchronized and worktree is clean.
 - [ ] Required PRs are reviewed and merged with the intended history.
 - [ ] Release commit/tag points to the reviewed source.
+- [ ] The exact tag target is recorded and differs from later unmerged work.
 - [ ] Generated or local-only files are not included accidentally.
 
 ## Validation
@@ -51,6 +54,7 @@
 - [ ] Artifact provenance and destination are recorded.
 - [ ] Deployment/publishing is performed once from the approved commit.
 - [ ] Release/tag/assets are verified from the consumer perspective.
+- [ ] Published artifact version metadata matches the release tag.
 
 ## Post-release
 
@@ -58,3 +62,5 @@
 - [ ] Errors, regressions, and support channels are monitored.
 - [ ] `CURRENT_STATUS.md` records the release and next action.
 - [ ] Release outcome and rollback decision are recorded.
+- [ ] Every accepted release-targeted slice is either published or has an
+  explicit deferral, owner, and next action; no accidental version gap remains.

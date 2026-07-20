@@ -29,6 +29,25 @@ project-specific brief, roles, guardrails, and access boundaries.
   intended scope is usually a better branch boundary than the whole milestone.
 - Merge validated foundations without falsely declaring the umbrella milestone
   complete.
+- For projects using milestone-oriented releases, treat the milestone as a
+  major-version family, each independently validated and published slice as a
+  minor version, and compatible fixes as patch versions. Record when this is
+  intentionally not strict Semantic Versioning.
+
+## Service and workflow continuity
+
+- Get my explicit approval before retiring, disabling, removing, or making any
+  service inaccessible. A security benefit or planned replacement does not
+  constitute approval.
+- Get my explicit approval before a change severely alters how we work
+  together. Before asking, explain the current workflow, proposed workflow,
+  capabilities I or Codex would lose, the replacement path, rollback, and who
+  will own each recurring task afterward.
+- Treat loss of Codex login/access, independent deployment or update ability,
+  automation, or a transfer of previously Agent-performed work to me as a
+  severe workflow change.
+- Put and validate the replacement path in place before retiring the prior path
+  unless I explicitly approve a different cutover.
 
 ## Git and publishing
 
@@ -39,6 +58,10 @@ project-specific brief, roles, guardrails, and access boundaries.
 - Prefer merge commits when preserving branch and upstream history matters.
 - Checkpoint significant validated work by committing and pushing rather than
   leaving it only on one machine or in one chat.
+- Treat merge and release as separate decisions. When an accepted slice has an
+  assigned release target, tell me whether it is ready to publish and identify
+  any missing tag, artifact, checksum, or release record instead of silently
+  leaving a version gap.
 - Never push, merge, deploy, release, or rewrite history without authority from
   the current request or an explicit approval.
 

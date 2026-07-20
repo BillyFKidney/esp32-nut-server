@@ -71,12 +71,17 @@ external services in `PREFLIGHT.md`, not here as hidden assumptions.
 - Begin each independently reviewable slice from the latest `main` or default
   branch.
 - Keep one coherent risk and acceptance boundary per branch and PR.
+- Record the prospective release target for each slice when the project uses
+  versioned releases.
 - Prefer `{{MERGE_METHOD}}` merges.
 - Run validation proportional to risk: `{{REQUIRED_VALIDATION_LEVELS}}`.
 - A successful build is not runtime, integration, hardware, UX, security, or
   recovery proof.
 - Do not mark a milestone complete until its combined definition of done has
   evidence, even if every implementation branch has merged.
+- Treat merge, tag creation, artifact publication, and release publication as
+  separate state changes. After an accepted slice, identify a missing planned
+  release and obtain explicit authority before publishing it.
 
 ## Authority and external actions
 
@@ -84,6 +89,21 @@ Follow `DEVELOPMENT_ROLES.md`. Builds and local reversible checks may be normal
 implementation steps. Pushing, merging, releasing, deploying, modifying live
 services, destructive recovery, or affecting other people requires authority
 from the current request or an explicit approval.
+
+## Service and workflow continuity
+
+- Never retire, disable, remove, or make inaccessible a service without explicit
+  Project Maintainer approval naming that service. A recommendation or security
+  benefit does not supply authority.
+- Before materially changing the development or operating workflow, disclose
+  the before/after process, lost human or Agent capabilities, replacement path,
+  new responsibility owner, validation, and rollback. Obtain explicit approval
+  before implementation.
+- Loss of Agent access, independent deploy/update capability, or automation—and
+  transfer of a recurring Agent task to a human—always qualifies as a material
+  workflow change.
+- Implement and validate replacement access before retirement unless the
+  Project Maintainer explicitly approves another cutover sequence.
 
 ## Documentation and handoff
 

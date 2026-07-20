@@ -23,6 +23,14 @@ limitations, and response procedures. Do not include secret values.
 | --- | --- | --- | --- | --- |
 | {{FLOW}} | {{SOURCE_DESTINATION}} | {{AUTH}} | {{TRANSPORT_STORAGE}} | {{CONTROLS}} |
 
+## Service and access continuity
+
+- Current service/listener inventory and consumers: {{SERVICE_INVENTORY}}
+- Human and Agent administration/deployment paths: {{ACCESS_PATHS}}
+- Replacement and rollback required before retirement: {{CUTOVER_CONTROLS}}
+- Explicit Project Maintainer approval record for any retirement:
+  {{APPROVAL_REFERENCE}}
+
 ## Authentication and authorization
 
 - Identities: {{IDENTITIES}}

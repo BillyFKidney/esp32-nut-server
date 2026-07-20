@@ -36,7 +36,11 @@ answer. Do not include secrets.
 - Existing documentation: `{{EXISTING_DOCS}}`
 - Existing tests/CI: `{{TESTS_AND_CI}}`
 - Current branch/version/deployment if known: `{{CURRENT_STATE}}`
+- Existing tags/releases and any expected-but-missing versions:
+  `{{RELEASE_HISTORY_AND_GAPS}}`
 - Important prior decisions: `{{PRIOR_DECISIONS}}`
+- Existing services, listeners, deployment paths, automation, and Agent access
+  that must remain available until explicitly retired: `{{CONTINUITY_INVENTORY}}`
 
 ## Access and authority
 
@@ -45,6 +49,10 @@ answer. Do not include secrets.
 - What the Project Maintainer can administer: `{{MAINTAINER_ACCESS}}`
 - What Codex can reach through the workspace/tools: `{{AGENT_ACCESS}}`
 - Actions requiring explicit approval: `{{APPROVAL_BOUNDARIES}}`
+- Services that may not be retired without named explicit approval:
+  `{{SERVICE_RETIREMENT_BOUNDARIES}}`
+- Workflow changes that would remove Agent capabilities or transfer recurring
+  work to a human: `{{WORKFLOW_OWNERSHIP_BOUNDARIES}}`
 - Systems that are view-only: `{{VIEW_ONLY_SYSTEMS}}`
 
 ## Risk and security
@@ -61,6 +69,12 @@ answer. Do not include secrets.
 
 - Preferred branch/PR size: `{{BRANCH_PREFERENCE}}`
 - Preferred merge method: `{{MERGE_METHOD}}`
+- Versioning model—strict Semantic Versioning, milestone-oriented, date-based,
+  or another policy: `{{VERSIONING_MODEL}}`
+- Mapping between milestones, implementation slices, and version numbers:
+  `{{VERSION_MAPPING}}`
+- When an accepted slice should be proposed for tagging/release, and when a
+  release may intentionally be deferred: `{{RELEASE_DECISION_POLICY}}`
 - Release/deployment preference: `{{RELEASE_PREFERENCE}}`
 - Desired communication style: `{{COMMUNICATION_STYLE}}`
 - When the Agent should stop and ask: `{{QUESTION_THRESHOLD}}`

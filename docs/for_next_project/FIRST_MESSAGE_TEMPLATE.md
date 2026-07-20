@@ -30,8 +30,11 @@ Phase 2 — Project setup:
    actually needs.
 2. Divide milestones into small, independently reviewable branches with an
    explicit definition of done and proportionate validation for each slice.
-3. Propose the first implementation slice and exact next action.
-4. Ask only blocking questions whose answers would materially change scope,
+3. Define the versioning model and map prospective release targets to slices.
+   Treat merge and release as separate decisions, and flag any already-complete
+   target that lacks its expected tag or release.
+4. Propose the first implementation slice and exact next action.
+5. Ask only blocking questions whose answers would materially change scope,
    security, architecture, or acceptance criteria. Make and label safe
    assumptions for everything else.
 
@@ -40,11 +43,18 @@ Before implementation, show me:
 - proposed guardrails and exclusions
 - unresolved decisions and recommendations
 - the small-branch development plan
+- the version/release-target mapping and how release gaps will be detected
 - the validation strategy
 - the exact first implementation slice
+- any service retirement, loss of Agent access/automation, or transfer of a
+  recurring Agent task to me, including the replacement and rollback
 
 Keep status updates concise. Preserve my existing changes. Never record secrets.
 Do not claim completion without evidence from the environments that matter.
+Get my explicit approval before retiring any service or implementing any
+material change to how work is divided between us. When a release-targeted
+slice is accepted, tell me whether it is ready to publish; do not assume that a
+merge created the tag, artifacts, or release.
 ```
 
 For a tiny project, tell the Agent which documents may be combined. Do not drop
