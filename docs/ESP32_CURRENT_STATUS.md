@@ -17,16 +17,17 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-19 23:10 PDT, America/Los_Angeles |
+| Updated | 2026-07-19 23:26 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | Named API tokens `v2.2.0` in a future branch |
-| Repository branch | `main` after the `v2.1.0` release-record merge |
+| Repository branch | `main` after publication of the exact `v2.1.0` installation record |
 | Validated implementation state | PR #12 merge commit `b35a66cb3` publishes the target-validated ADMIN password-management slice |
-| Remote state | PR #12 is merged; annotated tag `v2.1.0` and the final GitHub release are public. `main` and `origin/main` include the release implementation |
+| Remote state | PR #12 is merged; annotated tag `v2.1.0` and the final GitHub release are public. `main` and `origin/main` include the release implementation and exact-image installation record |
 | Source worktree | ADMIN password management is merged; generated ESP-IDF outputs, captures, checksum files, and macOS `.DS_Store` files are ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | Exact tag `v2.1.0` builds successfully with ESP-IDF v6.0.2 and reports `v2.1.0`; image size is `0x132d50` bytes with 62% of the smallest application partition free |
 | Latest published release | `v2.1.0`, tagged at PR #12 merge commit `b35a66cb3` and published with the ESP32-S3 application image and SHA-256 checksum asset |
+| Installed firmware | Exact published `v2.1.0` image, installed through authenticated Safari OTA and confirmed by the administration console |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173` on 2026-07-19; verify with UniFi at the start of a new session |
@@ -442,10 +443,18 @@ Annotated tag `v2.1.0` points to that merge commit. An exact-tag ESP-IDF v6.0.2
 build reports `v2.1.0`, is 1,256,784 bytes (`0x132d50`), and has SHA-256
 `047ae1ce4cf20d0313342b614c1ae10bb5669eac5a0e0867ad3b9ecfc389b2d9`;
 its ESP32 image checksum and validation hash are valid. GitHub publishes the
-firmware and 82-byte checksum asset in the final, non-prerelease release. The
-tagged binary was **not installed** because the code-equivalent dirty build had
-already passed the complete target-hardware acceptance flow; exact tagged-image
-installation is **not tested** and was not required to publish this slice.
+firmware and 82-byte checksum asset in the final, non-prerelease release.
+
+The Device Operator subsequently installed that exact published image through
+the authenticated Safari OTA flow. Safari reconnected after the device restart,
+and the administration console reported firmware `v2.1.0`. A network-first
+follow-up rediscovered the board at `192.168.40.173` through its known MAC
+address, received HTTPS HTTP 200, identified the CyberPower CST150UC2, and
+observed `ups.status = OL` through read-only NUT TCP 3493. Retired TCP 8080
+refused the connection. Normal COM `/dev/cu.usbmodem54E20396741` was present
+with no monitor owner. Exact tagged-image installation and the post-install
+HTTPS, NUT, UPS, and service-boundary checks therefore **passed**. The running
+OTA slot and rollback state were **not tested** after this installation.
 
 ## Implemented versus remaining
 
