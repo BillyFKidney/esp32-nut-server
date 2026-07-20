@@ -17,21 +17,21 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-20 02:15 PDT, America/Los_Angeles |
+| Updated | 2026-07-20 02:19 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | API tokens `v2.3.0`; implementation has not started |
-| Repository branch | Local `main` synchronized with `origin/main` after the v2.2.0 release record merged through PR #17 |
+| Repository branch | Final handoff on local `main`, synchronized with `origin/main` after the v2.2.0 installation record |
 | Validated implementation state | PR #16 merged the target-validated time-configuration implementation at `7cfa26f8a`; annotated tag `v2.2.0` points to that merge commit |
-| Remote state | PRs #16 and #17 are merged, no pull request is open, and annotated tag `v2.2.0` plus the final GitHub release are public |
+| Remote state | The time-configuration implementation, release record, and installation record are merged; no pull request is open, and annotated tag `v2.2.0` plus the final GitHub release are public |
 | Source worktree | Clean tracked worktree; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | Exact-tag ESP-IDF v6.0.2 build of `v2.2.0`; embedded version `v2.2.0`, 1,274,096 bytes (`0x1370f0`), SHA-256 `0a67815bd32581e9c2f89174a12629d2a00e5b2aadb2e83b4cf977eb0d6e3b7e`, valid ESP32 checksum and validation hash, and 62% of the smallest application partition free |
 | Latest published release | Final `v2.2.0`, tagged at PR #16 merge commit `7cfa26f8a` and published with the exact-tag ESP32-S3 application image and 82-byte SHA-256 checksum asset |
-| Installed firmware | Corrected time-configuration candidate `v2.1.0-4-gf27ec9d06-dirty`, SHA-256 `2017f020b328b0776d0bf051859e25c44664ddb321e53166d2be39415f0db44d`, installed through authenticated Safari OTA and running from `app1`; installation of the exact published `v2.2.0` image is not yet tested |
+| Installed firmware | Exact published `v2.2.0` application image, SHA-256 `0a67815bd32581e9c2f89174a12629d2a00e5b2aadb2e83b4cf977eb0d6e3b7e`, installed through authenticated Safari OTA and running from `app0`; post-install firmware, time, HTTPS, NUT/UPS, OTA-slot, and retired-port checks passed |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
-| Last verified IPv4 address | `192.168.40.173` on 2026-07-20 at 01:49 PDT; the authenticated status identity, MAC mapping, HTTPS/NUT checks, UPS identity/status, and retired-port boundary matched |
-| Last observed development USB path | Normal COM rediscovered as `/dev/cu.usbmodem54E20396741`; one bounded diagnostic monitor was closed normally and `lsof` confirmed release. Native USB ROM download previously used `/dev/cu.usbmodem1101` for corrective installation |
+| Last verified IPv4 address | `192.168.40.173` on 2026-07-20 at 02:19 PDT; MAC rediscovery, authenticated firmware/time status, HTTPS, NUT/UPS, and retired-port checks passed |
+| Last observed development USB path | Normal COM rediscovered as `/dev/cu.usbmodem54E20396741` with no listed owner; serial was not opened during exact-release validation. Native USB ROM download previously used `/dev/cu.usbmodem1101` for corrective installation |
 | Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
 ## Current objective
@@ -674,8 +674,28 @@ Its ESP32 checksum and validation hash are valid, and 62% of the smallest
 application partition remains free. GitHub publishes that exact application
 image and its 82-byte checksum asset in the final, non-prerelease `v2.2.0`
 release. GitHub's stored firmware digest matches the local exact-tag build.
-Installation and post-install validation of the exact published image are
-**not yet tested**.
+At publication time, installation and post-install validation of the exact
+published image were **not yet tested**; the following observation closes that
+gap.
+
+**Observed after authenticated Safari OTA installation of the exact published
+image:** the administration status reported firmware `v2.2.0`, running slot
+`app0`, next slot `app1`, connected Wi-Fi, ADMIN HTTPS management, and
+read-only NUT metadata. The persisted `America/Los_Angeles` time zone and
+`192.168.40.10` NTP server loaded without reconfiguration; time was available
+with source `ntp`, synchronization true, and no pending operation. UTC
+`2026-07-20T09:18:09Z` converted correctly to PDT
+`2026-07-20T02:18:09-0700`.
+
+Network-first discovery independently mapped ESP32 MAC
+`30:30:f9:16:89:a4` to `192.168.40.173`. The HTTPS management page returned
+HTTP 200, read-only NUT TCP 3493 enumerated `cyberpower` as the CyberPower
+CST150UC2 and returned `ups.status = OL`, and retired TCP 8080 refused the
+connection. Normal COM `/dev/cu.usbmodem54E20396741` was rediscovered with no
+listed owner; network evidence was sufficient, so serial was not opened. Exact
+published-image installation, persisted time configuration, NTP
+synchronization, OTA-slot reporting, HTTPS, NUT/UPS operation, and service
+boundaries therefore **passed**. No physical intervention was required.
 
 ## Implemented versus remaining
 
@@ -710,12 +730,9 @@ Installation and post-install validation of the exact published image are
 
 ## Exact next action
 
-The Device Operator installs the exact published `v2.2.0`
-`nut-esp32s3.bin` through the authenticated Safari OTA picker. The Codex Agent
-then performs network-first post-install validation of firmware identity,
-HTTPS, read-only NUT, UPS status, time synchronization, persistence, OTA slot,
-and retired TCP 8080 before starting `feature/api-tokens` from synchronized
-`main`.
+Run the Agent preflight from synchronized `main`, then create
+`feature/api-tokens` for the `v2.3.0` implementation slice. Preserve the exact
+published `v2.2.0` installation as the rollback baseline.
 
 ## Operational procedures
 
