@@ -17,21 +17,21 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-19 23:26 PDT, America/Los_Angeles |
+| Updated | 2026-07-20 01:53 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | Named API tokens `v2.2.0` in a future branch |
-| Repository branch | `main` after publication of the exact `v2.1.0` installation record |
-| Validated implementation state | PR #12 merge commit `b35a66cb3` publishes the target-validated ADMIN password-management slice |
-| Remote state | PR #12 is merged; annotated tag `v2.1.0` and the final GitHub release are public. `main` and `origin/main` include the release implementation and exact-image installation record |
-| Source worktree | ADMIN password management is merged; generated ESP-IDF outputs, captures, checksum files, and macOS `.DS_Store` files are ignored |
+| Active slice target | Time configuration `v2.2.0` on `feature/time-configuration`; primary configuration, synchronization, persistence, timezone, disable, invalid-hostname, and explicit-retry paths passed |
+| Repository branch | Local `feature/time-configuration`; validated feature implementation committed as `e4430b81e` from synchronized base `f27ec9d06` |
+| Validated implementation state | Local commit `e4430b81e` contains the target-validated time-configuration implementation; PR #12 merge commit `b35a66cb3` remains the latest published firmware implementation |
+| Remote state | Live `origin/main` is `f27ec9d06`, no pull requests are open, and annotated tag `v2.1.0` plus the final GitHub release are public. The new feature branch has not been pushed |
+| Source worktree | Feature implementation and validation handoff committed locally; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | Exact tag `v2.1.0` builds successfully with ESP-IDF v6.0.2 and reports `v2.1.0`; image size is `0x132d50` bytes with 62% of the smallest application partition free |
+| Latest local build | ESP-IDF v6.0.2 successfully built clean validation commit `393ce5231`. It reports `v2.1.0-6-g393ce5231`, is 1,274,096 bytes (`0x1370f0`), has SHA-256 `a33327a3f451f9d75f7b9312b5a3429fac34f4cd33055a59f748f016283797bb`, and leaves 62% of the smallest application partition free. Its behavior matches the installed candidate; Git version metadata differs |
 | Latest published release | `v2.1.0`, tagged at PR #12 merge commit `b35a66cb3` and published with the ESP32-S3 application image and SHA-256 checksum asset |
-| Installed firmware | Exact published `v2.1.0` image, installed through authenticated Safari OTA and confirmed by the administration console |
+| Installed firmware | Corrected uncommitted time-configuration candidate `v2.1.0-4-gf27ec9d06-dirty`, SHA-256 `2017f020b328b0776d0bf051859e25c44664ddb321e53166d2be39415f0db44d`, installed through authenticated Safari OTA and running from `app1`; release identity remains `v2.2.0` only after completed validation and authorized publication |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
-| Last verified IPv4 address | `192.168.40.173` on 2026-07-19; verify with UniFi at the start of a new session |
-| Last observed development USB path | Normal COM rediscovered as `/dev/cu.usbmodem54E20396741` with no monitor owner; native USB ROM download used `/dev/cu.usbmodem1101` for corrective installation |
+| Last verified IPv4 address | `192.168.40.173` on 2026-07-20 at 01:49 PDT; the authenticated status identity, MAC mapping, HTTPS/NUT checks, UPS identity/status, and retired-port boundary matched |
+| Last observed development USB path | Normal COM rediscovered as `/dev/cu.usbmodem54E20396741`; one bounded diagnostic monitor was closed normally and `lsof` confirmed release. Native USB ROM download previously used `/dev/cu.usbmodem1101` for corrective installation |
 | Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
 ## Current objective
@@ -456,6 +456,214 @@ with no monitor owner. Exact tagged-image installation and the post-install
 HTTPS, NUT, UPS, and service-boundary checks therefore **passed**. The running
 OTA slot and rollback state were **not tested** after this installation.
 
+**Observed during the 2026-07-19 23:37 PDT API-token preflight:** local `main`,
+its `origin/main` tracking ref, and live GitHub `origin/main` all resolved to
+`f27ec9d06` with zero recorded divergence and a clean worktree. GitHub reported
+no open pull requests and a final, non-prerelease `v2.1.0` release. Local
+`feature/api-tokens` was created directly from that synchronized commit and was
+not pushed.
+
+Network-first discovery mapped the known ESP32 MAC address to
+`192.168.40.173`. TCP 443 and read-only NUT TCP 3493 accepted connections;
+retired TCP 8080 refused the connection. The first bounded HTTPS attempt timed
+out during TLS setup, while the single bounded retry returned HTTP 200 with the
+ESP32-NUT ADMIN sign-in page. Direct read-only NUT protocol requests identified
+the CyberPower CST150UC2 and returned `ups.status = OL`. Unauthenticated live
+requests to `/api/v1/status` and `/api/v1/ota/install` were rejected with HTTP
+401 and 403 respectively. Normal COM `/dev/cu.usbmodem54E20396741` was
+rediscovered with no listed owner; serial was not opened.
+
+The exact published `v2.1.0` installation remains **observed from the prior
+validated handoff**. The protected live firmware-version field, running OTA
+slot, and rollback state were **not tested** during this unauthenticated
+preflight.
+
+**Observed in source:** the existing management implementation provides
+cryptographic random generation, hexadecimal encoding, constant-time verifier
+comparison, PSA PBKDF2 support, management-namespace NVS persistence, secure
+browser cookies, CSRF enforcement, no-store responses, and a caller-authenticated
+OTA request processor. It has no API-token record, Bearer-header parser, token
+scope enforcement, creation/list/deletion routes, or token UI. The HTTPS server
+currently registers exactly eight handlers while its configured route capacity
+is also eight. Management time synchronization is not implemented, so a trusted
+device-generated issue date is **not available** without pulling later time
+configuration into this slice.
+
+**Approved sequencing decision on 2026-07-19 at 23:53 PDT:** the Project
+Maintainer moved `feature/time-configuration` forward to `v2.2.0` so API-token
+issue dates, dashboard data, OTA results, and live diagnostics can share
+device-owned UTC and local timestamps. API tokens move to `v2.3.0`; management
+dashboard to `v2.4.0`; Wi-Fi management to `v2.5.0`; local OTA management to
+`v2.6.0`; and live diagnostics to `v2.7.0`. Physical recovery and combined
+acceptance remain `v2.8.0` and `v2.9.0`.
+
+The unimplemented local branch was renamed to `feature/time-configuration` at
+the same `f27ec9d06` base. **Before the reorder,** scoped Agent-driven OTA was
+planned for `v2.2.0`. **After the reorder,** it is planned for `v2.3.0`; the
+existing authenticated Safari OTA path remains available, and the Device
+Operator or Project Maintainer will perform the one additional browser-assisted
+`v2.2.0` installation. The Project Maintainer explicitly accepted that delayed
+replacement and temporary human step. No service was retired, no existing
+capability was removed, and the unauthenticated TCP 8080 service remains closed.
+
+**Observed before time-configuration implementation:** the
+authenticated status API exposes uptime but not calendar time, and ESP32-NUT
+does not initialize SNTP or manage a time zone. ESP-IDF provides SNTP
+initialization, `settimeofday()`, and POSIX time-zone support. Translating the
+stored IANA name to the corresponding POSIX rule, tracking synchronization
+state/source, and avoiding a false 1970 display were not implemented at that
+inspection point.
+
+**Observed in the current worktree and build on 2026-07-20:** the new
+time-configuration module stores a versioned record in the existing management
+NVS namespace, defaults to automatic SNTP through `pool.ntp.org`, and defaults
+to `America/Los_Angeles`. It maps the supported IANA selections to POSIX
+daylight-saving rules, starts SNTP asynchronously after station Wi-Fi receives
+an address, supports an immediate retry, and permits a manually entered local
+date/time from 2024 through 2099. Manual time remains available while NTP
+retries and is superseded by a successful synchronization. Unknown time is
+reported explicitly rather than as 1970, and wall-clock time is not used as an
+authorization, token-expiration, or firmware-trust signal.
+
+The existing authenticated status response now includes UTC/local timestamps,
+IANA time zone, source, NTP configuration, synchronization, and pending state.
+The ADMIN console adds configuration, synchronize-now, and manual-time controls;
+all changes use the existing session and CSRF boundary through
+`POST /api/v1/admin/time`. Factory reset already erases the time record because
+it clears the complete management namespace. Existing ADMIN password, session,
+OTA, HTTPS, and read-only NUT behavior is otherwise unchanged.
+
+ESP-IDF v6.0.2 built `build/nut-esp32s3.bin` successfully. The candidate reports
+`v2.1.0-4-gf27ec9d06-dirty`, is 1,274,064 bytes (`0x1370d0`), and has SHA-256
+`afd668cfa14ad064a09d015ef9b4ae9f7c08268d1a1fd7dbdf86e2bbe7967da9`.
+ESP32-S3 image checksum and validation hash verification passed, with 62% of
+the smallest application partition free. At build time, browser rendering,
+authenticated API actions, NTP reachability, manual time, persistence,
+timezone transitions, firmware installation, reboot, HTTPS/NUT health, and
+hardware behavior were **not yet tested**.
+
+**Observed after authenticated Safari OTA on 2026-07-20:** the candidate
+reconnected at `192.168.40.173` and reported
+`v2.1.0-4-gf27ec9d06-dirty`, running slot `app0`, next slot `app1`, connected
+Wi-Fi, and ADMIN HTTPS management. The Device Operator selected
+`America/Los_Angeles`, enabled NTP with server `192.168.40.10`, and set the
+local date/time manually. The protected status response then showed matching
+UTC and PDT values, source `manual`, time available, and NTP synchronization
+pending. Manual entry, UTC/local conversion, selected-zone reporting, the
+authenticated browser controls, installation, and reboot therefore **passed**
+this initial check.
+
+**Observed by network-first diagnosis:** `192.168.40.10` returned valid NTP
+responses to the development Mac as a stratum-3 server, and `pool.ntp.org`
+also returned valid NTP responses. The ESP32 continued to serve HTTPS on TCP
+443 and read-only NUT on TCP 3493; the CyberPower CST150UC2 reported
+`ups.status = OL`, and retired TCP 8080 refused connections. The serial port
+was not opened. At that point, whether UDP/123 replies from either server
+reached the ESP32 and whether its SNTP callback completed were **not yet
+tested**; a controlled `pool.ntp.org` attempt was selected as the next
+discriminator.
+
+The controlled `pool.ntp.org` attempt also remained pending. Network-only
+evidence was then insufficient, so the normal COM path was rediscovered as
+`/dev/cu.usbmodem54E20396741` with no owner and one bounded ESP-IDF monitor was
+opened. Opening the monitor restarted the board. The boot log showed saved
+Wi-Fi reconnecting, the persisted `pool.ntp.org` setting loading, SNTP starting
+immediately after DHCP, HTTPS starting outside the system event task, the UPS
+reconnecting, and read-only NUT becoming active. No SNTP callback followed.
+The monitor was closed with Ctrl-] and `lsof` confirmed that the port was
+released.
+
+**Observed root cause in ESP-IDF/lwIP and project source:** lwIP's
+`sntp_setservername()` retains the initial server-name pointer rather than
+copying its contents. The project passed `configuration->ntp_server` from a
+caller-local configuration record; the configured startup delay therefore
+used an invalid pointer after that caller returned. The worktree now copies the
+selected server into module-lifetime storage before initializing SNTP and does
+not replace that storage until the prior SNTP instance is deinitialized. This
+explains the identical pending behavior for a literal local address and a
+public hostname; successful target synchronization after the correction is
+**not yet tested** at that inspection point.
+
+ESP-IDF v6.0.2 built the corrected image successfully at 1,274,096 bytes
+(`0x1370f0`), SHA-256
+`2017f020b328b0776d0bf051859e25c44664ddb321e53166d2be39415f0db44d`.
+Its ESP32-S3 checksum and validation hash are valid, and the smallest
+application partition remains 62% free. After the monitor-induced restart,
+TCP 443 and TCP 3493 accepted connections, the CyberPower CST150UC2 reported
+`ups.status = OL`, and TCP 8080 refused the connection.
+
+**Observed after the corrected authenticated Safari OTA installation:** the
+protected status response reported the expected dirty candidate version,
+running slot `app1`, next slot `app0`, connected Wi-Fi, ADMIN HTTPS management,
+and read-only NUT metadata. Without another time-setting change, persisted
+`pool.ntp.org` synchronized successfully after boot. Time was available with
+source `ntp`, `ntp_synchronized = true`, and
+`synchronization_pending = false`; UTC `2026-07-20T08:11:42Z` converted to
+local `2026-07-20T01:11:42-0700` under `America/Los_Angeles`. This validates
+the pointer-lifetime correction, automatic hostname-based NTP, callback state
+transition, persisted server/time-zone loading, UTC/local status formatting,
+and the current PDT rule.
+
+A network-first regression check mapped the known ESP32 MAC to
+`192.168.40.173`, reached HTTPS TCP 443 and read-only NUT TCP 3493, identified
+the CyberPower CST150UC2, and observed `ups.status = OL`. Retired TCP 8080
+refused the connection. Serial was not reopened.
+
+The Device Operator then changed only the NTP server to `192.168.40.10` and
+saved the configuration. After the bounded wait, protected status reported
+source `ntp`, `ntp_synchronized = true`, and
+`synchronization_pending = false`, with correct UTC/PDT formatting. The local
+direct-IP NTP server path therefore **passed** in addition to the public
+hostname path.
+
+The Device Operator then disabled NTP without changing the server, time zone,
+or clock. Protected status reported time still available, NTP disabled, and no
+synchronization pending. Source `ntp` and `ntp_synchronized = true` remain as
+provenance for the current clock's last successful synchronization; they do
+not claim that polling remains enabled. NTP shutdown with retained running time
+therefore **passed**.
+
+With NTP still disabled, the Device Operator changed only the time zone to
+`America/New_York`. UTC continued without a step while local time changed to
+EDT with the correct `-0400` offset. Alternate-zone application independent of
+NTP activity therefore **passed**.
+
+The Device Operator restored `America/Los_Angeles`; UTC again continued
+without a step and local time returned to PDT with the correct `-0700` offset.
+Protected status still reported `ntp_enabled = false`, so restoration of the
+intended automatic-sync state is **not yet complete**. Source inspection shows
+the browser explicitly submits the checkbox state as `true` or `false` and the
+server persists that submitted value; a checked-and-saved retry is the next
+discriminator between an omitted UI action and a runtime defect.
+
+The checked-and-saved retry reported NTP enabled, source `ntp`, synchronized,
+and not pending with `America/Los_Angeles` and `192.168.40.10`. The intended
+steady-state configuration is restored; the prior disabled result reflected
+the submitted checkbox state rather than a persistence defect.
+
+Entering `bad server` produced the expected validation response, `Use a valid
+NTP hostname and supported IANA time zone.` Reloading status showed the saved
+`192.168.40.10` value unchanged, NTP enabled and synchronized, and no pending
+operation. Invalid-hostname rejection and non-mutation therefore **passed**.
+An unauthenticated network request to `POST /api/v1/admin/time` with a benign
+sync action returned HTTP 403 and `Invalid session or CSRF token.` The time
+route's unauthenticated boundary therefore **passed** without serial access or
+state mutation.
+
+The Device Operator clicked **Synchronize now** with the restored steady-state
+configuration. The browser reported `NTP synchronization requested.` and the
+bounded follow-up status showed source `ntp`, NTP enabled and synchronized,
+and no pending operation. The explicit retry control and API action therefore
+**passed**.
+
+The final network-first regression check mapped the known ESP32 MAC to
+`192.168.40.173`, reached HTTPS TCP 443 and read-only NUT TCP 3493, and observed
+connection refusal on retired TCP 8080. Correctly CRLF-framed NUT requests
+identified the CyberPower CST150UC2 and returned `ups.status = OL`. Serial was
+not reopened. The final source audit found no TCP 8080 restoration or UPS
+control additions, the installed image SHA-256 still matched the validated
+build, and local implementation commit `e4430b81e` was created without pushing.
+
 ## Implemented versus remaining
 
 ### Implemented foundation
@@ -482,15 +690,15 @@ OTA slot and rollback state were **not tested** after this installation.
 - Wi-Fi scan, signal display, credential change, confirmation, and reconnect
 - Corrupt OTA image rejection validation
 - Remote service controls and live browser diagnostics
-- NTP and IANA time-zone configuration
 - Standalone three-second Wi-Fi-only recovery validation in the later physical
   recovery slice
 - iPhone and MacBook Air acceptance testing
 
 ## Exact next action
 
-Begin the named API-token `v2.2.0` slice from synchronized `main` in a future
-session after completing the normal preflight.
+The Project Maintainer reviews the validated local commits and either requests
+changes or explicitly authorizes pushing the branch and opening its pull
+request. Do not merge or release without separate explicit authorization.
 
 ## Operational procedures
 

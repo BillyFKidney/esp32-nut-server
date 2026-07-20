@@ -28,6 +28,7 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "management.h"
+#include "time_config.h"
 #include "wifi-portal.h"
 
 #define WIFI_CONFIG_NAMESPACE "wifi-config"
@@ -95,6 +96,13 @@ static void wifi_schedule_portal(void);
 static void wifi_start_management_task(void *argument)
 {
     (void)argument;
+    const esp_err_t time_result = time_config_start();
+    if (time_result != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Unable to start time configuration after Wi-Fi connection: %s",
+                 esp_err_to_name(time_result));
+    }
+
     const esp_err_t management_result = management_server_start();
     if (management_result != ESP_OK)
     {
