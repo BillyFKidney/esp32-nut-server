@@ -17,15 +17,15 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-19 17:30 PDT, America/Los_Angeles |
+| Updated | 2026-07-19 18:00 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | ADMIN password management `v2.1.0` |
 | Repository branch | `feature/admin-password-management`, created from `main` after PR #10 |
-| Validated implementation commit | `0fcd9e1f9` (`fix: start HTTPS management outside system event task`) |
-| Remote state | `feature/admin-password-management`, local `main`, and `origin/main` began aligned at `7a653779d`; no publication has occurred |
-| Source worktree | Modified ADMIN-management source, `.gitignore`, current project instructions/docs, and reusable `docs/for_next_project/` guidance; generated outputs and macOS `.DS_Store` files are ignored. Untracked `docs/for_next_project/Billy's Initial Project Files.zip` is treated as user-owned and untouched |
+| Validated implementation commit | `c91430f89` (`feat: complete ADMIN password management`) |
+| Remote state | `feature/admin-password-management` is published to `origin` and tracked by draft PR #12 against `main`; it is not merged, tagged, or released |
+| Source worktree | Clean at implementation publication; generated ESP-IDF outputs and macOS `.DS_Store` files are ignored. The refreshed `docs/for_next_project/Billy's Initial Project Files.zip` is tracked and excludes `.DS_Store` and `__MACOSX` metadata |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | The uncommitted `7a653779d`-based ADMIN password-management worktree builds successfully with ESP-IDF v6.0.2; latest image size is `0x1329f0` bytes with 62% of the smallest application partition free |
+| Latest local build | The `c91430f89` ADMIN password-management source builds successfully with ESP-IDF v6.0.2; latest image size is `0x1329f0` bytes with 62% of the smallest application partition free |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173` on 2026-07-19; verify with UniFi at the start of a new session |
@@ -332,6 +332,12 @@ approval. The rule is now recorded in root `AGENTS.md`, the ESP32 roles and
 development plan, and the reusable `docs/for_next_project/` profiles,
 questionnaires, templates, and relevant addenda.
 
+The validated implementation and documentation were committed as `c91430f89`,
+pushed to `origin/feature/admin-password-management`, and published for review
+as draft PR #12 against `main`. The PR remains draft because physical ADMIN
+password recovery has not yet been implemented and validated. No merge, version
+tag, or release publication has occurred.
+
 ## Implemented versus remaining
 
 ### Implemented foundation
@@ -348,8 +354,7 @@ questionnaires, templates, and relevant addenda.
 
 ### Remaining Operational Management work
 
-- Complete browser validation of ADMIN setup, login, logout, CSRF enforcement,
-  and CSRF enforcement
+- Complete negative-case CSRF enforcement validation
 - Revalidate the three-second ADMIN password-change success confirmation on the
   installed consolidated image
 - Named API-token creation, display, and confirmed deletion
