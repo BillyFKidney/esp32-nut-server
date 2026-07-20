@@ -23,6 +23,8 @@ scope, and technical guardrails in the project-specific documents.
 - Preferred planning depth: {{PREFERENCE}}
 - Preferred branch/PR size: {{PREFERENCE}}
 - Preferred merge method: {{METHOD}}
+- Versioning model and milestone/slice/release mapping: {{VERSION_POLICY}}
+- When to surface a missing or deferred release target: {{RELEASE_GAP_POLICY}}
 - Documentation expected from the start: {{DOCUMENTS}}
 - Definition of done expectations: {{EXPECTATIONS}}
 
@@ -48,6 +50,7 @@ scope, and technical guardrails in the project-specific documents.
 - Existing-change policy: {{POLICY}}
 - Cleanup/deletion policy: {{POLICY}}
 - Commit/push/merge preferences: {{POLICY}}
+- Tag/release/artifact publication preferences: {{POLICY}}
 
 ## Handoff
 

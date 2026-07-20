@@ -29,6 +29,10 @@ project-specific brief, roles, guardrails, and access boundaries.
   intended scope is usually a better branch boundary than the whole milestone.
 - Merge validated foundations without falsely declaring the umbrella milestone
   complete.
+- For projects using milestone-oriented releases, treat the milestone as a
+  major-version family, each independently validated and published slice as a
+  minor version, and compatible fixes as patch versions. Record when this is
+  intentionally not strict Semantic Versioning.
 
 ## Service and workflow continuity
 
@@ -54,6 +58,10 @@ project-specific brief, roles, guardrails, and access boundaries.
 - Prefer merge commits when preserving branch and upstream history matters.
 - Checkpoint significant validated work by committing and pushing rather than
   leaving it only on one machine or in one chat.
+- Treat merge and release as separate decisions. When an accepted slice has an
+  assigned release target, tell me whether it is ready to publish and identify
+  any missing tag, artifact, checksum, or release record instead of silently
+  leaving a version gap.
 - Never push, merge, deploy, release, or rewrite history without authority from
   the current request or an explicit approval.
 

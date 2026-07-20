@@ -71,12 +71,17 @@ external services in `PREFLIGHT.md`, not here as hidden assumptions.
 - Begin each independently reviewable slice from the latest `main` or default
   branch.
 - Keep one coherent risk and acceptance boundary per branch and PR.
+- Record the prospective release target for each slice when the project uses
+  versioned releases.
 - Prefer `{{MERGE_METHOD}}` merges.
 - Run validation proportional to risk: `{{REQUIRED_VALIDATION_LEVELS}}`.
 - A successful build is not runtime, integration, hardware, UX, security, or
   recovery proof.
 - Do not mark a milestone complete until its combined definition of done has
   evidence, even if every implementation branch has merged.
+- Treat merge, tag creation, artifact publication, and release publication as
+  separate state changes. After an accepted slice, identify a missing planned
+  release and obtain explicit authority before publishing it.
 
 ## Authority and external actions
 
