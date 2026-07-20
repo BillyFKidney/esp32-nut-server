@@ -17,7 +17,7 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-20 01:51 PDT, America/Los_Angeles |
+| Updated | 2026-07-20 01:53 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | Time configuration `v2.2.0` on `feature/time-configuration`; primary configuration, synchronization, persistence, timezone, disable, invalid-hostname, and explicit-retry paths passed |
 | Repository branch | Local `feature/time-configuration`; validated feature implementation committed as `e4430b81e` from synchronized base `f27ec9d06` |
@@ -25,7 +25,7 @@ private keys, or Wi-Fi credentials here.
 | Remote state | Live `origin/main` is `f27ec9d06`, no pull requests are open, and annotated tag `v2.1.0` plus the final GitHub release are public. The new feature branch has not been pushed |
 | Source worktree | Feature implementation and validation handoff committed locally; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | ESP-IDF v6.0.2 successfully built the SNTP pointer-lifetime correction. It reports `v2.1.0-4-gf27ec9d06-dirty`, is 1,274,096 bytes (`0x1370f0`), has SHA-256 `2017f020b328b0776d0bf051859e25c44664ddb321e53166d2be39415f0db44d`, and leaves 62% of the smallest application partition free |
+| Latest local build | ESP-IDF v6.0.2 successfully built clean validation commit `393ce5231`. It reports `v2.1.0-6-g393ce5231`, is 1,274,096 bytes (`0x1370f0`), has SHA-256 `a33327a3f451f9d75f7b9312b5a3429fac34f4cd33055a59f748f016283797bb`, and leaves 62% of the smallest application partition free. Its behavior matches the installed candidate; Git version metadata differs |
 | Latest published release | `v2.1.0`, tagged at PR #12 merge commit `b35a66cb3` and published with the ESP32-S3 application image and SHA-256 checksum asset |
 | Installed firmware | Corrected uncommitted time-configuration candidate `v2.1.0-4-gf27ec9d06-dirty`, SHA-256 `2017f020b328b0776d0bf051859e25c44664ddb321e53166d2be39415f0db44d`, installed through authenticated Safari OTA and running from `app1`; release identity remains `v2.2.0` only after completed validation and authorized publication |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
