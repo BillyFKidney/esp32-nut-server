@@ -135,7 +135,11 @@ ESP32 storage. MQTT is deferred to Milestone 6, Expanded Functionality.
 **Answer:** Use `pool.ntp.org` by default, permit configuration, and provide
 manual time-zone selection. Default the device to the Los Angeles time zone
 (`America/Los_Angeles`). Store an IANA time-zone name so daylight-saving
-transitions work correctly.
+transitions work correctly. Permit the administrator to set the date and time
+manually when NTP is unavailable. The authenticated status API and console show
+UTC and local time, the configured time zone, the time source, and whether the
+clock is synchronized; an unknown clock must not be presented as a valid 1970
+date.
 
 ### 14. Network integrations
 
@@ -183,6 +187,8 @@ improvements are much later work.
 - See each active token's name, issue date, and final four characters.
 - Delete a token only through a confirmation dialog requiring an
   acknowledgement checkbox and explicit confirmation.
+- View the device's current UTC and local date/time and synchronization state,
+  configure NTP and the IANA time zone, and set the clock manually when needed.
 - Manually install a known-good firmware file and have a corrupt file rejected.
 - View online diagnostics and factory-reset through the physical-button
   gesture.
@@ -265,7 +271,8 @@ the administrator configures them?
 **Recorded choice:** Default to `pool.ntp.org` and
 `America/Los_Angeles`, allow administrator configuration, and store an IANA
 time-zone name rather than a fixed UTC offset so daylight-saving transitions
-work.
+work. Provide a manual date/time fallback and expose UTC/local time, time zone,
+source, and synchronization state through the authenticated API and console.
 
 ### Resolved question F: Token display and browser sessions
 

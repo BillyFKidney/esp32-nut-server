@@ -158,6 +158,15 @@ verifiers. Authenticated browser sessions use Secure, HttpOnly, SameSite cookies
 and expire after fifteen minutes of idle time. The HTTPS management API also
 uses CSRF protection and throttles repeated failed password attempts.
 
+The administration console shows device UTC/local time and whether the clock is
+unavailable, retained, manually set, waiting for NTP, or synchronized. Automatic
+SNTP defaults to `pool.ntp.org`; ADMIN may configure the hostname, request an
+immediate synchronization, disable NTP, select a supported IANA time zone, or
+set local date/time manually. The default time zone is
+`America/Los_Angeles`. Supported selections are `UTC`, the principal United
+States continental zones, `America/Phoenix`, `America/Anchorage`, and
+`Pacific/Honolulu`. An unset clock is never presented as a valid 1970 date.
+
 The existing dual 3.3 MB OTA slots and bootloader rollback behavior remain in
 place. Firmware upload is being moved to the authenticated HTTPS management
 API; do not rely on the former unauthenticated TCP port `8080` service.

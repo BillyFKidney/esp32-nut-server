@@ -26,6 +26,7 @@
 #include "nvs.h"
 #include "ota.h"
 #include "psa/crypto.h"
+#include "time_config.h"
 
 #define TAG "nut-management"
 
@@ -50,7 +51,7 @@
 #define MANAGEMENT_SESSION_HEX_LENGTH (MANAGEMENT_SESSION_BYTES * 2)
 #define MANAGEMENT_SESSION_IDLE_US (15LL * 60LL * 1000000LL)
 #define MANAGEMENT_FORM_BODY_LIMIT 640
-#define MANAGEMENT_ADMIN_PAGE_SIZE 7000
+#define MANAGEMENT_ADMIN_PAGE_SIZE 12000
 #define MANAGEMENT_CERTIFICATE_BUFFER_SIZE 2048
 #define MANAGEMENT_PRIVATE_KEY_BUFFER_SIZE 1024
 #define MANAGEMENT_LOGIN_MAX_FAILURES 5
@@ -1009,9 +1010,22 @@ static esp_err_t management_root_handler(httpd_req_t *request)
     }
     const int page_length = snprintf(page, MANAGEMENT_ADMIN_PAGE_SIZE,
              "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
-             "<title>ESP32-NUT administration</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem;max-width:48rem;color:#17212b}pre{background:#f0f3f5;padding:1rem;overflow:auto}input,button{font:inherit;padding:.7rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem}.check{display:flex;gap:.5rem;align-items:center}.check input{width:auto;margin:0}.result{min-height:1.5rem}</style>"
+             "<title>ESP32-NUT administration</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem;max-width:48rem;color:#17212b}pre{background:#f0f3f5;padding:1rem;overflow:auto}input,button,select{font:inherit;padding:.7rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem}.secondary{background:#52606d}.check{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}.check input{width:auto;margin:0}.result{min-height:1.5rem}.hint{color:#52606d}</style>"
              "<h1>ESP32-NUT administration</h1><p>HTTPS is active with this device's self-signed certificate."
              " The administration API is LAN-only.</p><h2>Device status</h2><pre id=status>Loading…</pre>"
+             "<h2>Date and time</h2><p id=timeSummary>Loading time status…</p>"
+             "<form id=timeConfigForm><label class=check><input id=ntpEnabled type=checkbox> Synchronize automatically with NTP</label>"
+             "<label>NTP server<input id=ntpServer name=ntp_server required maxlength=63 autocomplete=off></label>"
+             "<label>Time zone<select id=timeZone name=timezone required>"
+             "<option value='UTC'>UTC</option><option value='America/Los_Angeles'>America/Los_Angeles</option>"
+             "<option value='America/Denver'>America/Denver</option><option value='America/Phoenix'>America/Phoenix</option>"
+             "<option value='America/Chicago'>America/Chicago</option><option value='America/New_York'>America/New_York</option>"
+             "<option value='America/Anchorage'>America/Anchorage</option><option value='Pacific/Honolulu'>Pacific/Honolulu</option>"
+             "</select></label><button type=submit>Save time settings</button></form>"
+             "<button id=syncNow class=secondary type=button>Synchronize now</button>"
+             "<form id=manualTimeForm><label>Manual date and time in the selected time zone<input id=manualDateTime name=local_datetime type=datetime-local min='2024-01-01T00:00' max='2099-12-31T23:59' required></label>"
+             "<button class=secondary type=submit>Set date and time manually</button></form>"
+             "<p class=hint>Manual time remains available while NTP retries and is replaced after a successful synchronization.</p><p id=timeResult class=result role=status></p>"
              "<h2>Change ADMIN password</h2><form id=passwordForm><label>Current password<input id=currentPassword name=current type=password required autocomplete=current-password></label>"
              "<label>New password<input id=newPassword name=password type=password required minlength=12 maxlength=128 autocomplete=new-password></label>"
              "<label>Confirm new password<input id=confirmPassword name=confirm type=password required minlength=12 maxlength=128 autocomplete=new-password></label>"
@@ -1019,7 +1033,17 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<h2>Install firmware</h2><p>Select a local ESP32-NUT application image. The device verifies the image before restarting into the inactive OTA slot.</p>"
              "<form id=otaForm><label>Firmware .bin file<input id=otaFile type=file accept='.bin,application/octet-stream' required></label><button id=otaButton type=submit>Install firmware</button></form><p id=otaResult class=result role=status></p>"
              "<p>Wi-Fi changes, API tokens, and additional diagnostics are being added to this authenticated console.</p>"
-             "<button onclick=logout()>Sign out</button><script>const csrf='%s',currentPassword=document.getElementById('currentPassword'),newPassword=document.getElementById('newPassword'),confirmPassword=document.getElementById('confirmPassword'),passwordForm=document.getElementById('passwordForm'),passwordResult=document.getElementById('passwordResult'),status=document.getElementById('status'),otaForm=document.getElementById('otaForm'),otaFile=document.getElementById('otaFile'),otaButton=document.getElementById('otaButton'),otaResult=document.getElementById('otaResult');document.getElementById('showPasswords').onchange=e=>{currentPassword.type=newPassword.type=confirmPassword.type=e.target.checked?'text':'password'};passwordForm.onsubmit=async e=>{e.preventDefault();passwordResult.textContent='Changing password…';const body=new URLSearchParams(new FormData(passwordForm));const r=await fetch('/api/v1/admin/password',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body});const x=await r.json();passwordResult.textContent=x.message||x.error||'Password change failed.';if(r.ok){passwordForm.reset();setTimeout(()=>location='/',3000)}};otaForm.onsubmit=async e=>{e.preventDefault();const file=otaFile.files[0];if(!file||!window.confirm('Install '+file.name+' and restart ESP32-NUT?'))return;otaButton.disabled=true;otaResult.textContent='Uploading and verifying firmware…';try{const r=await fetch('/api/v1/ota/install',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||'Firmware installation failed.';if(r.ok){setTimeout(reconnect,5000)}else{otaButton.disabled=false}}catch(error){otaResult.textContent='Connection closed. The device may be restarting…';setTimeout(reconnect,3000)}};function reconnect(){fetch('/',{cache:'no-store'}).then(()=>location='/').catch(()=>setTimeout(reconnect,2000))}fetch('/api/v1/status').then(r=>r.json()).then(x=>status.textContent=JSON.stringify(x,null,2));function logout(){fetch('/logout',{method:'POST',headers:{'X-ESP32-NUT-CSRF':csrf}}).then(()=>location='/')}</script>",
+             "<button onclick=logout()>Sign out</button><script>"
+             "const csrf='%s',status=document.getElementById('status'),timeSummary=document.getElementById('timeSummary'),timeConfigForm=document.getElementById('timeConfigForm'),ntpEnabled=document.getElementById('ntpEnabled'),ntpServer=document.getElementById('ntpServer'),timeZone=document.getElementById('timeZone'),syncNow=document.getElementById('syncNow'),manualTimeForm=document.getElementById('manualTimeForm'),manualDateTime=document.getElementById('manualDateTime'),timeResult=document.getElementById('timeResult'),currentPassword=document.getElementById('currentPassword'),newPassword=document.getElementById('newPassword'),confirmPassword=document.getElementById('confirmPassword'),passwordForm=document.getElementById('passwordForm'),passwordResult=document.getElementById('passwordResult'),otaForm=document.getElementById('otaForm'),otaFile=document.getElementById('otaFile'),otaButton=document.getElementById('otaButton'),otaResult=document.getElementById('otaResult');"
+             "async function loadStatus(){try{const r=await fetch('/api/v1/status',{cache:'no-store'}),x=await r.json();status.textContent=JSON.stringify(x,null,2);if(x.time){ntpEnabled.checked=x.time.ntp_enabled;ntpServer.value=x.time.ntp_server;timeZone.value=x.time.timezone;syncNow.disabled=!x.time.ntp_enabled;if(x.time.available){timeSummary.textContent=x.time.local+' ('+x.time.timezone+'), UTC '+x.time.utc+', source '+x.time.source+(x.time.synchronization_pending?' — synchronization pending':'');manualDateTime.value=x.time.local.slice(0,16)}else{timeSummary.textContent=x.time.synchronization_pending?'Time is not set; waiting for NTP.':'Time is not set.'}}}catch(error){status.textContent='Unable to load device status.'}}"
+             "async function submitTime(body){timeResult.textContent='Applying time settings…';try{const r=await fetch('/api/v1/admin/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body}),x=await r.json();timeResult.textContent=x.message||x.error||'Time operation failed.';if(r.ok)setTimeout(loadStatus,500)}catch(error){timeResult.textContent='Unable to reach the time API.'}}"
+             "timeConfigForm.onsubmit=e=>{e.preventDefault();const body=new URLSearchParams(new FormData(timeConfigForm));body.set('action','configure');body.set('ntp_enabled',ntpEnabled.checked?'true':'false');submitTime(body)};"
+             "manualTimeForm.onsubmit=e=>{e.preventDefault();const body=new URLSearchParams(new FormData(manualTimeForm));body.set('action','manual');submitTime(body)};"
+             "syncNow.onclick=()=>submitTime(new URLSearchParams({action:'sync'}));"
+             "document.getElementById('showPasswords').onchange=e=>{currentPassword.type=newPassword.type=confirmPassword.type=e.target.checked?'text':'password'};"
+             "passwordForm.onsubmit=async e=>{e.preventDefault();passwordResult.textContent='Changing password…';const body=new URLSearchParams(new FormData(passwordForm));const r=await fetch('/api/v1/admin/password',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body});const x=await r.json();passwordResult.textContent=x.message||x.error||'Password change failed.';if(r.ok){passwordForm.reset();setTimeout(()=>location='/',3000)}};"
+             "otaForm.onsubmit=async e=>{e.preventDefault();const file=otaFile.files[0];if(!file||!window.confirm('Install '+file.name+' and restart ESP32-NUT?'))return;otaButton.disabled=true;otaResult.textContent='Uploading and verifying firmware…';try{const r=await fetch('/api/v1/ota/install',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||'Firmware installation failed.';if(r.ok){setTimeout(reconnect,5000)}else{otaButton.disabled=false}}catch(error){otaResult.textContent='Connection closed. The device may be restarting…';setTimeout(reconnect,3000)}};"
+             "function reconnect(){fetch('/',{cache:'no-store'}).then(()=>location='/').catch(()=>setTimeout(reconnect,2000))}function logout(){fetch('/logout',{method:'POST',headers:{'X-ESP32-NUT-CSRF':csrf}}).then(()=>location='/')}loadStatus();</script>",
              csrf);
     mbedtls_platform_zeroize(csrf, sizeof(csrf));
     if (page_length < 0 || page_length >= MANAGEMENT_ADMIN_PAGE_SIZE)
@@ -1247,17 +1271,22 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     const esp_app_desc_t *app_description = esp_app_get_description();
     const esp_partition_t *running_partition = esp_ota_get_running_partition();
     const esp_partition_t *next_partition = esp_ota_get_next_update_partition(NULL);
+    TimeConfigStatus time_status;
+    time_config_get_status(&time_status);
     char address[16] = "unassigned";
     if (ip_info.ip.addr != 0)
     {
         snprintf(address, sizeof(address), IPSTR, IP2STR(&ip_info.ip));
     }
 
-    char response[768];
+    char response[1400];
     snprintf(response, sizeof(response),
              "{\"device_name\":\"%s\",\"firmware\":\"%s\",\"uptime_seconds\":%lld,"
              "\"wifi\":{\"ip\":\"%s\",\"ssid\":\"%s\",\"rssi_dbm\":%d,\"connected\":%s},"
              "\"management\":{\"transport\":\"https\",\"certificate\":\"self-signed\",\"role\":\"ADMIN\"},"
+             "\"time\":{\"available\":%s,\"utc\":\"%s\",\"local\":\"%s\","
+             "\"timezone\":\"%s\",\"source\":\"%s\",\"ntp_enabled\":%s,"
+             "\"ntp_server\":\"%s\",\"ntp_synchronized\":%s,\"synchronization_pending\":%s},"
              "\"ota\":{\"running_slot\":\"%s\",\"next_slot\":\"%s\"},"
              "\"nut\":{\"port\":3493,\"mode\":\"read-only\"}}",
              MANAGEMENT_DEFAULT_DEVICE_NAME,
@@ -1266,9 +1295,132 @@ static esp_err_t management_status_handler(httpd_req_t *request)
              access_point_result == ESP_OK ? (const char *)access_point.ssid : "",
              access_point_result == ESP_OK ? access_point.rssi : 0,
              access_point_result == ESP_OK ? "true" : "false",
+             time_status.available ? "true" : "false",
+             time_status.utc, time_status.local, time_status.timezone,
+             time_status.source, time_status.ntp_enabled ? "true" : "false",
+             time_status.ntp_server,
+             time_status.ntp_synchronized ? "true" : "false",
+             time_status.synchronization_pending ? "true" : "false",
              running_partition != NULL ? running_partition->label : "unknown",
              next_partition != NULL ? next_partition->label : "unavailable");
     return management_send_json(request, "200 OK", response);
+}
+
+static esp_err_t management_time_config_handler(httpd_req_t *request)
+{
+    if (!management_csrf_is_valid(request))
+    {
+        return management_send_json(request, "403 Forbidden",
+                                    "{\"error\":\"Invalid session or CSRF token.\"}");
+    }
+
+    char body[MANAGEMENT_FORM_BODY_LIMIT + 1];
+    char action[16] = {0};
+    const esp_err_t form_result = management_read_form_body(request, body, sizeof(body));
+    if (form_result != ESP_OK ||
+        !management_form_value(body, "action", action, sizeof(action)))
+    {
+        mbedtls_platform_zeroize(body, sizeof(body));
+        return management_send_json(request, "400 Bad Request",
+                                    "{\"error\":\"A valid time action is required.\"}");
+    }
+
+    esp_err_t result = ESP_ERR_INVALID_ARG;
+    if (strcmp(action, "configure") == 0)
+    {
+        char ntp_enabled[6] = {0};
+        char ntp_server[TIME_CONFIG_NTP_SERVER_MAX_LENGTH + 1] = {0};
+        char timezone[TIME_CONFIG_TIMEZONE_MAX_LENGTH + 1] = {0};
+        const bool fields_present =
+            management_form_value(body, "ntp_enabled", ntp_enabled,
+                                  sizeof(ntp_enabled)) &&
+            management_form_value(body, "ntp_server", ntp_server,
+                                  sizeof(ntp_server)) &&
+            management_form_value(body, "timezone", timezone,
+                                  sizeof(timezone));
+        const bool enabled_value_valid = strcmp(ntp_enabled, "true") == 0 ||
+                                         strcmp(ntp_enabled, "false") == 0;
+        if (!fields_present || !enabled_value_valid)
+        {
+            mbedtls_platform_zeroize(body, sizeof(body));
+            return management_send_json(request, "400 Bad Request",
+                                        "{\"error\":\"The time configuration is invalid.\"}");
+        }
+        result = time_config_update(strcmp(ntp_enabled, "true") == 0,
+                                    ntp_server, timezone);
+        mbedtls_platform_zeroize(ntp_server, sizeof(ntp_server));
+        mbedtls_platform_zeroize(timezone, sizeof(timezone));
+        if (result == ESP_ERR_INVALID_ARG)
+        {
+            mbedtls_platform_zeroize(body, sizeof(body));
+            return management_send_json(
+                request, "400 Bad Request",
+                "{\"error\":\"Use a valid NTP hostname and supported IANA time zone.\"}");
+        }
+        if (result == ESP_OK)
+        {
+            mbedtls_platform_zeroize(body, sizeof(body));
+            return management_send_json(
+                request, "200 OK",
+                "{\"message\":\"Time configuration saved.\"}");
+        }
+    }
+    else if (strcmp(action, "manual") == 0)
+    {
+        char local_datetime[17] = {0};
+        if (!management_form_value(body, "local_datetime", local_datetime,
+                                   sizeof(local_datetime)))
+        {
+            mbedtls_platform_zeroize(body, sizeof(body));
+            return management_send_json(request, "400 Bad Request",
+                                        "{\"error\":\"A local date and time are required.\"}");
+        }
+        result = time_config_set_manual(local_datetime);
+        mbedtls_platform_zeroize(local_datetime, sizeof(local_datetime));
+        if (result == ESP_ERR_INVALID_ARG)
+        {
+            mbedtls_platform_zeroize(body, sizeof(body));
+            return management_send_json(
+                request, "400 Bad Request",
+                "{\"error\":\"Use a valid date and time from 2024 through 2099 in the configured time zone.\"}");
+        }
+        if (result == ESP_OK)
+        {
+            mbedtls_platform_zeroize(body, sizeof(body));
+            return management_send_json(
+                request, "200 OK",
+                "{\"message\":\"Device date and time set manually.\"}");
+        }
+    }
+    else if (strcmp(action, "sync") == 0)
+    {
+        result = time_config_request_sync();
+        if (result == ESP_ERR_INVALID_STATE)
+        {
+            mbedtls_platform_zeroize(body, sizeof(body));
+            return management_send_json(
+                request, "409 Conflict",
+                "{\"error\":\"Enable NTP before requesting synchronization.\"}");
+        }
+        if (result == ESP_OK)
+        {
+            mbedtls_platform_zeroize(body, sizeof(body));
+            return management_send_json(
+                request, "202 Accepted",
+                "{\"message\":\"NTP synchronization requested.\"}");
+        }
+    }
+    else
+    {
+        mbedtls_platform_zeroize(body, sizeof(body));
+        return management_send_json(request, "400 Bad Request",
+                                    "{\"error\":\"Unknown time action.\"}");
+    }
+
+    mbedtls_platform_zeroize(body, sizeof(body));
+    ESP_LOGE(TAG, "Time action '%s' failed: %s", action, esp_err_to_name(result));
+    return management_send_json(request, "500 Internal Server Error",
+                                "{\"error\":\"Unable to apply the time configuration.\"}");
 }
 
 static esp_err_t management_ota_install_handler(httpd_req_t *request)
@@ -1313,7 +1465,7 @@ esp_err_t management_server_start(void)
     configuration.httpd.server_port = MANAGEMENT_HTTPS_PORT;
     configuration.httpd.stack_size = 12288;
     configuration.httpd.max_open_sockets = 4;
-    configuration.httpd.max_uri_handlers = 8;
+    configuration.httpd.max_uri_handlers = 9;
     configuration.httpd.lru_purge_enable = true;
     configuration.servercert = management_certificate;
     configuration.servercert_len = management_certificate_length;
@@ -1335,8 +1487,9 @@ esp_err_t management_server_start(void)
     const httpd_uri_t password = {.uri = "/api/v1/admin/password", .method = HTTP_POST, .handler = management_password_change_handler};
     const httpd_uri_t logout = {.uri = "/logout", .method = HTTP_POST, .handler = management_logout_handler};
     const httpd_uri_t status = {.uri = "/api/v1/status", .method = HTTP_GET, .handler = management_status_handler};
+    const httpd_uri_t time_configuration = {.uri = "/api/v1/admin/time", .method = HTTP_POST, .handler = management_time_config_handler};
     const httpd_uri_t ota = {.uri = "/api/v1/ota/install", .method = HTTP_POST, .handler = management_ota_install_handler};
-    const httpd_uri_t *routes[] = {&root, &setup, &login_page, &login, &password, &logout, &status, &ota};
+    const httpd_uri_t *routes[] = {&root, &setup, &login_page, &login, &password, &logout, &status, &time_configuration, &ota};
     for (size_t index = 0; index < sizeof(routes) / sizeof(routes[0]); index++)
     {
         result = httpd_register_uri_handler(management_https_server, routes[index]);

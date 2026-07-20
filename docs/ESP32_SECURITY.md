@@ -68,6 +68,19 @@ device starts a LAN-only HTTPS administration service on TCP port `443`.
   CSRF header.
 - Password login attempts are throttled after repeated failures.
 
+The authenticated console also manages device time. Automatic SNTP uses
+`pool.ntp.org` by default after station Wi-Fi receives an address. ADMIN may
+select a supported IANA time-zone name, configure the NTP hostname, disable or
+restart NTP, or set local date/time manually when NTP is unavailable. The
+device stores configuration but does not persist a manually entered clock value
+across power loss; it reports an unavailable clock explicitly until retained or
+newly synchronized time is valid.
+
+Public SNTP does not authenticate the time source. ESP32-NUT therefore uses
+wall-clock time for display and operational metadata, not as an authorization
+decision, API-token expiration mechanism, or firmware-trust signal. Manual time
+is replaced if a later SNTP synchronization succeeds.
+
 The certificate is self-signed for Milestone 2, so browsers will show a trust
 warning until the owner explicitly accepts it. Milestone 3 replaces it with a
 certificate issued by the local CA and adds production OTA source/signature
