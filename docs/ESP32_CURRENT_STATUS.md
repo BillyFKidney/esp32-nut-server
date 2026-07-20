@@ -17,17 +17,17 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-20 01:53 PDT, America/Los_Angeles |
+| Updated | 2026-07-20 02:12 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | Time configuration `v2.2.0` on `feature/time-configuration`; primary configuration, synchronization, persistence, timezone, disable, invalid-hostname, and explicit-retry paths passed |
-| Repository branch | Local `feature/time-configuration`; validated feature implementation committed as `e4430b81e` from synchronized base `f27ec9d06` |
-| Validated implementation state | Local commit `e4430b81e` contains the target-validated time-configuration implementation; PR #12 merge commit `b35a66cb3` remains the latest published firmware implementation |
-| Remote state | Live `origin/main` is `f27ec9d06`, no pull requests are open, and annotated tag `v2.1.0` plus the final GitHub release are public. The new feature branch has not been pushed |
-| Source worktree | Feature implementation and validation handoff committed locally; generated ESP-IDF outputs remain ignored |
+| Active slice target | API tokens `v2.3.0`; implementation has not started |
+| Repository branch | Local release-record branch `agent/v2.2.0-release-record` from synchronized `main` at PR #16 merge commit `7cfa26f8a` |
+| Validated implementation state | PR #16 merged the target-validated time-configuration implementation at `7cfa26f8a`; annotated tag `v2.2.0` points to that merge commit |
+| Remote state | Live `origin/main` is `7cfa26f8a`, PR #16 is merged, no pull request is open, and annotated tag `v2.2.0` plus the final GitHub release are public |
+| Source worktree | Release-record documentation update in progress; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | ESP-IDF v6.0.2 successfully built clean validation commit `393ce5231`. It reports `v2.1.0-6-g393ce5231`, is 1,274,096 bytes (`0x1370f0`), has SHA-256 `a33327a3f451f9d75f7b9312b5a3429fac34f4cd33055a59f748f016283797bb`, and leaves 62% of the smallest application partition free. Its behavior matches the installed candidate; Git version metadata differs |
-| Latest published release | `v2.1.0`, tagged at PR #12 merge commit `b35a66cb3` and published with the ESP32-S3 application image and SHA-256 checksum asset |
-| Installed firmware | Corrected uncommitted time-configuration candidate `v2.1.0-4-gf27ec9d06-dirty`, SHA-256 `2017f020b328b0776d0bf051859e25c44664ddb321e53166d2be39415f0db44d`, installed through authenticated Safari OTA and running from `app1`; release identity remains `v2.2.0` only after completed validation and authorized publication |
+| Latest local build | Exact-tag ESP-IDF v6.0.2 build of `v2.2.0`; embedded version `v2.2.0`, 1,274,096 bytes (`0x1370f0`), SHA-256 `0a67815bd32581e9c2f89174a12629d2a00e5b2aadb2e83b4cf977eb0d6e3b7e`, valid ESP32 checksum and validation hash, and 62% of the smallest application partition free |
+| Latest published release | Final `v2.2.0`, tagged at PR #16 merge commit `7cfa26f8a` and published with the exact-tag ESP32-S3 application image and 82-byte SHA-256 checksum asset |
+| Installed firmware | Corrected time-configuration candidate `v2.1.0-4-gf27ec9d06-dirty`, SHA-256 `2017f020b328b0776d0bf051859e25c44664ddb321e53166d2be39415f0db44d`, installed through authenticated Safari OTA and running from `app1`; installation of the exact published `v2.2.0` image is not yet tested |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173` on 2026-07-20 at 01:49 PDT; the authenticated status identity, MAC mapping, HTTPS/NUT checks, UPS identity/status, and retired-port boundary matched |
@@ -664,6 +664,19 @@ not reopened. The final source audit found no TCP 8080 restoration or UPS
 control additions, the installed image SHA-256 still matched the validated
 build, and local implementation commit `e4430b81e` was created without pushing.
 
+**Observed during authorized publication on 2026-07-20:** PR #16 merged the
+validated time-configuration branch to `main` at
+`7cfa26f8a78c8f3c6d9561db5b9af646e64a59f1`. Annotated tag `v2.2.0` points to
+that merge commit. The exact-tag ESP-IDF v6.0.2 build reports `v2.2.0`, is
+1,274,096 bytes (`0x1370f0`), and has SHA-256
+`0a67815bd32581e9c2f89174a12629d2a00e5b2aadb2e83b4cf977eb0d6e3b7e`.
+Its ESP32 checksum and validation hash are valid, and 62% of the smallest
+application partition remains free. GitHub publishes that exact application
+image and its 82-byte checksum asset in the final, non-prerelease `v2.2.0`
+release. GitHub's stored firmware digest matches the local exact-tag build.
+Installation and post-install validation of the exact published image are
+**not yet tested**.
+
 ## Implemented versus remaining
 
 ### Implemented foundation
@@ -672,6 +685,7 @@ build, and local implementation commit `e4430b81e` was created without pushing.
 - Initial ADMIN password creation and sign-in
 - Browser session, CSRF, and login-throttling foundation
 - Initial status JSON endpoint
+- Authenticated device time, NTP, and supported IANA time-zone configuration
 - Authenticated local OTA installation endpoint
 - Authenticated Safari firmware file picker with confirmation and reconnect
 - Runtime-monitored three-second Wi-Fi reset and fifteen-second management
@@ -696,9 +710,12 @@ build, and local implementation commit `e4430b81e` was created without pushing.
 
 ## Exact next action
 
-The Project Maintainer reviews the validated local commits and either requests
-changes or explicitly authorizes pushing the branch and opening its pull
-request. Do not merge or release without separate explicit authorization.
+The Device Operator installs the exact published `v2.2.0`
+`nut-esp32s3.bin` through the authenticated Safari OTA picker. The Codex Agent
+then performs network-first post-install validation of firmware identity,
+HTTPS, read-only NUT, UPS status, time synchronization, persistence, OTA slot,
+and retired TCP 8080 before starting `feature/api-tokens` from synchronized
+`main`.
 
 ## Operational procedures
 
