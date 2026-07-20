@@ -67,6 +67,7 @@ for that unstable API.
 | Development OTA baseline | Complete | `v1.1.0` validated a Wi-Fi upload between both OTA slots, automatic restart, rollback support, NUT access, and CyberPower `ups.status = OL`. |
 | Operational Management foundation | Complete | `v2.0.0` publishes the PR #10 LAN-only HTTPS, ADMIN-authentication, initial status/OTA-route, and stack-safe startup foundation. |
 | Documentation and workflow continuity patch | Complete | `v2.0.1` publishes the reusable project starter kit, explicit service/workflow-continuity rules, milestone/slice version mapping, and release-gap checks without changing firmware behavior. |
+| ADMIN password management | Complete | `v2.1.0` publishes first-run setup, password changes, session expiration, login throttling, authenticated Safari OTA, and target-validated physical ADMIN recovery through PR #12. |
 
 ## Development OTA baseline
 
@@ -141,7 +142,7 @@ proportional build and target-hardware validation.
 | Order | Release target | Branch | Scope and merge boundary |
 | --- | --- | --- | --- |
 | 1 | `v2.0.0` | `feature/operational-management` | HTTPS and ADMIN authentication foundation: device certificate, initial password setup, secure browser session, CSRF and login throttling, initial status/OTA routes, and stack-safe startup. Delivered by PR #10 and published as `v2.0.0`. |
-| 2 | `v2.1.0` | `feature/admin-password-management` | Complete and validate initial setup, password change, session expiration, login throttling, and physical password recovery. The authenticated Safari OTA picker was pulled forward with explicit approval to restore the development workflow before the retired service's replacement branch. |
+| 2 | `v2.1.0` | `feature/admin-password-management` | Complete and validate initial setup, password change, session expiration, login throttling, and physical password recovery. The authenticated Safari OTA picker was pulled forward with explicit approval to restore the development workflow before the retired service's replacement branch. Delivered by PR #12 and published as `v2.1.0`. |
 | 3 | `v2.2.0` | `feature/api-tokens` | Create, list, identify, and delete named non-expiring API tokens with the required confirmation flow, including a scoped path for Agent-driven OTA without ADMIN-password disclosure. |
 | 4 | `v2.3.0` | `feature/management-dashboard` | Expose and render the required firmware, Wi-Fi, NUT, UPS, voltage, battery, load, runtime, and update diagnostics. |
 | 5 | `v2.4.0` | `feature/wifi-management` | Scan supported networks, show signal strength, confirm credential changes, reconnect, and never reveal the stored password. |
@@ -152,10 +153,9 @@ proportional build and target-hardware validation.
 | 10 | `v2.9.0` | `feature/operational-management-acceptance` | Integrate and validate the definition of done from iPhone and MacBook Air, close documentation gaps, and publish the final `v2.x` acceptance release. |
 
 These rows identify release targets; completed rows may also identify existing
-tags. `v1.0.0`, `v1.1.0`, `v2.0.0`, and `v2.0.1` are tagged and published.
-Do not publish the ADMIN password-management branch as `v2.1.0` without
-separate explicit Project Maintainer authorization after its acceptance boundary
-is complete.
+tags. `v1.0.0`, `v1.1.0`, `v2.0.0`, `v2.0.1`, and `v2.1.0` are tagged and
+published. The Project Maintainer explicitly authorized `v2.1.0` after its
+acceptance boundary passed.
 
 The console and REST API are cross-cutting design requirements applied to each
 slice rather than separate branches. A slice may be split further when review

@@ -17,16 +17,16 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-19 22:54 PDT, America/Los_Angeles |
+| Updated | 2026-07-19 23:10 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | ADMIN password management `v2.1.0` |
-| Repository branch | `feature/admin-password-management`, created from `main` after PR #10 |
-| Validated implementation state | Runtime physical recovery and the corrected versioned ADMIN credential derived from branch base `1883655d0` passed target-hardware validation |
-| Remote state | `feature/admin-password-management` is tracked by draft PR #12 and remains unmerged; `main` and `origin/main` include merged documentation PR #13. `v2.1.0` is not tagged or released |
-| Source worktree | Runtime-safe physical recovery, the corrected `admin-cred` NVS key, and their documentation comprise the authorized branch publication; generated ESP-IDF outputs, captures, and macOS `.DS_Store` files are ignored |
+| Active slice target | Named API tokens `v2.2.0` in a future branch |
+| Repository branch | `main` after the `v2.1.0` release-record merge |
+| Validated implementation state | PR #12 merge commit `b35a66cb3` publishes the target-validated ADMIN password-management slice |
+| Remote state | PR #12 is merged; annotated tag `v2.1.0` and the final GitHub release are public. `main` and `origin/main` include the release implementation |
+| Source worktree | ADMIN password management is merged; generated ESP-IDF outputs, captures, checksum files, and macOS `.DS_Store` files are ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | The runtime-recovery worktree based on `1883655d0` builds successfully with ESP-IDF v6.0.2; image size is `0x132d50` bytes with 62% of the smallest application partition free |
-| Latest published release | Documentation-only patch `v2.0.1`, tagged at PR #13 merge commit `0252977e6` and published with the versioned ESP32-S3 application image and SHA-256 checksum asset |
+| Latest local build | Exact tag `v2.1.0` builds successfully with ESP-IDF v6.0.2 and reports `v2.1.0`; image size is `0x132d50` bytes with 62% of the smallest application partition free |
+| Latest published release | `v2.1.0`, tagged at PR #12 merge commit `b35a66cb3` and published with the ESP32-S3 application image and SHA-256 checksum asset |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173` on 2026-07-19; verify with UniFi at the start of a new session |
@@ -436,6 +436,17 @@ format:** the new password uses the intended 12,500-round versioned PBKDF2
 record rather than the former 100,000-round legacy verifier; exact timing was
 not measured and is **not tested**.
 
+With explicit Project Maintainer authorization, draft PR #12 was marked ready
+and merged to `main` at `b35a66cb35e77c9b2ec6b3c98a4b809e54d8c6af`.
+Annotated tag `v2.1.0` points to that merge commit. An exact-tag ESP-IDF v6.0.2
+build reports `v2.1.0`, is 1,256,784 bytes (`0x132d50`), and has SHA-256
+`047ae1ce4cf20d0313342b614c1ae10bb5669eac5a0e0867ad3b9ecfc389b2d9`;
+its ESP32 image checksum and validation hash are valid. GitHub publishes the
+firmware and 82-byte checksum asset in the final, non-prerelease release. The
+tagged binary was **not installed** because the code-equivalent dirty build had
+already passed the complete target-hardware acceptance flow; exact tagged-image
+installation is **not tested** and was not required to publish this slice.
+
 ## Implemented versus remaining
 
 ### Implemented foundation
@@ -469,8 +480,8 @@ not measured and is **not tested**.
 
 ## Exact next action
 
-Review the updated draft PR #12 and decide separately whether to mark it ready,
-merge it, and publish the prospective `v2.1.0` release.
+Begin the named API-token `v2.2.0` slice from synchronized `main` in a future
+session after completing the normal preflight.
 
 ## Operational procedures
 
