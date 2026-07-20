@@ -17,13 +17,13 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-20 02:12 PDT, America/Los_Angeles |
+| Updated | 2026-07-20 02:15 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | API tokens `v2.3.0`; implementation has not started |
-| Repository branch | Local release-record branch `agent/v2.2.0-release-record` from synchronized `main` at PR #16 merge commit `7cfa26f8a` |
+| Repository branch | Local `main` synchronized with `origin/main` after the v2.2.0 release record merged through PR #17 |
 | Validated implementation state | PR #16 merged the target-validated time-configuration implementation at `7cfa26f8a`; annotated tag `v2.2.0` points to that merge commit |
-| Remote state | Live `origin/main` is `7cfa26f8a`, PR #16 is merged, no pull request is open, and annotated tag `v2.2.0` plus the final GitHub release are public |
-| Source worktree | Release-record documentation update in progress; generated ESP-IDF outputs remain ignored |
+| Remote state | PRs #16 and #17 are merged, no pull request is open, and annotated tag `v2.2.0` plus the final GitHub release are public |
+| Source worktree | Clean tracked worktree; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | Exact-tag ESP-IDF v6.0.2 build of `v2.2.0`; embedded version `v2.2.0`, 1,274,096 bytes (`0x1370f0`), SHA-256 `0a67815bd32581e9c2f89174a12629d2a00e5b2aadb2e83b4cf977eb0d6e3b7e`, valid ESP32 checksum and validation hash, and 62% of the smallest application partition free |
 | Latest published release | Final `v2.2.0`, tagged at PR #16 merge commit `7cfa26f8a` and published with the exact-tag ESP32-S3 application image and 82-byte SHA-256 checksum asset |
