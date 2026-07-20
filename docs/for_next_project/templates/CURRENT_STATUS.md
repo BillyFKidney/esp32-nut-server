@@ -12,6 +12,8 @@ duplicating them.
 | --- | --- |
 | Active milestone | {{MILESTONE}} |
 | Active slice/branch | `{{BRANCH}}` |
+| Prospective slice release | {{VERSION_OR_NOT_APPLICABLE}} |
+| Latest published release | {{VERSION_TAG_COMMIT_AND_URL_OR_NONE}} |
 | Validated implementation commit | `{{COMMIT_OR_NOT_YET_VALIDATED}}` |
 | Default branch/remote state | {{SYNC_STATE}} |
 | Worktree state | {{CLEAN_OR_EXACT_CHANGES}} |
@@ -67,6 +69,8 @@ timestamped observations, not permanent configuration.
 ## Session closeout
 
 - [ ] Branch, HEAD, remote, and worktree state recorded
+- [ ] Accepted slice release target compared with actual tags/releases; any
+  intentional publication deferral recorded
 - [ ] Deployed version/environment provenance recorded if applicable
 - [ ] Validation and important failures summarized
 - [ ] Background processes, locks, devices, and temporary access released

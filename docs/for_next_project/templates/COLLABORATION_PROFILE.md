@@ -23,8 +23,20 @@ scope, and technical guardrails in the project-specific documents.
 - Preferred planning depth: {{PREFERENCE}}
 - Preferred branch/PR size: {{PREFERENCE}}
 - Preferred merge method: {{METHOD}}
+- Versioning model and milestone/slice/release mapping: {{VERSION_POLICY}}
+- When to surface a missing or deferred release target: {{RELEASE_GAP_POLICY}}
 - Documentation expected from the start: {{DOCUMENTS}}
 - Definition of done expectations: {{EXPECTATIONS}}
+
+## Service and workflow continuity
+
+- Services that require explicit named approval before retirement:
+  {{SERVICE_RETIREMENT_POLICY}}
+- Agent access, automation, deployment/update capability, or recurring work that
+  must not be removed or transferred without explicit approval:
+  {{WORKFLOW_CONTINUITY_POLICY}}
+- Required replacement-before-retirement and rollback expectations:
+  {{CUTOVER_POLICY}}
 
 ## Testing
 
@@ -38,6 +50,7 @@ scope, and technical guardrails in the project-specific documents.
 - Existing-change policy: {{POLICY}}
 - Cleanup/deletion policy: {{POLICY}}
 - Commit/push/merge preferences: {{POLICY}}
+- Tag/release/artifact publication preferences: {{POLICY}}
 
 ## Handoff
 
