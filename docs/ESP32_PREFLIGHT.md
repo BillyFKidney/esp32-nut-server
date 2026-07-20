@@ -142,9 +142,12 @@ Stop as soon as a step restores access. Do not begin by unplugging everything.
    the authenticated OTA path or the test specifically requires a full flash.
    Record the exact port, commit, command, and result.
 8. **Physical recovery:** Use the documented BOOT gestures only when their
-   destructive scope is intended. A three-second hold clears Wi-Fi; a
-   fifteen-second hold clears the agreed factory-reset data while retaining
-   bootable firmware and the OTA recovery slot.
+   destructive scope is intended. Start with ESP32-NUT running normally; do not
+   hold BOOT while pressing RESET, because GPIO0 low at reset selects the ROM
+   firmware downloader. Hold BOOT by itself for at least three seconds to clear
+   Wi-Fi, or continue holding it for at least fifteen seconds to clear the
+   agreed factory-reset data. Release BOOT to permit the application-controlled
+   restart. Bootable firmware and the OTA recovery slot are retained.
 
 If a port remains busy after its owning application exits, record the `lsof`
 output before escalating. That evidence is more useful than repeated cable

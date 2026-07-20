@@ -47,6 +47,16 @@ moved without deletion to:
 
 The decisive evidence is summarized in `docs/ESP32_CURRENT_STATUS.md`.
 
+**Observed on 2026-07-19:** ESP-IDF Monitor capture
+`log.nut-esp32s3.20260719222036.txt` identified
+`ESP_ERR_NVS_KEY_TOO_LONG` while saving the first ADMIN password after physical
+recovery. It was moved without deletion to:
+
+`artifacts/serial/2026-07-19-admin-recovery-password-storage.txt`
+
+The decisive evidence and resulting source correction are summarized in
+`docs/ESP32_CURRENT_STATUS.md`.
+
 ## Structure reviewed but retained
 
 The numerous files at repository root and directly under `docs/` are primarily
