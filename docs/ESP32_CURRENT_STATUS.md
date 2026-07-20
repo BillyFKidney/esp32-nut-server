@@ -17,16 +17,16 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-19 18:13 PDT, America/Los_Angeles |
+| Updated | 2026-07-19 18:36 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | ADMIN password management `v2.1.0` |
 | Repository branch | `feature/admin-password-management`, created from `main` after PR #10 |
 | Validated implementation commit | `c91430f89` (`feat: complete ADMIN password management`) |
-| Remote state | `feature/admin-password-management` is published to `origin` and tracked by draft PR #12 against `main`; it is not merged and `v2.1.0` is not tagged or released. The earlier PR #10 foundation is published separately as `v2.0.0` |
-| Source worktree | Clean at implementation publication; generated ESP-IDF outputs and macOS `.DS_Store` files are ignored. The refreshed `docs/for_next_project/Billy's Initial Project Files.zip` is tracked and excludes `.DS_Store` and `__MACOSX` metadata |
+| Remote state | `feature/admin-password-management` is tracked by draft PR #12 and remains unmerged; `main` and `origin/main` include merged documentation PR #13. `v2.1.0` is not tagged or released |
+| Source worktree | The starter-kit update is committed on this branch as `e13da8e00` and published independently through PR #13 and `v2.0.1`; generated ESP-IDF outputs and macOS `.DS_Store` files are ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | The `c91430f89` ADMIN password-management source builds successfully with ESP-IDF v6.0.2; latest image size is `0x1329f0` bytes with 62% of the smallest application partition free |
-| Latest published release | `v2.0.0`, tagged at PR #10 merge commit `257a983b1` and published with the verified ESP32-S3 application image and SHA-256 checksum asset |
+| Latest published release | Documentation-only patch `v2.0.1`, tagged at PR #13 merge commit `0252977e6` and published with the versioned ESP32-S3 application image and SHA-256 checksum asset |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173` on 2026-07-19; verify with UniFi at the start of a new session |
@@ -347,6 +347,23 @@ SHA-256 `3055e875d0d8b74d52d4833c6b17bc041afa06dceb08531ed173694679b934b2`.
 GitHub hosts both `nut-esp32s3.bin` and `nut-esp32s3.bin.sha256`; the release is
 public, final, and neither a draft nor a prerelease.
 
+The reusable `docs/for_next_project/` starter kit now prompts future projects
+to choose a versioning model, map milestones and implementation slices to
+prospective releases, treat merge/tag/artifact/release publication as separate
+state changes, and audit accepted slices for accidental release gaps. The
+distributable ZIP was rebuilt from the updated generic files, passed archive
+integrity checks, and contains no `.DS_Store` or `__MACOSX` entries.
+
+The complete documentation and workflow update was merged to `main` through PR
+#13 at `0252977e6320c0200dd6bcaed561146395ad86a5` and published as `v2.0.1`.
+No firmware source or behavior changed from `v2.0.0`; the optional release image
+was rebuilt from the exact tag with ESP-IDF v6.0.2 so it reports `v2.0.1`. The
+image is 1,248,944 bytes (`0x130eb0`) and has SHA-256
+`86f9e19fe1f864dfae57a5737573276de3437ad988bc06585b99c23a994406c9`.
+GitHub hosts both the firmware and checksum assets. The release is public,
+final, and neither a draft nor a prerelease. Hardware reinstallation was not
+required for this documentation-only patch.
+
 ## Implemented versus remaining
 
 ### Implemented foundation
@@ -379,7 +396,7 @@ public, final, and neither a draft nor a prerelease.
 ## Exact next action
 
 Validate physical ADMIN-password recovery, then complete the branch-level
-review and acceptance record for the prospective `v2.1.0` release.
+acceptance record for the prospective `v2.1.0` release.
 
 ## Operational procedures
 
