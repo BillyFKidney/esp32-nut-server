@@ -25,7 +25,7 @@ private keys, or Wi-Fi credentials here.
 | Remote state | Live `origin/main` is synchronized, no pull request is open, and the final GitHub `v2.3.0` release is public |
 | Source worktree | Modified only in `include/ota.h`, `src/ota.c`, and `src/management.c`; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | Local `v2.4.0` dashboard candidate built successfully with ESP-IDF v6.0.2; 1,294,080 bytes (`0x13bf00`), SHA-256 `81d994d47671842a5a96b3791e810f0f85480f423c398abe6b143a9541542316`, and 61% of the smallest application partition free; not installed |
+| Latest local build | Local `v2.4.0` dashboard candidate built successfully with ESP-IDF v6.0.2; 1,294,080 bytes (`0x13bf00`), SHA-256 `154503e00d0c7b83ee1cfba1cd6e6bccae05cfedee97e389db23175c709b69be`, and 61% of the smallest application partition free; not installed |
 | Latest published release | Final `v2.3.0`, tagged at PR #20 merge commit `595e3dcda` and published with the exact-tag ESP32-S3 application image and checksum asset: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.3.0) |
 | Installed firmware | **Observed before this branch:** the Device Operator reports a successful clean `v2.3.0` installation; the device reports uptime 303 seconds, Wi-Fi `192.168.40.173`, and the restored operational configuration. The local `v2.4.0` dashboard candidate is **not installed** |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
@@ -980,7 +980,7 @@ now renders those values in dashboard cards while retaining the existing ADMIN
 session, CSRF, time, token, and OTA controls. The existing 13 HTTPS handlers
 remain within the configured capacity of 16. The ESP-IDF v6.0.2 build passed;
 the candidate image is 1,294,064 bytes with SHA-256
-`81d994d47671842a5a96b3791e810f0f85480f423c398abe6b143a9541542316` and has
+`154503e00d0c7b83ee1cfba1cd6e6bccae05cfedee97e389db23175c709b69be` and has
 61% of the smallest application partition free.
 
 **Inferred:** dashboard UPS values are read from the existing NUT dstate
