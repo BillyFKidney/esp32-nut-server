@@ -32,6 +32,12 @@ CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y
 # server's address management rather than repeating that client-side probe.
 CONFIG_LWIP_DHCP_DOES_NOT_CHECK_OFFERED_IP=y
 
+# The HTTPS server reserves three internal sockets and permits four concurrent
+# clients. Leave bounded headroom for the read-only NUT service, DHCP/SNTP, and
+# transient browser or Agent connections instead of relying on the ESP-IDF
+# default of ten shared LWIP sockets.
+CONFIG_LWIP_MAX_SOCKETS=16
+
 # Boot a newly installed OTA application in pending-verification state. The
 # application marks itself valid only after core services have started.
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y

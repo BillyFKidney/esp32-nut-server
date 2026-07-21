@@ -17,21 +17,21 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-20 02:19 PDT, America/Los_Angeles |
+| Updated | 2026-07-20 22:54 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | API tokens `v2.3.0`; implementation has not started |
-| Repository branch | Final handoff on local `main`, synchronized with `origin/main` after the v2.2.0 installation record |
+| Active slice target | API tokens `v2.3.0`; implementation, target validation, Chrome UI regression, factory-reset token erasure, clean firmware build, delayed browser OTA installation, and post-reset network checks have passed; explicit publication authorization is now received |
+| Repository branch | Local `feature/api-tokens` created directly from synchronized `main` at `f15989464`; uncommitted implementation and documentation changes are not pushed |
 | Validated implementation state | PR #16 merged the target-validated time-configuration implementation at `7cfa26f8a`; annotated tag `v2.2.0` points to that merge commit |
-| Remote state | The time-configuration implementation, release record, and installation record are merged; no pull request is open, and annotated tag `v2.2.0` plus the final GitHub release are public |
-| Source worktree | Clean tracked worktree; generated ESP-IDF outputs remain ignored |
+| Remote state | Live `origin/main` is `f15989464`, no pull request is open, and annotated tag `v2.2.0` plus the final GitHub release are public; `feature/api-tokens` exists only locally |
+| Source worktree | Tracked and untracked API-token implementation/documentation changes are present; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | Exact-tag ESP-IDF v6.0.2 build of `v2.2.0`; embedded version `v2.2.0`, 1,274,096 bytes (`0x1370f0`), SHA-256 `0a67815bd32581e9c2f89174a12629d2a00e5b2aadb2e83b4cf977eb0d6e3b7e`, valid ESP32 checksum and validation hash, and 62% of the smallest application partition free |
+| Latest local build | Clean `v2.3.0`-prefixed ESP-IDF v6.0.2 candidate selected by `version.txt`; 1,285,920 bytes (`0x139f20`), SHA-256 `1bf58d525715af4d5f8f00c535ba07fe174a61af9b5dbe2c2d57a69bf2686357`, valid ESP32-S3 checksum/validation hash, and 62% of the smallest application partition free; this newer prefixed candidate was not the image reported by the device after the delayed upload |
 | Latest published release | Final `v2.2.0`, tagged at PR #16 merge commit `7cfa26f8a` and published with the exact-tag ESP32-S3 application image and 82-byte SHA-256 checksum asset |
-| Installed firmware | Exact published `v2.2.0` application image, SHA-256 `0a67815bd32581e9c2f89174a12629d2a00e5b2aadb2e83b4cf977eb0d6e3b7e`, installed through authenticated Safari OTA and running from `app0`; post-install firmware, time, HTTPS, NUT/UPS, OTA-slot, and retired-port checks passed |
+| Installed firmware | **Observed:** the Device Operator reports a successful clean `v2.3.0` installation; the device reports uptime 303 seconds, Wi-Fi `192.168.40.173`, and the restored operational configuration. The exact installed image digest and latest OTA-slot state are **not independently tested** in this session; the latest local clean candidate is the `v2.3.0` image recorded above |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
-| Last verified IPv4 address | `192.168.40.173` on 2026-07-20 at 02:19 PDT; MAC rediscovery, authenticated firmware/time status, HTTPS, NUT/UPS, and retired-port checks passed |
-| Last observed development USB path | Normal COM rediscovered as `/dev/cu.usbmodem54E20396741` with no listed owner; serial was not opened during exact-release validation. Native USB ROM download previously used `/dev/cu.usbmodem1101` for corrective installation |
+| Last verified IPv4 address | `192.168.40.173`; post-reset MAC rediscovery, ping, HTTPS 200, NUT/UPS `OL`, and retired-port checks passed, in addition to the earlier unauthenticated route boundaries, supported mixed load, and ten-minute Chrome-connected soak |
+| Last observed development USB path | Normal COM rediscovered as `/dev/cu.usbmodem54E20396741` with no listed owner. A bounded console open unexpectedly reset the board despite disabled DTR/RTS; do not reopen it as a nominally read-only diagnostic. Native USB ROM download previously used `/dev/cu.usbmodem1101` for corrective installation |
 | Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
 ## Current objective
@@ -697,6 +697,244 @@ published-image installation, persisted time configuration, NTP
 synchronization, OTA-slot reporting, HTTPS, NUT/UPS operation, and service
 boundaries therefore **passed**. No physical intervention was required.
 
+**Observed during the 2026-07-20 API-token preflight:** local `main`, its
+tracking ref, and live GitHub `origin/main` all resolved to `f15989464` with a
+clean worktree and zero recorded divergence. GitHub reported no open pull
+requests. Network-first discovery mapped MAC `30:30:f9:16:89:a4` to
+`192.168.40.173`; ping, HTTPS TCP 443, and read-only NUT TCP 3493 responded.
+HTTPS returned HTTP 200, direct NUT protocol requests identified the CyberPower
+CST150UC2 and returned `ups.status = OL`, and retired TCP 8080 refused the
+connection. Normal COM `/dev/cu.usbmodem54E20396741` was present with no listed
+owner; serial was not opened. Local `feature/api-tokens` was then created
+directly from the synchronized commit and was not pushed.
+
+**Observed in the local API-token implementation and build:** the branch adds a
+versioned four-record token store under the existing management NVS namespace.
+Each complete token contains a fixed version prefix and 256 device-generated
+random bits. NVS retains only its unique name, random public identifier,
+device-generated UTC issue time, final four characters, `ota.install` scope,
+random 16-byte salt, and salted SHA-256 verifier. Authorization derives and
+compares all four verifier slots without early success. Active names are unique
+without regard to ASCII letter case. The complete token exists only in the
+creation response and is zeroized after that response is sent.
+
+ADMIN-session-only `GET`, CSRF-protected `POST`, and CSRF-plus-acknowledgement
+`DELETE` handlers share `/api/v1/admin/tokens`. The separate
+`POST /api/v1/agent/ota/install` route accepts only a strict Bearer
+Authorization header with `ota.install`; it reuses the existing verified OTA
+request processor. Existing `/api/v1/ota/install` remains ADMIN-session and
+CSRF protected for Safari. API tokens cannot authenticate token management,
+status, password, time, logout, browser, or other management routes. HTTPS
+handler capacity increased from the former exact 9-of-9 state to 16 for 13
+registered handlers.
+
+The ADMIN console now lists name, UTC issue date, scope, and final four; displays
+the full token in a one-time warning only after creation; and uses a deletion
+dialog whose explicit delete button remains disabled until the acknowledgement
+checkbox is selected. The Agent OTA helper reads the token only from a private
+environment variable, never accepts it in process arguments, does not print the
+Authorization header, and requires a trusted certificate, pinned SHA-256
+fingerprint, or an explicit unsafe diagnostic override. Existing Safari OTA,
+LAN-only HTTPS TCP 443, read-only NUT TCP 3493, and retired TCP 8080 behavior
+are unchanged in source.
+
+ESP-IDF v6.0.2 built `build/nut-esp32s3.bin` successfully. The candidate reports
+`v2.2.0-6-gf15989464-dirty`, is 1,285,792 bytes (`0x139ea0`), and has SHA-256
+`5cffd4d5b04a8f7e2eee608439cd66aa4e8f1f2b42a82b96cc6356fc831f958f`.
+Its ESP32-S3 checksum and validation hash are valid, and the smallest
+application partition remains 62% free. The generated administration page is
+12,453 bytes within its 14,000-byte heap buffer, and its exact generated
+JavaScript parses successfully. Later rendered Chrome evidence is recorded
+below separately from this static check.
+
+**Observed after authenticated browser OTA:** the Device Operator reported
+`Firmware verified. Restarting now.` and the reconnected ADMIN status reported
+the expected `v2.2.0-6-gf15989464-dirty` identifier from `app1`, with `app0`
+next. Synchronized NTP/local time configuration persisted, the API-token UI
+rendered with no active tokens, and NUT remained declared read-only. The exact
+installed SHA-256 is **inferred** from the recorded artifact selected for the
+upload; the device does not expose an independent running-image digest.
+
+**Observed independently over the network after installation:** MAC
+`30:30:f9:16:89:a4` rediscovered at `192.168.40.173`; ping and TCP 443/3493
+responded, TCP 8080 refused the connection, HTTPS returned HTTP 200, and NUT
+reported the CyberPower CST150UC2 with `ups.status = OL`. Token metadata without
+an ADMIN session returned 401. Agent OTA with no Authorization header, an
+invalid Bearer value, a query-only credential, or a cookie-only credential also
+returned 401. The device certificate SHA-256 fingerprint was observed as
+`32:13:A1:E1:67:69:BA:4C:AD:EF:F1:69:24:97:2F:88:2C:9F:33:0D:C5:AC:37:AD:FC:37:A5:51:12:55:EF:C5`.
+Normal COM `/dev/cu.usbmodem54E20396741` remained present with no listed owner;
+serial was not opened.
+
+**Observed during Device Operator token UI testing:** invalid-name rejection,
+first through fourth token creation, versioned token format, issue-date/final-
+four metadata, absence of secret fields from the list, exactly-once display
+across reload, no-store behavior, case-insensitive duplicate rejection,
+four-token capacity enforcement, stable UI/NUT operation at capacity, deletion
+dialog acknowledgement gating and cancellation, confirmed deletion, and
+capacity recovery all passed. Two independently retained active tokens each
+authenticated far enough to reach the Agent route's HTTP 415 media-type gate.
+Four active tokens are present. No complete token was included in the test
+report or screenshot.
+
+**Observed during Codex Chrome and stability testing on 2026-07-20:** Chrome
+successfully reused the authenticated ADMIN session and rendered all four token
+metadata records without exposing a complete token. The delete dialog required
+its acknowledgement checkbox, kept its final action disabled before
+acknowledgement, enabled it afterward, and Cancel preserved all four records.
+At a 375-pixel content width the page, controls, and delete dialog had no
+horizontal overflow; Chrome reported no console errors or warnings. The
+normal viewport was restored afterward.
+
+New non-Chrome HTTPS handshakes and NUT requests then began accepting TCP and
+immediately resetting. Network-first evidence was insufficient, so the
+rediscovered, unowned COM port was opened for a bounded diagnostic with DTR and
+RTS disabled. Opening it nevertheless caused an unexpected power-on reset. No
+flash write occurred. The boot log confirmed the candidate still booted from
+`app1`, restored saved Wi-Fi at `192.168.40.173`, started HTTPS on TCP 443,
+synchronized through the configured NTP server, and rediscovered the UPS.
+
+Immediately after that reboot, HTTPS returned 200, NUT returned
+`ups.status = OL`, TCP 8080 refused the connection, unauthenticated ADMIN token
+metadata returned 401, and missing, malformed, query-only, and cookie-only
+Agent OTA credentials returned 401 with the expected Bearer challenge. Chrome
+reload then correctly invalidated the old in-memory ADMIN session and displayed
+the sign-in page. The first 30-second soak sample after that Chrome load again
+found both new HTTPS and NUT application connections reset, so the soak failed
+and was stopped. **Inferred from configuration, not yet proven by an on-target
+socket census:** persistent HTTPS client use, the HTTPS listener and control
+socket, NUT sockets, and the global `CONFIG_LWIP_MAX_SOCKETS=10` limit are
+exhausting the shared socket table despite HTTPS LRU purge being enabled. The
+HTTPS server can retain up to four open client sockets. **Not yet tested:**
+the exact socket owner/count at failure, whether increasing the global socket
+limit or reducing HTTPS client capacity is the correct fix.
+
+The tracked correction sets `CONFIG_LWIP_MAX_SOCKETS=16` while retaining the
+four-client HTTPS capacity. ESP-IDF v6.0.2 rebuilt the complete candidate and
+confirmed the generated configuration uses 16 sockets. The resulting
+`build/nut-esp32s3.bin` remains 1,285,792 bytes (`0x139ea0`) with SHA-256
+`c12aee62fd269b611e8105c331b2ae98953e7d2325d7d45d9ffc887d111fe1b9` and 62%
+of the smallest application partition free. A fresh Chrome ADMIN login also
+confirmed that all four token metadata records persisted across the unexpected
+reboot without displaying a complete token. The authorized Chrome OTA attempt
+reached the file chooser, but Chrome rejected attaching the local image because
+the ChatGPT Chrome Extension does not currently have file-URL access. No upload
+or device write occurred.
+
+**Observed after enabling the approved Chrome file permission:** Chrome attached
+the exact 1,285,792-byte `c12aee62fd269b611e8105c331b2ae98953e7d2325d7d45d9ffc887d111fe1b9`
+candidate, the authenticated OTA confirmation was accepted, the upload caused
+the expected temporary network outage and restart, and HTTPS recovered. The
+authenticated console then reported `app0` running with `app1` next and all four
+token metadata records intact. The full token values were not displayed. The
+pre-reboot ADMIN session was invalid after an explicit reload, and a normal
+1Password-assisted ADMIN login succeeded without disclosing the password.
+
+With Chrome connected, two simultaneous new HTTPS requests and two simultaneous
+NUT requests all passed. A deliberate over-capacity probe of four simultaneous
+new HTTPS requests plus four NUT requests produced three HTTPS 200 responses and
+one reset; all four NUT requests returned `ups.status = OL`, and the immediately
+following HTTPS request returned 200. This is the configured four-client HTTPS
+ceiling under an already connected browser, not recurrence of the former global
+socket-table exhaustion. A ten-minute soak then produced 20 consecutive HTTPS
+200 and NUT `ups.status = OL` samples at 30-second intervals while Chrome
+remained connected. Afterward, HTTPS still returned 200, TCP 8080 refused the
+connection, unauthenticated ADMIN token metadata returned 401, and missing,
+malformed, query-only, and cookie-only Agent OTA credentials each returned 401.
+
+Server-side deletion acknowledgement enforcement, the remaining ADMIN/CSRF
+cross-boundaries, rollback state after Agent OTA, Safari rendering of the new UI,
+factory-reset erasure, and the full post-Agent-OTA regression sequence are
+**not yet tested**. Valid-token Agent OTA, token-record reboot persistence,
+immediate revocation, browser OTA, and a passing Chrome-connected target soak
+are now observed. A fingerprint-pinned
+`tools/esp32-api-token-probe.py`
+diagnostic client is present for small authorization-boundary requests without
+placing the token in process arguments or output.
+
+**Observed on 2026-07-20 20:32 PDT:** a Device Operator run of the Agent OTA
+helper with a privately supplied, format-valid token ended with a client-side
+`Broken pipe` before an HTTP response was received. The device remained
+reachable afterward: HTTPS returned 200 and NUT returned `ups.status = OL`.
+This does not establish whether the token was inactive or the upload transport
+closed early; a zero-byte, fingerprint-pinned authorization probe is the next
+diagnostic and must return 413 before another full upload is attempted.
+
+**Observed on 2026-07-20 20:35 PDT:** the zero-byte probe returned HTTP 413,
+which proves the supplied token passed Bearer authorization and reached the OTA
+handler. The shared OTA processor now retries three receive timeouts before
+aborting, consistent with the ESP-IDF HTTP-server receive contract. ESP-IDF
+v6.0.2 rebuilt the candidate successfully at 1,285,920 bytes with SHA-256
+`13ba20f81c52721c8214d7bc9aa280fedc4c9ec009634582b34191d053b6cb5f`; it has
+not yet been installed on the target.
+
+**Observed on 2026-07-20 20:50 PDT:** after the corrected candidate was
+installed through the browser workflow, the fingerprint-pinned Agent OTA helper
+with a valid retained token returned HTTP 200 and
+`{"status":"installed","message":"Firmware verified. Restarting now."}`.
+The device recovered afterward with HTTPS 200, read-only NUT
+`ups.status = OL`, and TCP 8080 refused. ADMIN token metadata without a browser
+session returned 401; missing, malformed, query-only, and cookie-only Agent
+credentials each returned 401. The post-Agent-OTA running/next slot and token
+metadata persistence were then confirmed in the authenticated console: `app1`
+is running, `app0` is next, and all four token metadata records remain present.
+
+**Observed on 2026-07-20 20:53 PDT:** the token used for the successful Agent
+OTA was deleted through the acknowledged ADMIN dialog. Reusing that retained
+token with the fingerprint-pinned zero-byte Agent probe returned HTTP 401
+Unauthorized with the expected Bearer-scope error. This confirms immediate
+revocation; three active token metadata records remain after the deliberate
+deletion.
+
+**Observed on 2026-07-20 21:04 PDT:** a post-Agent-OTA ten-minute soak ran 20
+consecutive HTTPS and read-only NUT samples at 30-second intervals. Every
+sample returned HTTPS 200 and `VAR cyberpower ups.status "OL"`; no reboot,
+socket exhaustion, or serial intervention occurred.
+
+**Observed on 2026-07-20 21:10 PDT:** the second retained active token,
+`Agent OTA2`, completed another full Agent OTA installation with HTTP 200 and
+the verified-restart response. Its post-reboot zero-byte probe returned HTTP
+413, confirming that this second token remains authorized after reboot. HTTPS
+returned 200, NUT remained `ups.status = OL`, and TCP 8080 remained refused.
+
+The authenticated console then confirmed the expected alternating-slot state:
+`app0` is running and `app1` is next.
+
+**Observed on 2026-07-20 21:15 PDT:** Chrome UI regression on the corrected
+firmware passed with the authenticated administration console. The three active
+token metadata rows rendered without any complete token in the DOM or screenshot;
+the normal viewport rendered correctly; and a temporary 375-pixel viewport had
+document and body widths within the viewport with no horizontal overflow. The
+delete dialog exposed the acknowledgement checkbox, kept its final action
+disabled before acknowledgement, and Cancel preserved the selected token. No
+Chrome console warnings or errors were captured. The temporary viewport was
+reset before handoff.
+
+**Observed on 2026-07-20 22:28 PDT:** the Device Operator completed the
+destructive fifteen-second BOOT factory reset without pressing RESET, restored
+Wi-Fi and the ADMIN password, and observed the API-token page with no active
+tokens. A previously valid token was then rejected by the Agent OTA endpoint
+with HTTP 401 and the expected `ota.install`-scope error. This completes the
+factory-reset and post-reset token-erasure checks without recording any
+credential or token value.
+
+**Observed on 2026-07-20 22:38–22:40 PDT:** the delayed browser OTA upload
+completed and the authenticated console reported firmware `2.3.0`, uptime 18
+seconds at first observation, `app1` running with `app0` next, synchronized
+NTP, and an empty API-token list. Network-first follow-up rediscovered MAC
+`30:30:f9:16:89:a4` at `192.168.40.173`; ping and HTTPS returned, HTTPS returned
+HTTP 200, read-only NUT identified the CyberPower CST150UC2 and returned
+`ups.status = OL`, and TCP 8080 refused the connection. The exact installed
+image digest is **inferred** from the previously built no-prefix `2.3.0`
+candidate (`5cb0624cb1d89885477e029987c22246042db6c9d215dbc4fe5c909a9a1d87da`);
+the later local `v2.3.0`-prefixed candidate was not installed.
+
+**Observed from the Device Operator on 2026-07-20 22:54 PDT:** a subsequent
+clean `v2.3.0` firmware installation completed successfully. The reported
+device status included uptime 303 seconds, Wi-Fi IP `192.168.40.173`, and the
+restored operational configuration. The exact installed image digest and
+latest OTA-slot state were not independently exposed for this report.
+
 ## Implemented versus remaining
 
 ### Implemented foundation
@@ -715,10 +953,9 @@ boundaries therefore **passed**. No physical intervention was required.
 
 ### Remaining Operational Management work
 
-- Complete negative-case CSRF enforcement validation
-- Revalidate the three-second ADMIN password-change success confirmation on the
-  installed consolidated image
-- Named API-token creation, display, and confirmed deletion
+- Review the complete feature diff and prepare the local implementation
+  handoff; commit, push, merge, tag, and publish remain separately authorized
+  actions.
 - Full dashboard data, including UPS identity, serial number, status, battery,
   load, runtime, input/output voltage, NUT health, and last update result
 - Wi-Fi scan, signal display, credential change, confirmation, and reconnect
@@ -730,9 +967,9 @@ boundaries therefore **passed**. No physical intervention was required.
 
 ## Exact next action
 
-Run the Agent preflight from synchronized `main`, then create
-`feature/api-tokens` for the `v2.3.0` implementation slice. Preserve the exact
-published `v2.2.0` installation as the rollback baseline.
+Review the clean `v2.3.0` build/install evidence and decide whether the local
+feature branch is ready for a commit/PR. Do not tag, push, merge, or publish
+without explicit authorization.
 
 ## Operational procedures
 

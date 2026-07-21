@@ -14,6 +14,7 @@
 
 #define TAG "nut-ota"
 #define OTA_RECEIVE_BUFFER_SIZE 4096
+#define OTA_RECEIVE_TIMEOUT_RETRIES 3
 #define OTA_REBOOT_DELAY_MS 1000
 
 static bool ota_update_in_progress;
@@ -78,6 +79,7 @@ esp_err_t ota_install_from_request(httpd_req_t *request)
 
     char receive_buffer[OTA_RECEIVE_BUFFER_SIZE];
     int remaining = request->content_len;
+    unsigned int receive_timeout_retries = 0;
     while (remaining > 0)
     {
         const size_t receive_size = remaining < (int)sizeof(receive_buffer)
@@ -86,11 +88,21 @@ esp_err_t ota_install_from_request(httpd_req_t *request)
         const int received = httpd_req_recv(request, receive_buffer, receive_size);
         if (received <= 0)
         {
+            if (received == HTTPD_SOCK_ERR_TIMEOUT &&
+                receive_timeout_retries < OTA_RECEIVE_TIMEOUT_RETRIES)
+            {
+                receive_timeout_retries++;
+                ESP_LOGW(TAG, "OTA image receive timed out; retrying (%u/%u)",
+                         receive_timeout_retries, OTA_RECEIVE_TIMEOUT_RETRIES);
+                continue;
+            }
+
             result = received == HTTPD_SOCK_ERR_TIMEOUT ? ESP_ERR_TIMEOUT : ESP_FAIL;
             ESP_LOGE(TAG, "OTA image receive failed: %s", esp_err_to_name(result));
             break;
         }
 
+        receive_timeout_retries = 0;
         result = esp_ota_write(update_handle, receive_buffer, received);
         if (result != ESP_OK)
         {
