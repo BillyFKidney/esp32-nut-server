@@ -983,8 +983,8 @@ recorded on `main`.
 ## Exact next action
 
 Begin preflight for `v2.4.0` management-dashboard work from synchronized
-`main` at `f6abe5e5d`; do not modify the published `v2.3.0` release or begin
-hardware interaction until that preflight is complete.
+`main`; do not modify the published `v2.3.0` release or begin hardware
+interaction until that preflight is complete.
 
 ## Operational procedures
 
