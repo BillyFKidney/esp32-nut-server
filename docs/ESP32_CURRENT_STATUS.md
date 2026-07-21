@@ -17,7 +17,7 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-20 23:02 PDT, America/Los_Angeles |
+| Updated | 2026-07-20 23:06 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | API tokens `v2.3.0` are implemented, target-validated, merged, tagged, and published; Chrome UI regression, factory-reset token erasure, clean build, delayed browser OTA installation, and post-reset network checks passed |
 | Repository branch | Local `main` is synchronized with `origin/main` at documentation commit `f6abe5e5d`, which includes implementation merge `595e3dcda`; the reviewed `feature/api-tokens` branch remains available on the remote |
