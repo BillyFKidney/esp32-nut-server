@@ -20,9 +20,9 @@ private keys, or Wi-Fi credentials here.
 | Updated | 2026-07-21 11:42 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` are final and published; select the next slice through a new preflight |
-| Repository branch | `main` contains the merged v2.5.0 implementation; the local branch is being synchronized after publication-status documentation is recorded |
+| Repository branch | `main` contains the merged v2.5.0 implementation and publication-status documentation; local `main` is synchronized with `origin/main` |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806` |
-| Remote state | PR #22 is merged, tag `v2.5.0` is public, and the GitHub release is final with firmware and checksum assets; the post-publication status-doc synchronization is in progress |
+| Remote state | PR #22 is merged, tag `v2.5.0` is public, the GitHub release is final with firmware and checksum assets, and the status-doc update is synchronized |
 | Source worktree | v2.5.0 source and documentation are merged; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | `v2.5.0` Wi-Fi-management image built successfully with ESP-IDF v6.0.2; 1,304,736 bytes, SHA-256 `a28055a80f7c926c229044d1f3cc4243f26165fec65c6a5929d9ac720172ca32`, and 61% of the smallest application partition free; the same image and checksum are attached to the v2.5.0 release |
