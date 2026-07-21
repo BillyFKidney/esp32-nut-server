@@ -17,7 +17,7 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 00:34 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 00:54 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | API tokens `v2.3.0` remain final and published; the `v2.4.0` management-dashboard implementation is in progress on `feature/management-dashboard` |
 | Repository branch | `feature/management-dashboard` is based directly on synchronized `main` at `75aa270ed`; no push, merge, tag, or release has been performed |
@@ -27,7 +27,7 @@ private keys, or Wi-Fi credentials here.
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | Local `v2.4.0` dashboard candidate built successfully with ESP-IDF v6.0.2; 1,294,080 bytes (`0x13bf00`), SHA-256 `154503e00d0c7b83ee1cfba1cd6e6bccae05cfedee97e389db23175c709b69be`, and 61% of the smallest application partition free; not installed |
 | Latest published release | Final `v2.3.0`, tagged at PR #20 merge commit `595e3dcda` and published with the exact-tag ESP32-S3 application image and checksum asset: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.3.0) |
-| Installed firmware | **Observed before this branch:** the Device Operator reports a successful clean `v2.3.0` installation; the device reports uptime 303 seconds, Wi-Fi `192.168.40.173`, and the restored operational configuration. The local `v2.4.0` dashboard candidate is **not installed** |
+| Installed firmware | **Observed:** the authenticated Chrome OTA form accepted the local `v2.4.0` candidate and the device rebooted; HTTPS/NUT returned afterward. The browser now requires a new ADMIN login, but the running firmware version and protected status JSON are not yet independently verified |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173`; post-reset MAC rediscovery, ping, HTTPS 200, NUT/UPS `OL`, and retired-port checks passed, in addition to the earlier unauthenticated route boundaries, supported mixed load, and ten-minute Chrome-connected soak |
@@ -989,10 +989,21 @@ snapshot and reports a separate stale/unavailable health state. OTA result
 metadata is non-secret and stored in the existing management NVS namespace;
 factory reset erases it with the other management data.
 
-**Not tested:** the local `v2.4.0` candidate has not been installed. Protected
-status JSON values, dashboard rendering, browser layout, OTA-result transitions
-after a real install, NUT stale/unavailable behavior, reboot persistence, and
-target-hardware regression checks remain pending. Serial remains unopened.
+**Observed on 2026-07-21 00:50–00:54 PDT:** the authorized Chrome ADMIN OTA
+workflow selected `build/nut-esp32s3.bin`, displayed the upload/verification
+state, and then returned to the sign-in page after the device restarted.
+Network-first post-reboot checks returned HTTPS HTTP 200, TCP 443 and TCP 3493
+open, TCP 8080 refused, CyberPower CST150UC2 on NUT, and `ups.status = OL`.
+The pre-reboot ADMIN session was no longer accepted after restart, as expected.
+
+**Inferred:** the candidate was written and the board rebooted, but the
+installed application version cannot be claimed until a fresh ADMIN session
+reads the protected status response.
+
+**Not tested:** protected v2.4.0 status JSON values, dashboard rendering,
+browser layout, OTA-result transitions after a confirmed install, NUT
+stale/unavailable behavior, reboot persistence, and complete target-hardware
+regression checks remain pending. Serial remains unopened.
 
 ## Implemented versus remaining
 
