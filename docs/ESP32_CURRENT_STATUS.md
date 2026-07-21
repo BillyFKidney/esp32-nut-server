@@ -17,7 +17,7 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 00:25 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 00:34 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | API tokens `v2.3.0` remain final and published; the `v2.4.0` management-dashboard implementation is in progress on `feature/management-dashboard` |
 | Repository branch | `feature/management-dashboard` is based directly on synchronized `main` at `75aa270ed`; no push, merge, tag, or release has been performed |
@@ -970,7 +970,7 @@ protocol was used instead.
 the protected status JSON and current OTA slots were not independently checked
 in this preflight.
 
-**Observed on 2026-07-21 00:25 PDT:** after the required preflight, the
+**Observed on 2026-07-21 00:25–00:34 PDT:** after the required preflight, the
 `feature/management-dashboard` branch was created directly from synchronized
 `main` at `75aa270ed`. The existing authenticated `/api/v1/status` route now
 builds an escaped, no-store JSON snapshot containing firmware, uptime, Wi-Fi,
@@ -979,7 +979,7 @@ battery, load, runtime, voltage, and power fields. The authenticated console
 now renders those values in dashboard cards while retaining the existing ADMIN
 session, CSRF, time, token, and OTA controls. The existing 13 HTTPS handlers
 remain within the configured capacity of 16. The ESP-IDF v6.0.2 build passed;
-the candidate image is 1,294,064 bytes with SHA-256
+the candidate image is 1,294,080 bytes with SHA-256
 `154503e00d0c7b83ee1cfba1cd6e6bccae05cfedee97e389db23175c709b69be` and has
 61% of the smallest application partition free.
 
