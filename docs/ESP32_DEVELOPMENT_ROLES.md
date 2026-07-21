@@ -36,7 +36,8 @@ This is the primary Level 1 support and diagnostic role.
 - Perform physical actions only when the Maintainer or Agent gives a precise,
   scoped instruction or when a documented recovery step clearly applies
 - Confirm expected warnings separately from unexpected failures
-- Lead manual GUI and end-to-end UX acceptance testing
+- Lead manual GUI and end-to-end UX acceptance testing, including the
+  v2.5.0 ADMIN tab navigation and Wi-Fi **Show password** behavior
 - Never paste passwords, Wi-Fi credentials, session cookies, API tokens, or
   private keys into chat or tracked documentation
 

@@ -100,6 +100,31 @@ is non-expiring until ADMIN deletes it or the fifteen-second physical factory
 reset erases the management NVS namespace. Token issue time is display metadata
 and never an authorization or expiration input.
 
+#### Planned v2.5.0 Wi-Fi management and console tabs
+
+The planned `v2.5.0` Wi-Fi-management slice adds two narrowly scoped
+ADMIN-session routes: one for bounded supported-network scanning and one for
+credential staging or reconnect. API tokens and Bearer authentication will not
+authorize either route. State-changing Wi-Fi requests will retain the existing
+CSRF requirement, no-store responses, input bounds, and LAN-only HTTPS.
+
+The ADMIN page will use a client-side tab bar with **Dashboard**, **Device
+Status**, **Date and Time**, **Wi-Fi Configuration**, **ADMIN Password**, **API
+Tokens**, and **Update Firmware** panels. Tabs are presentation-only: they do
+not add cookies, sessions, roles, routes, or transport modes, and every panel
+remains behind the existing ADMIN session.
+
+The Wi-Fi panel will render scan results as a visible selectable list showing
+SSID, signal strength, and security mode, while retaining manual SSID entry for
+hidden or unlisted networks. The Wi-Fi password input will be masked by
+default and include a local **Show password** toggle. The toggle changes only
+the current browser input; the stored password must never be returned by an
+API, written into page metadata, persisted as UI state, or logged. New
+credentials remain staged until
+the device verifies connectivity; a failed test must preserve the previously
+active credentials and clear the failed pending state rather than creating a
+retry loop.
+
 For Agent-driven OTA, place the token privately in the
 `ESP32_NUT_OTA_TOKEN` environment variable and run:
 

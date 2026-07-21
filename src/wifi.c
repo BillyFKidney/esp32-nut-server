@@ -25,6 +25,7 @@
 #include "lwip/netif.h"
 #include "lwip/prot/dhcp.h"
 #include "lwip/tcpip.h"
+#include "mbedtls/platform_util.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "management.h"
@@ -47,7 +48,7 @@
 #define WIFI_RESTART_TASK_STACK_SIZE 2048
 #define WIFI_RECOVERY_TASK_STACK_SIZE 3072
 #define WIFI_MANAGEMENT_TASK_STACK_SIZE 12288
-#define WIFI_SCAN_RESULT_LIMIT 20
+#define WIFI_SCAN_RESULT_LIMIT WIFI_MANAGEMENT_SCAN_RESULT_LIMIT
 #define WIFI_REQUEST_BODY_LIMIT 256
 #define WIFI_CONNECTION_DIAGNOSTIC_LENGTH 192
 #define WIFI_BOOT_BUTTON GPIO_NUM_0
@@ -90,6 +91,7 @@ static unsigned int connection_retry_count;
 static bool station_associated;
 static char connection_diagnostic[WIFI_CONNECTION_DIAGNOSTIC_LENGTH];
 static portMUX_TYPE wifi_state_lock = portMUX_INITIALIZER_UNLOCKED;
+static SemaphoreHandle_t wifi_management_scan_lock;
 
 static void wifi_schedule_portal(void);
 
@@ -782,6 +784,180 @@ static void wifi_restart_task(void *parameter)
     esp_restart();
 }
 
+esp_err_t wifi_management_scan(WifiManagementScanResults *results)
+{
+    if (results == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    memset(results, 0, sizeof(*results));
+    if (!wifi_provisioning_is_connected())
+    {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (wifi_management_scan_lock == NULL ||
+        xSemaphoreTake(wifi_management_scan_lock, pdMS_TO_TICKS(1000)) != pdTRUE)
+    {
+        return ESP_ERR_TIMEOUT;
+    }
+
+    wifi_scan_config_t scan_configuration = {0};
+    scan_configuration.show_hidden = false;
+    scan_configuration.scan_type = WIFI_SCAN_TYPE_ACTIVE;
+    scan_configuration.scan_time.active.min = 40;
+    scan_configuration.scan_time.active.max = 120;
+    scan_configuration.home_chan_dwell_time = 30;
+    scan_configuration.channel_bitmap.ghz_2_channels = 0x7ffe;
+    scan_configuration.channel_bitmap.ghz_5_channels = 1U;
+
+    esp_err_t result = esp_wifi_scan_start(&scan_configuration, true);
+    if (result != ESP_OK)
+    {
+        ESP_LOGW(TAG, "Management Wi-Fi scan failed: %s", esp_err_to_name(result));
+        xSemaphoreGive(wifi_management_scan_lock);
+        return result;
+    }
+
+    uint16_t access_point_count = 0;
+    result = esp_wifi_scan_get_ap_num(&access_point_count);
+    if (result != ESP_OK)
+    {
+        esp_wifi_clear_ap_list();
+        xSemaphoreGive(wifi_management_scan_lock);
+        return result;
+    }
+    if (access_point_count > WIFI_SCAN_RESULT_LIMIT)
+    {
+        access_point_count = WIFI_SCAN_RESULT_LIMIT;
+    }
+
+    if (access_point_count == 0)
+    {
+        esp_wifi_clear_ap_list();
+        xSemaphoreGive(wifi_management_scan_lock);
+        return ESP_OK;
+    }
+
+    wifi_ap_record_t *records = NULL;
+    if (access_point_count > 0)
+    {
+        records = calloc(access_point_count, sizeof(*records));
+        if (records == NULL)
+        {
+            esp_wifi_clear_ap_list();
+            xSemaphoreGive(wifi_management_scan_lock);
+            return ESP_ERR_NO_MEM;
+        }
+
+        uint16_t records_returned = access_point_count;
+        result = esp_wifi_scan_get_ap_records(&records_returned, records);
+        if (result != ESP_OK)
+        {
+            free(records);
+            xSemaphoreGive(wifi_management_scan_lock);
+            return result;
+        }
+
+        for (uint16_t index = 0; index < records_returned; index++)
+        {
+            const size_t ssid_length =
+                strnlen((const char *)records[index].ssid,
+                        WIFI_MANAGEMENT_SSID_MAX_LENGTH);
+            if (ssid_length == 0)
+            {
+                continue;
+            }
+
+            size_t existing = results->count;
+            for (size_t candidate = 0; candidate < results->count; candidate++)
+            {
+                if (strlen(results->entries[candidate].ssid) == ssid_length &&
+                    memcmp(results->entries[candidate].ssid,
+                           records[index].ssid, ssid_length) == 0)
+                {
+                    existing = candidate;
+                    break;
+                }
+            }
+            if (existing < results->count)
+            {
+                if (records[index].rssi > results->entries[existing].rssi_dbm)
+                {
+                    results->entries[existing].rssi_dbm = records[index].rssi;
+                    results->entries[existing].authmode = records[index].authmode;
+                }
+                continue;
+            }
+            if (results->count >= WIFI_SCAN_RESULT_LIMIT)
+            {
+                continue;
+            }
+
+            WifiManagementScanResult *entry = &results->entries[results->count++];
+            memcpy(entry->ssid, records[index].ssid, ssid_length);
+            entry->ssid[ssid_length] = '\0';
+            entry->rssi_dbm = records[index].rssi;
+            entry->authmode = records[index].authmode;
+        }
+    }
+    free(records);
+    xSemaphoreGive(wifi_management_scan_lock);
+    return ESP_OK;
+}
+
+esp_err_t wifi_management_stage_credentials(const char *ssid, const char *password)
+{
+    if (ssid == NULL || password == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (!wifi_provisioning_is_connected())
+    {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    const size_t ssid_length = strnlen(ssid, WIFI_MANAGEMENT_SSID_MAX_LENGTH + 1U);
+    const size_t password_length =
+        strnlen(password, WIFI_MANAGEMENT_PASSWORD_MAX_LENGTH + 1U);
+    if (ssid_length == 0 || ssid_length > WIFI_MANAGEMENT_SSID_MAX_LENGTH ||
+        (password_length > 0 &&
+         (password_length < 8 || password_length > WIFI_MANAGEMENT_PASSWORD_MAX_LENGTH)))
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    WifiCredentials saved_credentials = {0};
+    const bool saved_available = wifi_credentials_load(&saved_credentials);
+    const bool would_clear_active_password =
+        saved_available && strcmp(saved_credentials.ssid, ssid) == 0 &&
+        saved_credentials.password[0] != '\0' && password_length == 0;
+    mbedtls_platform_zeroize(&saved_credentials, sizeof(saved_credentials));
+    if (would_clear_active_password)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    WifiCredentials credentials = {0};
+    memcpy(credentials.ssid, ssid, ssid_length);
+    memcpy(credentials.password, password, password_length);
+    const esp_err_t save_result = wifi_pending_credentials_save(&credentials);
+    if (save_result != ESP_OK)
+    {
+        mbedtls_platform_zeroize(&credentials, sizeof(credentials));
+        return save_result;
+    }
+
+    if (xTaskCreate(wifi_restart_task, "wifi-restart", WIFI_RESTART_TASK_STACK_SIZE,
+                    NULL, 5, NULL) != pdPASS)
+    {
+        wifi_pending_credentials_erase();
+        mbedtls_platform_zeroize(&credentials, sizeof(credentials));
+        return ESP_ERR_NO_MEM;
+    }
+    mbedtls_platform_zeroize(&credentials, sizeof(credentials));
+    return ESP_OK;
+}
+
 static esp_err_t portal_configure_handler(httpd_req_t *request)
 {
     if (request->content_len <= 0 || request->content_len >= WIFI_REQUEST_BODY_LIMIT)
@@ -1049,6 +1225,12 @@ void wifi_provisioning_init(void)
     wifi_start_recovery_monitor();
 
     wifi_event_group = xEventGroupCreate();
+    wifi_management_scan_lock = xSemaphoreCreateMutex();
+    if (wifi_event_group == NULL || wifi_management_scan_lock == NULL)
+    {
+        ESP_LOGE(TAG, "Unable to allocate Wi-Fi management synchronization state");
+        abort();
+    }
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     station_network_interface = esp_netif_create_default_wifi_sta();
@@ -1065,45 +1247,62 @@ void wifi_provisioning_init(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    WifiCredentials credentials = {0};
-    if (wifi_pending_credentials_load(&credentials))
+    WifiCredentials pending_credentials = {0};
+    WifiCredentials saved_credentials = {0};
+    const bool pending_available = wifi_pending_credentials_load(&pending_credentials);
+    const bool saved_available = wifi_credentials_load(&saved_credentials);
+
+    if (pending_available)
     {
         ESP_LOGI(TAG, "Testing pending Wi-Fi credentials for '%s' in station-only mode",
-                 credentials.ssid);
-        if (wifi_connect_with_timeout(&credentials,
+                 pending_credentials.ssid);
+        /* Remove the trial before connecting. A power loss during validation must
+         * never leave a credential that is retried indefinitely at every boot. */
+        const esp_err_t erase_result = wifi_pending_credentials_erase();
+        if (erase_result == ESP_OK &&
+            wifi_connect_with_timeout(&pending_credentials,
                                       pdMS_TO_TICKS(WIFI_PENDING_CONNECT_TIMEOUT_MS)))
         {
-            const esp_err_t save_result = wifi_credentials_save(&credentials);
-            const esp_err_t erase_result = wifi_pending_credentials_erase();
+            const esp_err_t save_result = wifi_credentials_save(&pending_credentials);
             if (save_result == ESP_OK)
             {
-                if (erase_result != ESP_OK)
-                {
-                    ESP_LOGW(TAG, "Wi-Fi credentials saved but pending state could not be erased: %s",
-                             esp_err_to_name(erase_result));
-                }
-                else
-                {
-                    ESP_LOGI(TAG, "Pending Wi-Fi credentials validated and saved");
-                }
+                ESP_LOGI(TAG, "Pending Wi-Fi credentials validated and saved");
+                mbedtls_platform_zeroize(&pending_credentials,
+                                         sizeof(pending_credentials));
+                mbedtls_platform_zeroize(&saved_credentials,
+                                         sizeof(saved_credentials));
                 return;
             }
 
             ESP_LOGE(TAG, "Wi-Fi connected but credentials could not be saved: %s",
                      esp_err_to_name(save_result));
+            connection_requested = false;
+            ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_disconnect());
         }
-
-        connection_requested = false;
-        ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_disconnect());
-        ESP_LOGW(TAG, "Pending Wi-Fi connection did not complete; retaining credentials for automatic retries");
+        else if (erase_result != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Unable to clear pending Wi-Fi credentials before validation: %s",
+                     esp_err_to_name(erase_result));
+        }
+        else
+        {
+            wifi_set_connection_diagnostic(
+                "The new Wi-Fi credentials failed validation; the previous network remains active.");
+            ESP_LOGW(TAG, "Pending Wi-Fi connection failed; falling back to the active network");
+        }
     }
-    else if (wifi_credentials_load(&credentials))
+
+    if (saved_available)
     {
-        ESP_LOGI(TAG, "Connecting to saved Wi-Fi network '%s'", credentials.ssid);
-        if (wifi_connect_with_timeout(&credentials,
+        ESP_LOGI(TAG, "Connecting to saved Wi-Fi network '%s'", saved_credentials.ssid);
+        if (wifi_connect_with_timeout(&saved_credentials,
                                       pdMS_TO_TICKS(WIFI_SAVED_CONNECT_TIMEOUT_MS)))
         {
             ESP_LOGI(TAG, "Saved Wi-Fi connection established");
+            mbedtls_platform_zeroize(&pending_credentials,
+                                     sizeof(pending_credentials));
+            mbedtls_platform_zeroize(&saved_credentials,
+                                     sizeof(saved_credentials));
             return;
         }
 
@@ -1114,6 +1313,9 @@ void wifi_provisioning_init(void)
         wifi_set_connection_diagnostic("No saved Wi-Fi credentials. Select a network and connect.");
         ESP_LOGI(TAG, "No saved Wi-Fi credentials; starting setup mode");
     }
+
+    mbedtls_platform_zeroize(&pending_credentials, sizeof(pending_credentials));
+    mbedtls_platform_zeroize(&saved_credentials, sizeof(saved_credentials));
 
     wifi_schedule_portal();
     const EventBits_t portal_bits = xEventGroupWaitBits(wifi_event_group,
