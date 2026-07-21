@@ -17,7 +17,7 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 00:54 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 01:11 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | API tokens `v2.3.0` remain final and published; the `v2.4.0` management-dashboard implementation is in progress on `feature/management-dashboard` |
 | Repository branch | `feature/management-dashboard` is based directly on synchronized `main` at `75aa270ed`; no push, merge, tag, or release has been performed |
@@ -25,24 +25,24 @@ private keys, or Wi-Fi credentials here.
 | Remote state | Live `origin/main` is synchronized, no pull request is open, and the final GitHub `v2.3.0` release is public |
 | Source worktree | Clean on `feature/management-dashboard`; the branch changes `version.txt`, `include/ota.h`, `src/ota.c`, `src/management.c`, and this status document; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | Local `v2.4.0` dashboard candidate built successfully with ESP-IDF v6.0.2; 1,294,080 bytes (`0x13bf00`), SHA-256 `154503e00d0c7b83ee1cfba1cd6e6bccae05cfedee97e389db23175c709b69be`, and 61% of the smallest application partition free; not installed |
+| Latest local build | Local `v2.4.0` dashboard candidate built successfully with ESP-IDF v6.0.2; 1,294,080 bytes (`0x13bf00`), SHA-256 `154503e00d0c7b83ee1cfba1cd6e6bccae05cfedee97e389db23175c709b69be`, and 61% of the smallest application partition free; this exact candidate is installed and target-validated |
 | Latest published release | Final `v2.3.0`, tagged at PR #20 merge commit `595e3dcda` and published with the exact-tag ESP32-S3 application image and checksum asset: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.3.0) |
-| Installed firmware | **Observed:** the authenticated Chrome OTA form accepted the local `v2.4.0` candidate and the device rebooted; HTTPS/NUT returned afterward. The browser now requires a new ADMIN login, but the running firmware version and protected status JSON are not yet independently verified |
+| Installed firmware | **Observed:** clean `v2.4.0` is running after the authorized Chrome OTA install; protected status reports `app1` running, `app0` next, and `update.last_result = installed` |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
-| Last verified IPv4 address | `192.168.40.173`; post-reset MAC rediscovery, ping, HTTPS 200, NUT/UPS `OL`, and retired-port checks passed, in addition to the earlier unauthenticated route boundaries, supported mixed load, and ten-minute Chrome-connected soak |
+| Last verified IPv4 address | `192.168.40.173`; post-reset MAC rediscovery, ping, protected HTTPS 200, NUT/UPS `OL`, and retired-port checks passed; the installed `v2.4.0` candidate then completed a ten-minute network-first soak |
 | Last observed development USB path | Normal COM rediscovered as `/dev/cu.usbmodem54E20396741` with no listed owner. A bounded console open unexpectedly reset the board despite disabled DTR/RTS; do not reopen it as a nominally read-only diagnostic. Native USB ROM download previously used `/dev/cu.usbmodem1101` for corrective installation |
 | Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
 ## Current objective
 
 The API-token `v2.3.0` slice is complete and published. The `v2.4.0`
-management-dashboard implementation is in progress on
-`feature/management-dashboard`, based directly on synchronized `main`.
+management-dashboard implementation and proportional target validation are
+complete locally, pending maintainer review on `feature/management-dashboard`,
+based directly on synchronized `main`.
 Continue to preserve LAN-only HTTPS, read-only NUT, and the existing ADMIN and
 Agent authorization boundaries. UPS access remains read-only. The next action
-is proportional static/source validation followed by explicitly authorized
-target installation and browser/API checks; publication remains out of scope.
+is maintainer review; publication remains out of scope.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
@@ -1000,10 +1000,36 @@ The pre-reboot ADMIN session was no longer accepted after restart, as expected.
 installed application version cannot be claimed until a fresh ADMIN session
 reads the protected status response.
 
-**Not tested:** protected v2.4.0 status JSON values, dashboard rendering,
-browser layout, OTA-result transitions after a confirmed install, NUT
-stale/unavailable behavior, reboot persistence, and complete target-hardware
-regression checks remain pending. Serial remains unopened.
+**Observed on 2026-07-21 00:54–00:59 PDT:** a fresh ADMIN login in Chrome
+reported firmware `v2.4.0`, uptime 274 seconds, `app1` running with `app0`
+next, synchronized NTP, and `update.last_result = installed`. All six
+dashboard cards rendered the expected firmware, uptime, Wi-Fi, NUT health,
+UPS identity/serial, status, battery, load, runtime, and voltage values. The
+full-page normal viewport and temporary 375-pixel viewport had no document
+horizontal overflow; all 15 dashboard elements were present. The API-token
+metadata showed only the name, issue time, and final four; the one-time token
+element remained hidden and empty, and no complete 64-hex token appeared in
+the page text. Chrome reported no warning or error logs.
+
+Network checks after validation returned HTTPS HTTP 200, unauthenticated
+status and token routes HTTP 401 with `Cache-Control: no-store`, TCP 443 and
+TCP 3493 open, TCP 8080 refused, and read-only NUT `ups.status = OL`.
+
+**Inferred:** the candidate was installed and marked valid by the bootloader;
+the protected status response and dashboard are now independently verified.
+
+**Observed on 2026-07-21 01:01–01:11 PDT:** a ten-minute network-first soak
+completed with 20 samples at approximately 30-second intervals. Every sample
+returned HTTPS HTTP 200, TCP 443 and TCP 3493 open, TCP 8080 refused, and
+read-only NUT `ups.status = OL`; no reboot or service interruption was
+observed.
+
+**Inferred:** the installed dashboard candidate remained stable for the
+proportional soak while preserving the required LAN services and read-only
+UPS behavior.
+
+**Not tested:** NUT stale/unavailable behavior and additional target-hardware
+regression checks remain outside this validation run. Serial remains unopened.
 
 ## Implemented versus remaining
 
@@ -1025,9 +1051,8 @@ regression checks remain pending. Serial remains unopened.
 
 ### Remaining Operational Management work
 
-- Install and validate the `feature/management-dashboard` candidate on the
-  target through an explicitly authorized OTA or USB workflow, then exercise
-  the authenticated dashboard and status API.
+- Complete any additional target-hardware regression checks for the installed
+  `v2.4.0` candidate that are authorized for this slice.
 - Wi-Fi scan, signal display, credential change, confirmation, and reconnect
 - Corrupt OTA image rejection validation
 - Remote service controls and live browser diagnostics
@@ -1037,12 +1062,9 @@ regression checks remain pending. Serial remains unopened.
 
 ## Exact next action
 
-Finish static review and target-independent checks for the local
-`feature/management-dashboard` build. Before installing it, obtain explicit
-authorization for the target update; then validate the dashboard/status API,
-NUT health and UPS fields, existing ADMIN/CSRF behavior, OTA result reporting,
-and network service continuity. Do not modify the published `v2.3.0` release
-or publish this branch.
+Review the recorded `v2.4.0` dashboard validation, then prepare the local
+branch for maintainer review. Do not modify the published `v2.3.0` release or
+publish this branch.
 
 ## Operational procedures
 
