@@ -109,6 +109,10 @@ This milestone is the `v2.x` release family.
 
 - A utilitarian mobile-friendly browser administration console backed by an
   emerging REST API. Dedicated API testing is out of scope for `v2.x`.
+- The ADMIN console uses a responsive, client-side tab bar with these panels:
+  Dashboard, Device Status, Date and Time, Wi-Fi Configuration, ADMIN
+  Password, API Tokens, and Update Firmware. Tabs are presentation-only and do
+  not create new authentication, authorization, or transport boundaries.
 - LAN-only ADMIN access with per-device password authentication. USER role is
   explicitly deferred. This milestone uses device-hosted HTTPS with a
   self-signed certificate.
@@ -117,12 +121,15 @@ This milestone is the `v2.x` release family.
 - Named non-expiring API tokens: issue at least two; display name, issue date,
   and final four characters; require an acknowledgement and explicit
   confirmation to delete.
-- Dashboard/device diagnostics: firmware version, uptime, Wi-Fi IP/signal,
+- Dashboard/device diagnostics: firmware version, uptime, Wi-Fi SSID/IP/signal,
   UPS identity and serial number, `ups.status`, battery/load/runtime,
   input/output voltage, NUT service status, and last update result.
-- Wi-Fi scan and configuration with signal strength, only 2.4 GHz-capable scan
-  results, no stored-password display, and a confirmation before committing
-  changes.
+- Wi-Fi scan and configuration with a visible selectable list of only 2.4
+  GHz-capable results, including SSID, signal strength, and security mode;
+  manual entry for hidden or unlisted networks; no stored-password display; a
+  local `Show password` toggle that is off by default and never persisted; and
+  a confirmation before committing changes. Selecting a result collapses the
+  list and focuses the password field; scanning again reopens the list.
 - Manual firmware file selection with check/download/install controls;
   known-good images install and corrupt images are rejected.
 - Remote service controls, live browser diagnostics, public NTP via
@@ -146,11 +153,19 @@ proportional build and target-hardware validation.
 | 3 | `v2.2.0` | `feature/time-configuration` | Establish device-owned time before timestamp-consuming slices: synchronize through configurable NTP with `pool.ntp.org` as the default, provide a manual date/time fallback, store the selected IANA time-zone name with `America/Los_Angeles` as the default, and expose UTC/local time plus synchronization state through the authenticated status API and console. Delivered by PR #16 and published as `v2.2.0`. |
 | 4 | `v2.3.0` | `feature/api-tokens` | Complete. PR #20 merged the validated token lifecycle and scoped Agent OTA at `595e3dcda`; annotated tag `v2.3.0` and the final GitHub release are published. |
 | 5 | `v2.4.0` | `feature/management-dashboard` | Expose and render the required firmware, Wi-Fi, NUT, UPS, voltage, battery, load, runtime, update, and time diagnostics. |
-| 6 | `v2.5.0` | `feature/wifi-management` | Scan supported networks, show signal strength, confirm credential changes, reconnect, and never reveal the stored password. |
+| 6 | `v2.5.0` | `feature/wifi-management` | Add the client-side ADMIN tab bar and Wi-Fi Configuration panel; scan supported networks, show signal strength, provide an off-by-default local `Show password` toggle, confirm credential changes, reconnect safely, and never reveal the stored password. |
 | 7 | `v2.6.0` | `feature/local-ota-management` | Complete check/download/install controls and corrupt-image validation; reuse the authenticated local picker delivered early in `v2.1.0`. |
 | 8 | `v2.7.0` | `feature/live-diagnostics` | Add bounded timestamped live browser logs and reviewed remote service controls without high-frequency flash writes. |
 | 9 | `v2.8.0` | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
 | 10 | `v2.9.0` | `feature/operational-management-acceptance` | Integrate and validate the definition of done from iPhone and MacBook Air, close documentation gaps, and publish the final `v2.x` acceptance release. |
+
+The Project Maintainer requested the tabbed ADMIN-console navigation and the
+Wi-Fi `Show password` toggle for `v2.5.0` on 2026-07-21. The tab bar is a
+presentation-only extension of the existing single-page console, so it does
+not add a service, alter authentication boundaries, or require additional
+release slices. If implementation risk grows beyond that boundary, split the
+tab shell before merging rather than expanding the Wi-Fi-management branch
+silently.
 
 The Project Maintainer approved moving time configuration ahead of API tokens
 on 2026-07-19 so tokens, dashboards, OTA results, and diagnostics share one

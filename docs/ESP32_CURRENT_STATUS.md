@@ -17,17 +17,17 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 01:20 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 10:14 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | API tokens `v2.3.0` and management dashboard `v2.4.0` are final and published |
-| Repository branch | `main` is synchronized at the PR #21 merge commit `349c19c21`; annotated tag `v2.4.0` and the public release point to the validated implementation merge |
-| Validated implementation state | PR #20 merged the API-token implementation at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21` |
-| Remote state | Live `origin/main` is synchronized, no pull request is open, and the final GitHub `v2.4.0` release is public |
-| Source worktree | Clean on `main`; management-dashboard implementation and status changes are merged; generated ESP-IDF outputs remain ignored |
+| Active slice target | API tokens `v2.3.0` and management dashboard `v2.4.0` are final and published; `v2.5.0` Wi-Fi management and tabbed ADMIN-console implementation is built locally for review |
+| Repository branch | `feature/wifi-management` is based on synchronized published `v2.4.0` `main`; no v2.5.0 remote branch, target update, or publication has been made |
+| Validated implementation state | PR #20 merged the API-token implementation at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; v2.5.0 source changes compile locally but are not target-validated |
+| Remote state | Live `origin/main` is synchronized, no pull request is open, and the final GitHub `v2.4.0` release is public; no v2.5.0 publication has been attempted |
+| Source worktree | v2.5.0 documentation, Wi-Fi management, authenticated tabbed console, and `version.txt` changes are local; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | Local `v2.4.0` dashboard candidate built successfully with ESP-IDF v6.0.2; 1,294,080 bytes (`0x13bf00`), SHA-256 `154503e00d0c7b83ee1cfba1cd6e6bccae05cfedee97e389db23175c709b69be`, and 61% of the smallest application partition free; this exact candidate is installed and target-validated |
+| Latest local build | Local `v2.5.0` Wi-Fi-management candidate built successfully with ESP-IDF v6.0.2; 1,303,664 bytes (`0x13e470`), SHA-256 `2ccb38f4c9a7dc29a73507eb43e7731955a1014da9dba351409554683c434823`, and 61% of the smallest application partition free; target installation is not yet authorized or tested |
 | Latest published release | Final `v2.4.0`, tagged at PR #21 merge commit `349c19c21` and published with the exact validated ESP32-S3 application image and corrected checksum asset: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.4.0) |
-| Installed firmware | **Observed:** clean `v2.4.0` is running after the authorized Chrome OTA install; protected status reports `app1` running, `app0` next, and `update.last_result = installed` |
+| Installed firmware | **Observed:** the target remains on the previously validated clean `v2.4.0`; the v2.5.0 candidate has not been uploaded |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173`; post-reset MAC rediscovery, ping, protected HTTPS 200, NUT/UPS `OL`, and retired-port checks passed; the installed `v2.4.0` candidate then completed a ten-minute network-first soak |
@@ -37,11 +37,13 @@ private keys, or Wi-Fi credentials here.
 ## Current objective
 
 The API-token `v2.3.0` slice and management-dashboard `v2.4.0` slice are
-complete, target-validated, merged, tagged, and published. Continue to
-preserve LAN-only HTTPS, read-only NUT, and the existing ADMIN and Agent
-authorization boundaries. UPS access remains read-only. The next action is to
-define the next explicitly authorized slice; publication of `v2.4.0` is
-complete.
+complete, target-validated, merged, tagged, and published. The `v2.5.0`
+Wi-Fi-management implementation now includes the requested tabbed
+ADMIN-console presentation shell and a local Wi-Fi Show password toggle. The
+candidate builds successfully, but target installation and hardware
+validation remain outstanding. Continue to preserve LAN-only HTTPS,
+read-only NUT, and the existing ADMIN and Agent authorization boundaries.
+UPS access remains read-only.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
@@ -1037,6 +1039,91 @@ that merge commit, and the public GitHub release includes the exact validated
 ESP32-S3 image and checksum asset. The released image SHA-256 is
 `154503e00d0c7b83ee1cfba1cd6e6bccae05cfedee97e389db23175c709b69be`.
 
+**Observed on 2026-07-21 10:14 PDT:** the Project Maintainer's requested
+`v2.5.0` scope is implemented locally on `feature/wifi-management`. The
+candidate includes the seven-panel client-side tab bar, the off-by-default
+local Wi-Fi **Show password** toggle, two ADMIN-session Wi-Fi routes, bounded
+2.4 GHz scanning with signal/security metadata, and reboot validation that
+clears a failed pending trial before falling back to the active credentials.
+The ESP-IDF v6.0.2 build succeeds, uses 15 of 16 configured HTTPS handlers,
+identifies as `v2.5.0`, and has image SHA-256
+`2ccb38f4c9a7dc29a73507eb43e7731955a1014da9dba351409554683c434823`.
+
+**Inferred:** the tab shell does not change the HTTPS service, session model,
+API-token boundaries, or transport. The Wi-Fi routes retain ADMIN-session and
+CSRF enforcement, and no Wi-Fi password is returned or logged.
+
+**Not tested:** target installation, browser rendering, connected-station scan
+behavior, credential rollback on the hardware, and network/NUT regression
+checks for the v2.5.0 candidate.
+
+**Observed on 2026-07-21 10:29 PDT:** authenticated Chrome inspection of the
+installed candidate returned eight Wi-Fi scan records containing SSID, RSSI,
+and security metadata, but the records were rendered only through an HTML
+`datalist`; the browser did not present the expected visible selectable list.
+The local candidate now renders an explicit selectable network list while
+retaining manual SSID entry for hidden or unlisted networks. The ESP-IDF
+v6.0.2 build succeeds, and the updated image SHA-256 is
+`cfabe0522b85e0fc0b98cd834f755677b4afa82abf7f3b4641573965e5a00c33`.
+
+**Inferred:** the scan API and device-side scan behavior were functioning; the
+reported issue was a browser presentation defect rather than missing scan
+results.
+
+**Not tested:** installation and target-browser rendering of this updated
+candidate, network/NUT regression after installation, and hardware Wi-Fi
+credential rollback remain untested. No target upload was performed.
+
+**Observed on 2026-07-21 10:42 PDT:** the Project Maintainer confirmed the
+Wi-Fi password toggle and credential change flow, including the expected
+ADMIN-session reload after reconnect. The dashboard Wi-Fi card was observed
+to show only IP and connection state, so the local candidate now includes the
+connected SSID in that card. The ESP-IDF v6.0.2 build succeeds; the updated
+image is 1,304,688 bytes with SHA-256
+`de90f10c4500c328b8ce6d52e55ee7eda7b99df3c71b3719df75e4a08c812221`.
+
+**Inferred:** clearing the current SSID exposed the browser's older
+autocomplete presentation in the installed image; the visible-list change
+remains in the newer candidate identified above. The dashboard omission is a
+separate presentation issue and does not indicate missing Wi-Fi status data.
+
+**Not tested:** installation and target-browser rendering of this newest
+candidate, including the dashboard SSID and explicit scan list, remain
+untested. No target upload was performed.
+
+**Observed on 2026-07-21 10:57 PDT:** the target's authenticated Chrome page
+reports `v2.5.0`, the dashboard Wi-Fi card displays the connected SSID, and
+the Wi-Fi panel renders the scanned SSIDs with signal/security metadata. A
+network-row selection updates the SSID field but leaves the result list open;
+the Project Maintainer confirmed that this makes reaching the password field
+awkward. The local candidate now hides the result list and focuses the
+password field after selection; scanning again repopulates and reopens it.
+The ESP-IDF v6.0.2 build succeeds; the newest image is 1,304,736 bytes with
+SHA-256 `a28055a80f7c926c229044d1f3cc4243f26165fec65c6a5929d9ac720172ca32`.
+
+**Inferred:** dashboard SSID and explicit scan-list behavior are working on
+the installed candidate; the remaining issue is selection-flow presentation.
+
+**Not tested:** installation and target-browser rendering of this newest
+selection-flow candidate, plus post-install network/NUT regression, remain
+untested. No target upload was performed for this candidate.
+
+**Observed on 2026-07-21 11:35 PDT (Project Maintainer report):** all planned
+v2.5.0 Wi-Fi-management and tabbed-console validation passes. This includes
+visible supported-network scanning with signal/security metadata, selection
+flow and password focus, the local Show password control, credential change
+and reconnect, ADMIN reauthentication, dashboard SSID display, and the
+preserved operational behavior. The installed target remains on `v2.5.0` and
+the validated candidate image SHA-256 is
+`a28055a80f7c926c229044d1f3cc4243f26165fec65c6a5929d9ac720172ca32`.
+
+**Inferred:** the v2.5.0 implementation slice is target-validated and ready
+for publication review. GitHub publication, merge, tagging, and release
+remain explicitly unauthorized.
+
+**Not tested:** publication and post-publication release auditing remain
+pending explicit authorization.
+
 ## Implemented versus remaining
 
 ### Implemented foundation
@@ -1059,7 +1146,6 @@ ESP32-S3 image and checksum asset. The released image SHA-256 is
 
 - Complete any additional target-hardware regression checks for the installed
   `v2.4.0` candidate that are authorized for this slice.
-- Wi-Fi scan, signal display, credential change, confirmation, and reconnect
 - Corrupt OTA image rejection validation
 - Remote service controls and live browser diagnostics
 - Standalone three-second Wi-Fi-only recovery validation in the later physical
@@ -1068,8 +1154,10 @@ ESP32-S3 image and checksum asset. The released image SHA-256 is
 
 ## Exact next action
 
-Define the next explicitly authorized development slice. Do not modify the
-published `v2.4.0` release without a new scope and validation plan.
+After explicit target-install authorization, repeat network-first preflight and
+install the local `v2.5.0` candidate. Do not push, merge, tag, or publish until
+browser, negative-authentication, Wi-Fi rollback, network, persistence, and
+target-hardware validation are complete.
 
 ## Operational procedures
 

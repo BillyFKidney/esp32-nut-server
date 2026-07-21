@@ -31,6 +31,7 @@
 #include "ota.h"
 #include "psa/crypto.h"
 #include "time_config.h"
+#include "wifi-provisioning.h"
 
 #define TAG "nut-management"
 
@@ -55,8 +56,9 @@
 #define MANAGEMENT_SESSION_HEX_LENGTH (MANAGEMENT_SESSION_BYTES * 2)
 #define MANAGEMENT_SESSION_IDLE_US (15LL * 60LL * 1000000LL)
 #define MANAGEMENT_FORM_BODY_LIMIT 640
-#define MANAGEMENT_ADMIN_PAGE_SIZE 20000
+#define MANAGEMENT_ADMIN_PAGE_SIZE 24000
 #define MANAGEMENT_STATUS_RESPONSE_SIZE 5000
+#define MANAGEMENT_WIFI_SCAN_RESPONSE_SIZE 4200
 #define MANAGEMENT_NUT_VALUE_LENGTH 96
 #define MANAGEMENT_HTTPS_ROUTE_CAPACITY 16
 #define MANAGEMENT_CERTIFICATE_BUFFER_SIZE 2048
@@ -1238,9 +1240,17 @@ static esp_err_t management_root_handler(httpd_req_t *request)
     }
     const int page_length = snprintf(page, MANAGEMENT_ADMIN_PAGE_SIZE,
              "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
-             "<title>ESP32-NUT administration</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem;max-width:48rem;color:#17212b}pre{background:#f0f3f5;padding:1rem;overflow:auto}input,button,select{font:inherit;padding:.7rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem}.secondary{background:#52606d}.danger{background:#a12622}.check{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}.check input{width:auto;margin:0}.result{min-height:1.5rem}.hint{color:#52606d}.token-once{border:2px solid #b7791f;background:#fffaf0;padding:1rem;margin:1rem 0}.token-once code{display:block;overflow-wrap:anywhere;margin:.75rem 0;font-size:.95rem}.token-row{border-top:1px solid #cbd5e1;padding:.8rem 0}.token-row button{margin:.6rem 0 0}.actions{display:flex;gap:.75rem}.actions button{margin:0}.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.75rem}.card{border:1px solid #cbd5e1;border-radius:.5rem;padding:1rem;background:#fff}.card h3{margin:.1rem 0 .75rem;font-size:1.05rem}.metric{margin:.45rem 0}.metric strong{display:block;font-size:.95rem}.metric span{display:block;margin-top:.15rem;overflow-wrap:anywhere}dialog{max-width:32rem;border:0;border-radius:.5rem;padding:1.25rem;box-shadow:0 1rem 3rem #0006}dialog::backdrop{background:#0008}</style>"
+             "<title>ESP32-NUT administration</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem auto;max-width:60rem;padding:0 1rem;color:#17212b}pre{background:#f0f3f5;padding:1rem;overflow:auto}input,button,select{font:inherit;padding:.7rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem}.secondary{background:#52606d}.danger{background:#a12622}.check{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}.check input{width:auto;margin:0}.result{min-height:1.5rem}.hint{color:#52606d}.token-once{border:2px solid #b7791f;background:#fffaf0;padding:1rem;margin:1rem 0}.token-once code{display:block;overflow-wrap:anywhere;margin:.75rem 0;font-size:.95rem}.token-row{border-top:1px solid #cbd5e1;padding:.8rem 0}.token-row button{margin:.6rem 0 0}.actions{display:flex;gap:.75rem}.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.75rem}.card{border:1px solid #cbd5e1;border-radius:.5rem;padding:1rem;background:#fff}.card h3{margin:.1rem 0 .75rem;font-size:1.05rem}.metric{margin:.45rem 0}.metric strong{display:block;font-size:.95rem}.metric span{display:block;margin-top:.15rem;overflow-wrap:anywhere}.tabs{display:flex;flex-wrap:wrap;gap:.35rem;margin:1.25rem 0;border-bottom:1px solid #cbd5e1;padding-bottom:.75rem}.tab{width:auto;margin:0;padding:.55rem .8rem;background:#52606d;white-space:nowrap}.tab[aria-selected=true]{background:#267747;font-weight:600}.panel[hidden]{display:none}.panel{padding:.25rem 0 1rem}.network-list{display:grid;gap:.5rem;margin:1rem 0}.network-list[hidden]{display:none}.network-option{display:flex;align-items:center;justify-content:space-between;gap:1rem;text-align:left;background:#f0f3f5;color:#17212b;border:1px solid #cbd5e1}.network-option:hover,.network-option[aria-pressed=true]{background:#dbeafe;border-color:#267747}.network-name{font-weight:600;overflow-wrap:anywhere}.network-details{color:#52606d;font-size:.9rem;white-space:nowrap}dialog{max-width:32rem;border:0;border-radius:.5rem;padding:1.25rem;box-shadow:0 1rem 3rem #0006}dialog::backdrop{background:#0008}</style>"
              "<h1>ESP32-NUT administration</h1><p>HTTPS is active with this device's self-signed certificate."
-             " The administration API is LAN-only.</p><h2>Dashboard</h2><section class=dashboard-grid>"
+             " The administration API is LAN-only.</p><nav class=tabs aria-label='Administration sections'>"
+             "<button class=tab type=button data-panel=dashboard aria-selected=true>Dashboard</button>"
+             "<button class=tab type=button data-panel=status aria-selected=false>Device Status</button>"
+             "<button class=tab type=button data-panel=time aria-selected=false>Date and Time</button>"
+             "<button class=tab type=button data-panel=wifi aria-selected=false>Wi-Fi Configuration</button>"
+             "<button class=tab type=button data-panel=password aria-selected=false>ADMIN Password</button>"
+             "<button class=tab type=button data-panel=tokens aria-selected=false>API Tokens</button>"
+             "<button class=tab type=button data-panel=ota aria-selected=false>Update Firmware</button></nav><main>"
+             "<section id=panel-dashboard class=panel><h2>Dashboard</h2><section class=dashboard-grid>"
              "<article class=card><h3>Device</h3><p class=metric><strong>Firmware</strong><span id=dashboardFirmware>Loading…</span></p>"
              "<p class=metric><strong>Uptime</strong><span id=dashboardUptime>Loading…</span></p>"
              "<p class=metric><strong>Last update</strong><span id=dashboardUpdate>Loading…</span></p></article>"
@@ -1255,9 +1265,9 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<p class=metric><strong>Load</strong><span id=dashboardLoad>Loading…</span></p></article>"
              "<article class=card><h3>Power</h3><p class=metric><strong>Battery voltage</strong><span id=dashboardBatteryVoltage>Loading…</span></p>"
              "<p class=metric><strong>Input voltage</strong><span id=dashboardInputVoltage>Loading…</span></p>"
-             "<p class=metric><strong>Output voltage</strong><span id=dashboardOutputVoltage>Loading…</span></p></article></section>"
-             "<h2>Device status</h2><details><summary>Raw status JSON</summary><pre id=status>Loading…</pre></details>"
-             "<h2>Date and time</h2><p id=timeSummary>Loading time status…</p>"
+             "<p class=metric><strong>Output voltage</strong><span id=dashboardOutputVoltage>Loading…</span></p></article></section></section>"
+             "<section id=panel-status class=panel hidden><h2>Device Status</h2><details><summary>Raw status JSON</summary><pre id=status>Loading…</pre></details></section>"
+             "<section id=panel-time class=panel hidden><h2>Date and Time</h2><p id=timeSummary>Loading time status…</p>"
              "<form id=timeConfigForm><label class=check><input id=ntpEnabled type=checkbox> Synchronize automatically with NTP</label>"
              "<label>NTP server<input id=ntpServer name=ntp_server required maxlength=63 autocomplete=off></label>"
              "<label>Time zone<select id=timeZone name=timezone required>"
@@ -1269,27 +1279,42 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<button id=syncNow class=secondary type=button>Synchronize now</button>"
              "<form id=manualTimeForm><label>Manual date and time in the selected time zone<input id=manualDateTime name=local_datetime type=datetime-local min='2024-01-01T00:00' max='2099-12-31T23:59' required></label>"
              "<button class=secondary type=submit>Set date and time manually</button></form>"
-             "<p class=hint>Manual time remains available while NTP retries and is replaced after a successful synchronization.</p><p id=timeResult class=result role=status></p>"
-             "<h2>Change ADMIN password</h2><form id=passwordForm><label>Current password<input id=currentPassword name=current type=password required autocomplete=current-password></label>"
+             "<p class=hint>Manual time remains available while NTP retries and is replaced after a successful synchronization.</p><p id=timeResult class=result role=status></p></section>"
+             "<section id=panel-wifi class=panel hidden><h2>Wi-Fi Configuration</h2><p id=wifiCurrent>Loading current Wi-Fi status…</p>"
+             "<p class=hint>ESP32-NUT scans supported 2.4 GHz networks. Scanning may briefly affect the station connection.</p>"
+             "<button id=wifiScanButton class=secondary type=button>Scan for networks</button><p id=wifiScanResult class=result role=status></p>"
+             "<form id=wifiForm><label>Wi-Fi network<input id=wifiSsid name=ssid required maxlength=32 autocomplete=off></label><div id=wifiNetworkList class=network-list role=list hidden></div>"
+             "<label>Wi-Fi password<input id=wifiPassword name=password type=password maxlength=63 autocomplete=new-password></label>"
+             "<label class=check><input id=wifiShowPassword type=checkbox> Show password</label>"
+             "<p class=hint>The stored password is never displayed. Enter a password only when changing networks; leave it blank for an open network.</p>"
+             "<button id=wifiConfigureButton type=submit>Save and reconnect</button></form><p id=wifiResult class=result role=status></p></section>"
+             "<section id=panel-password class=panel hidden><h2>ADMIN Password</h2><form id=passwordForm><label>Current password<input id=currentPassword name=current type=password required autocomplete=current-password></label>"
              "<label>New password<input id=newPassword name=password type=password required minlength=12 maxlength=128 autocomplete=new-password></label>"
              "<label>Confirm new password<input id=confirmPassword name=confirm type=password required minlength=12 maxlength=128 autocomplete=new-password></label>"
-             "<label class=check><input id=showPasswords type=checkbox> Show passwords</label><button type=submit>Change password</button></form><p id=passwordResult class=result role=status></p>"
-             "<h2>API tokens</h2><p>Create up to four named, non-expiring tokens. In this release every token is limited to Agent-driven firmware installation.</p>"
+             "<label class=check><input id=showPasswords type=checkbox> Show passwords</label><button type=submit>Change password</button></form><p id=passwordResult class=result role=status></p></section>"
+             "<section id=panel-tokens class=panel hidden><h2>API Tokens</h2><p>Create up to four named, non-expiring tokens. In this release every token is limited to Agent-driven firmware installation.</p>"
              "<form id=tokenForm><label>Token name<input id=tokenName name=name required minlength=1 maxlength=32 pattern='[-A-Za-z0-9._ ]+' autocomplete=off></label><button type=submit>Create API token</button></form>"
              "<section id=tokenOnce class=token-once hidden><strong>Copy this token now. It will never be shown again.</strong><code id=tokenValue></code><span id=tokenMetadata></span></section>"
              "<div id=tokenList>Loading API tokens…</div><p id=tokenResult class=result role=status></p>"
              "<dialog id=deleteTokenDialog><h3>Delete API token</h3><p>Delete <strong id=deleteTokenName></strong>? Requests using it will be rejected immediately.</p>"
              "<label class=check><input id=deleteTokenAck type=checkbox> I acknowledge that this token will be permanently revoked.</label>"
-             "<div class=actions><button id=deleteTokenCancel class=secondary type=button>Cancel</button><button id=deleteTokenConfirm class=danger type=button disabled>Delete token</button></div></dialog>"
-             "<h2>Install firmware</h2><p>Select a local ESP32-NUT application image. The device verifies the image before restarting into the inactive OTA slot.</p>"
-             "<form id=otaForm><label>Firmware .bin file<input id=otaFile type=file accept='.bin,application/octet-stream' required></label><button id=otaButton type=submit>Install firmware</button></form><p id=otaResult class=result role=status></p>"
-             "<p>Wi-Fi changes and additional diagnostics are being added to this authenticated console.</p>"
+             "<div class=actions><button id=deleteTokenCancel class=secondary type=button>Cancel</button><button id=deleteTokenConfirm class=danger type=button disabled>Delete token</button></div></dialog></section>"
+             "<section id=panel-ota class=panel hidden><h2>Update Firmware</h2><p>Select a local ESP32-NUT application image. The device verifies the image before restarting into the inactive OTA slot.</p>"
+             "<form id=otaForm><label>Firmware .bin file<input id=otaFile type=file accept='.bin,application/octet-stream' required></label><button id=otaButton type=submit>Install firmware</button></form><p id=otaResult class=result role=status></p></section></main>"
+             "<p class=hint>All management actions remain protected by the ADMIN browser session.</p>"
              "<button onclick=logout()>Sign out</button><script>"
-             "const csrf='%s',status=document.getElementById('status'),timeSummary=document.getElementById('timeSummary'),timeConfigForm=document.getElementById('timeConfigForm'),ntpEnabled=document.getElementById('ntpEnabled'),ntpServer=document.getElementById('ntpServer'),timeZone=document.getElementById('timeZone'),syncNow=document.getElementById('syncNow'),manualTimeForm=document.getElementById('manualTimeForm'),manualDateTime=document.getElementById('manualDateTime'),timeResult=document.getElementById('timeResult'),currentPassword=document.getElementById('currentPassword'),newPassword=document.getElementById('newPassword'),confirmPassword=document.getElementById('confirmPassword'),passwordForm=document.getElementById('passwordForm'),passwordResult=document.getElementById('passwordResult'),tokenForm=document.getElementById('tokenForm'),tokenOnce=document.getElementById('tokenOnce'),tokenValue=document.getElementById('tokenValue'),tokenMetadata=document.getElementById('tokenMetadata'),tokenList=document.getElementById('tokenList'),tokenResult=document.getElementById('tokenResult'),deleteTokenDialog=document.getElementById('deleteTokenDialog'),deleteTokenName=document.getElementById('deleteTokenName'),deleteTokenAck=document.getElementById('deleteTokenAck'),deleteTokenConfirm=document.getElementById('deleteTokenConfirm'),otaForm=document.getElementById('otaForm'),otaFile=document.getElementById('otaFile'),otaButton=document.getElementById('otaButton'),otaResult=document.getElementById('otaResult');let pendingTokenId='';"
+             "const csrf='%s',status=document.getElementById('status'),timeSummary=document.getElementById('timeSummary'),timeConfigForm=document.getElementById('timeConfigForm'),ntpEnabled=document.getElementById('ntpEnabled'),ntpServer=document.getElementById('ntpServer'),timeZone=document.getElementById('timeZone'),syncNow=document.getElementById('syncNow'),manualTimeForm=document.getElementById('manualTimeForm'),manualDateTime=document.getElementById('manualDateTime'),timeResult=document.getElementById('timeResult'),wifiCurrent=document.getElementById('wifiCurrent'),wifiScanButton=document.getElementById('wifiScanButton'),wifiScanResult=document.getElementById('wifiScanResult'),wifiForm=document.getElementById('wifiForm'),wifiSsid=document.getElementById('wifiSsid'),wifiNetworkList=document.getElementById('wifiNetworkList'),wifiPassword=document.getElementById('wifiPassword'),wifiShowPassword=document.getElementById('wifiShowPassword'),wifiConfigureButton=document.getElementById('wifiConfigureButton'),wifiResult=document.getElementById('wifiResult'),currentPassword=document.getElementById('currentPassword'),newPassword=document.getElementById('newPassword'),confirmPassword=document.getElementById('confirmPassword'),passwordForm=document.getElementById('passwordForm'),passwordResult=document.getElementById('passwordResult'),tokenForm=document.getElementById('tokenForm'),tokenOnce=document.getElementById('tokenOnce'),tokenValue=document.getElementById('tokenValue'),tokenMetadata=document.getElementById('tokenMetadata'),tokenList=document.getElementById('tokenList'),tokenResult=document.getElementById('tokenResult'),deleteTokenDialog=document.getElementById('deleteTokenDialog'),deleteTokenName=document.getElementById('deleteTokenName'),deleteTokenAck=document.getElementById('deleteTokenAck'),deleteTokenConfirm=document.getElementById('deleteTokenConfirm'),otaForm=document.getElementById('otaForm'),otaFile=document.getElementById('otaFile'),otaButton=document.getElementById('otaButton'),otaResult=document.getElementById('otaResult');let pendingTokenId='';"
+             "const tabs=document.querySelectorAll('.tab'),panels={dashboard:document.getElementById('panel-dashboard'),status:document.getElementById('panel-status'),time:document.getElementById('panel-time'),wifi:document.getElementById('panel-wifi'),password:document.getElementById('panel-password'),tokens:document.getElementById('panel-tokens'),ota:document.getElementById('panel-ota')};"
              "const dashboardFirmware=document.getElementById('dashboardFirmware'),dashboardUptime=document.getElementById('dashboardUptime'),dashboardUpdate=document.getElementById('dashboardUpdate'),dashboardWifi=document.getElementById('dashboardWifi'),dashboardSignal=document.getElementById('dashboardSignal'),dashboardNut=document.getElementById('dashboardNut'),dashboardUpsStatus=document.getElementById('dashboardUpsStatus'),dashboardUps=document.getElementById('dashboardUps'),dashboardSerial=document.getElementById('dashboardSerial'),dashboardBattery=document.getElementById('dashboardBattery'),dashboardRuntime=document.getElementById('dashboardRuntime'),dashboardLoad=document.getElementById('dashboardLoad'),dashboardBatteryVoltage=document.getElementById('dashboardBatteryVoltage'),dashboardInputVoltage=document.getElementById('dashboardInputVoltage'),dashboardOutputVoltage=document.getElementById('dashboardOutputVoltage');"
              "function displayValue(value){return value===undefined||value===null||value===''?'Not available':String(value)}function formatUptime(seconds){if(typeof seconds!=='number')return displayValue(seconds);const days=Math.floor(seconds/86400),hours=Math.floor(seconds%%86400/3600),minutes=Math.floor(seconds%%3600/60),remaining=Math.floor(seconds%%60);return (days?days+'d ':'')+(hours?hours+'h ':'')+(minutes?minutes+'m ':'')+remaining+'s'}"
-             "function renderDashboard(x){const wifi=x.wifi||{},nut=x.nut||{},ups=x.ups||{},update=x.update||{};dashboardFirmware.textContent=displayValue(x.firmware);dashboardUptime.textContent=formatUptime(x.uptime_seconds);dashboardUpdate.textContent=displayValue(update.last_result);dashboardWifi.textContent=displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected');dashboardSignal.textContent=displayValue(wifi.rssi_dbm)+' dBm';dashboardNut.textContent=displayValue(nut.health)+' — TCP '+displayValue(nut.port)+(nut.data_stale?' — data stale':'');dashboardUpsStatus.textContent=displayValue(ups.status);dashboardUps.textContent=displayValue(nut.ups_name)+' — '+displayValue(ups.manufacturer)+' '+displayValue(ups.model);dashboardSerial.textContent=displayValue(ups.serial);dashboardBattery.textContent=displayValue(ups.battery_charge)+' %%';dashboardRuntime.textContent=displayValue(ups.battery_runtime)+' s';dashboardLoad.textContent=displayValue(ups.load)+' %%';dashboardBatteryVoltage.textContent=displayValue(ups.battery_voltage)+' V';dashboardInputVoltage.textContent=displayValue(ups.input_voltage)+' V';dashboardOutputVoltage.textContent=displayValue(ups.output_voltage)+' V'}"
-             "async function loadStatus(){try{const r=await fetch('/api/v1/status',{cache:'no-store'}),x=await r.json();status.textContent=JSON.stringify(x,null,2);renderDashboard(x);if(x.time){ntpEnabled.checked=x.time.ntp_enabled;ntpServer.value=x.time.ntp_server;timeZone.value=x.time.timezone;syncNow.disabled=!x.time.ntp_enabled;if(x.time.available){timeSummary.textContent=x.time.local+' ('+x.time.timezone+'), UTC '+x.time.utc+', source '+x.time.source+(x.time.synchronization_pending?' — synchronization pending':'');manualDateTime.value=x.time.local.slice(0,16)}else{timeSummary.textContent=x.time.synchronization_pending?'Time is not set; waiting for NTP.':'Time is not set.'}}}catch(error){status.textContent='Unable to load device status.'}}"
+             "function selectPanel(name){for(const tab of tabs)tab.setAttribute('aria-selected',tab.dataset.panel===name?'true':'false');for(const panelName in panels)panels[panelName].hidden=panelName!==name}"
+             "tabs.forEach(tab=>tab.onclick=()=>selectPanel(tab.dataset.panel));"
+             "function renderDashboard(x){const wifi=x.wifi||{},nut=x.nut||{},ups=x.ups||{},update=x.update||{};dashboardFirmware.textContent=displayValue(x.firmware);dashboardUptime.textContent=formatUptime(x.uptime_seconds);dashboardUpdate.textContent=displayValue(update.last_result);dashboardWifi.textContent=displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected');dashboardSignal.textContent=displayValue(wifi.rssi_dbm)+' dBm';dashboardNut.textContent=displayValue(nut.health)+' — TCP '+displayValue(nut.port)+(nut.data_stale?' — data stale':'');dashboardUpsStatus.textContent=displayValue(ups.status);dashboardUps.textContent=displayValue(nut.ups_name)+' — '+displayValue(ups.manufacturer)+' '+displayValue(ups.model);dashboardSerial.textContent=displayValue(ups.serial);dashboardBattery.textContent=displayValue(ups.battery_charge)+' %%';dashboardRuntime.textContent=displayValue(ups.battery_runtime)+' s';dashboardLoad.textContent=displayValue(ups.load)+' %%';dashboardBatteryVoltage.textContent=displayValue(ups.battery_voltage)+' V';dashboardInputVoltage.textContent=displayValue(ups.input_voltage)+' V';dashboardOutputVoltage.textContent=displayValue(ups.output_voltage)+' V'}"
+             "function renderWifi(x){const wifi=x.wifi||{};wifiCurrent.textContent='Current network: '+displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected')+' — '+displayValue(wifi.rssi_dbm)+' dBm';if(!wifiSsid.value&&wifi.ssid)wifiSsid.value=wifi.ssid}"
+             "async function loadStatus(){try{const r=await fetch('/api/v1/status',{cache:'no-store'}),x=await r.json();status.textContent=JSON.stringify(x,null,2);renderDashboard(x);renderWifi(x);if(x.time){ntpEnabled.checked=x.time.ntp_enabled;ntpServer.value=x.time.ntp_server;timeZone.value=x.time.timezone;syncNow.disabled=!x.time.ntp_enabled;if(x.time.available){timeSummary.textContent=x.time.local+' ('+x.time.timezone+'), UTC '+x.time.utc+', source '+x.time.source+(x.time.synchronization_pending?' — synchronization pending':'');manualDateTime.value=x.time.local.slice(0,16)}else{timeSummary.textContent=x.time.synchronization_pending?'Time is not set; waiting for NTP.':'Time is not set.'}}}catch(error){status.textContent='Unable to load device status.';wifiCurrent.textContent='Unable to load current Wi-Fi status.'}}"
+             "wifiShowPassword.onchange=()=>wifiPassword.type=wifiShowPassword.checked?'text':'password';"
+             "wifiScanButton.onclick=async()=>{wifiScanButton.disabled=true;wifiScanResult.textContent='Scanning supported 2.4 GHz networks…';try{const r=await fetch('/api/v1/admin/wifi/scan',{cache:'no-store'}),x=await r.json();if(!r.ok)throw new Error(x.error||'Wi-Fi scan failed.');const networks=x.networks||[];wifiNetworkList.replaceChildren();wifiNetworkList.hidden=networks.length===0;for(const network of networks){const option=document.createElement('button'),name=document.createElement('span'),details=document.createElement('span');option.type='button';option.className='network-option';option.setAttribute('aria-pressed',network.ssid===wifiSsid.value?'true':'false');name.className='network-name';name.textContent=network.ssid;details.className='network-details';details.textContent=network.rssi_dbm+' dBm — '+network.security;option.append(name,details);option.onclick=()=>{wifiSsid.value=network.ssid;for(const other of wifiNetworkList.querySelectorAll('.network-option'))other.setAttribute('aria-pressed','false');option.setAttribute('aria-pressed','true');wifiNetworkList.hidden=true;wifiPassword.focus()};wifiNetworkList.append(option)}wifiScanResult.textContent=networks.length+' network(s) found.'}catch(error){wifiNetworkList.replaceChildren();wifiNetworkList.hidden=true;wifiScanResult.textContent=error.message||'Unable to scan Wi-Fi networks.'}finally{wifiScanButton.disabled=false}};"
+             "wifiForm.onsubmit=async e=>{e.preventDefault();if(!wifiSsid.value.trim())return;if(!window.confirm('Save these Wi-Fi credentials and restart ESP32-NUT to test the connection?'))return;wifiConfigureButton.disabled=true;wifiResult.textContent='Staging Wi-Fi credentials…';const body=new URLSearchParams({ssid:wifiSsid.value,password:wifiPassword.value,acknowledge:'true'});try{const r=await fetch('/api/v1/admin/wifi',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body}),x=await r.json();wifiResult.textContent=x.message||x.error||'Wi-Fi configuration failed.';if(r.ok)setTimeout(reconnect,5000);else wifiConfigureButton.disabled=false}catch(error){wifiResult.textContent='Connection closed. The device may be restarting…';setTimeout(reconnect,3000)}};"
              "async function submitTime(body){timeResult.textContent='Applying time settings…';try{const r=await fetch('/api/v1/admin/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body}),x=await r.json();timeResult.textContent=x.message||x.error||'Time operation failed.';if(r.ok)setTimeout(loadStatus,500)}catch(error){timeResult.textContent='Unable to reach the time API.'}}"
              "timeConfigForm.onsubmit=e=>{e.preventDefault();const body=new URLSearchParams(new FormData(timeConfigForm));body.set('action','configure');body.set('ntp_enabled',ntpEnabled.checked?'true':'false');submitTime(body)};"
              "manualTimeForm.onsubmit=e=>{e.preventDefault();const body=new URLSearchParams(new FormData(manualTimeForm));body.set('action','manual');submitTime(body)};"
@@ -1301,7 +1326,7 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "function openTokenDelete(token){pendingTokenId=token.id;deleteTokenName.textContent=token.name+' (final four '+token.final_four+')';deleteTokenAck.checked=false;deleteTokenConfirm.disabled=true;deleteTokenDialog.showModal()}"
              "deleteTokenAck.onchange=()=>deleteTokenConfirm.disabled=!deleteTokenAck.checked;document.getElementById('deleteTokenCancel').onclick=()=>deleteTokenDialog.close();deleteTokenDialog.addEventListener('close',()=>{pendingTokenId='';deleteTokenAck.checked=false;deleteTokenConfirm.disabled=true});"
              "deleteTokenConfirm.onclick=async()=>{if(!pendingTokenId||!deleteTokenAck.checked)return;const id=pendingTokenId;deleteTokenConfirm.disabled=true;tokenResult.textContent='Deleting API token…';try{const body=new URLSearchParams({id,acknowledge:'true'}),r=await fetch('/api/v1/admin/tokens',{method:'DELETE',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body}),x=await r.json();tokenResult.textContent=x.message||x.error||'Token deletion failed.';if(r.ok){deleteTokenDialog.close();loadTokens()}else{deleteTokenConfirm.disabled=false}}catch(error){tokenResult.textContent='Unable to reach the API-token service.';deleteTokenConfirm.disabled=false}};"
-             "otaForm.onsubmit=async e=>{e.preventDefault();const file=otaFile.files[0];if(!file||!window.confirm('Install '+file.name+' and restart ESP32-NUT?'))return;otaButton.disabled=true;otaResult.textContent='Uploading and verifying firmware…';try{const r=await fetch('/api/v1/ota/install',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||'Firmware installation failed.';if(r.ok){setTimeout(reconnect,5000)}else{otaButton.disabled=false}}catch(error){otaResult.textContent='Connection closed. The device may be restarting…';setTimeout(reconnect,3000)}};"
+             "otaForm.onsubmit=async e=>{e.preventDefault();const file=otaFile.files[0];if(!file||!window.confirm('Install '+file.name+' and restart ESP32-NUT?'))return;otaButton.disabled=true;otaResult.textContent='Uploading and verifying firmware…';try{const r=await fetch('/api/v1/ota/install',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||x.error||('Firmware installation failed (HTTP '+r.status+').');if(r.ok){setTimeout(reconnect,5000)}else{otaButton.disabled=false}}catch(error){otaResult.textContent='Connection closed. The device may be restarting…';setTimeout(reconnect,3000)}};"
              "function reconnect(){fetch('/',{cache:'no-store'}).then(()=>location='/').catch(()=>setTimeout(reconnect,2000))}function logout(){fetch('/logout',{method:'POST',headers:{'X-ESP32-NUT-CSRF':csrf}}).then(()=>location='/')}loadStatus();loadTokens();</script>",
              csrf);
     mbedtls_platform_zeroize(csrf, sizeof(csrf));
@@ -1510,6 +1535,170 @@ static esp_err_t management_logout_handler(httpd_req_t *request)
     httpd_resp_set_hdr(request, "Set-Cookie",
                        "ESP32NUT_SESSION=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict");
     return management_send_redirect(request, "/");
+}
+
+static const char *management_wifi_security_name(uint8_t authmode)
+{
+    switch ((wifi_auth_mode_t)authmode)
+    {
+    case WIFI_AUTH_OPEN:
+        return "Open";
+    case WIFI_AUTH_WEP:
+        return "WEP";
+    case WIFI_AUTH_WPA_PSK:
+        return "WPA";
+    case WIFI_AUTH_WPA2_PSK:
+        return "WPA2";
+    case WIFI_AUTH_WPA_WPA2_PSK:
+        return "WPA/WPA2";
+    case WIFI_AUTH_WPA3_PSK:
+        return "WPA3";
+    case WIFI_AUTH_WPA2_WPA3_PSK:
+        return "WPA2/WPA3";
+    case WIFI_AUTH_OWE:
+        return "OWE";
+    case WIFI_AUTH_ENTERPRISE:
+    case WIFI_AUTH_WPA3_ENTERPRISE:
+    case WIFI_AUTH_WPA2_WPA3_ENTERPRISE:
+    case WIFI_AUTH_WPA_ENTERPRISE:
+    case WIFI_AUTH_WPA3_ENT_192:
+        return "Enterprise";
+    default:
+        return "Unknown";
+    }
+}
+
+static esp_err_t management_wifi_scan_handler(httpd_req_t *request)
+{
+    if (!management_require_session(request))
+    {
+        return ESP_OK;
+    }
+
+    WifiManagementScanResults results;
+    const esp_err_t scan_result = wifi_management_scan(&results);
+    if (scan_result == ESP_ERR_INVALID_STATE)
+    {
+        return management_send_json(
+            request, "409 Conflict",
+            "{\"error\":\"Wi-Fi must be connected before scanning for networks.\"}");
+    }
+    if (scan_result == ESP_ERR_TIMEOUT || scan_result == ESP_ERR_WIFI_STATE)
+    {
+        return management_send_json(
+            request, "503 Service Unavailable",
+            "{\"error\":\"Wi-Fi is busy. Wait a moment and scan again.\"}");
+    }
+    if (scan_result != ESP_OK)
+    {
+        ESP_LOGW(TAG, "Unable to scan Wi-Fi networks: %s", esp_err_to_name(scan_result));
+        return management_send_json(
+            request, "503 Service Unavailable",
+            "{\"error\":\"Unable to scan Wi-Fi networks right now.\"}");
+    }
+
+    char response[MANAGEMENT_WIFI_SCAN_RESPONSE_SIZE];
+    size_t used = 0;
+    bool response_valid = management_json_append(
+        response, sizeof(response), &used, "{\"networks\":[");
+    for (size_t index = 0; response_valid && index < results.count; index++)
+    {
+        const WifiManagementScanResult *entry = &results.entries[index];
+        response_valid = management_json_append(
+            response, sizeof(response), &used, "%s{\"ssid\":",
+            index == 0U ? "" : ",");
+        response_valid = response_valid && management_json_append_string(
+                                             response, sizeof(response), &used,
+                                             entry->ssid);
+        response_valid = response_valid && management_json_append(
+                                             response, sizeof(response), &used,
+                                             ",\"rssi_dbm\":%d,\"security\":",
+                                             entry->rssi_dbm);
+        response_valid = response_valid && management_json_append_string(
+                                             response, sizeof(response), &used,
+                                             management_wifi_security_name(
+                                                 entry->authmode));
+        response_valid = response_valid && management_json_append(
+                                             response, sizeof(response), &used,
+                                             "}");
+    }
+    response_valid = response_valid && management_json_append(
+                                         response, sizeof(response), &used,
+                                         "],\"maximum\":%u}",
+                                         (unsigned int)WIFI_MANAGEMENT_SCAN_RESULT_LIMIT);
+    mbedtls_platform_zeroize(&results, sizeof(results));
+    if (!response_valid)
+    {
+        mbedtls_platform_zeroize(response, sizeof(response));
+        return management_send_json(
+            request, "500 Internal Server Error",
+            "{\"error\":\"Unable to prepare the Wi-Fi scan response.\"}");
+    }
+
+    const esp_err_t send_result = management_send_json(request, "200 OK", response);
+    mbedtls_platform_zeroize(response, sizeof(response));
+    return send_result;
+}
+
+static esp_err_t management_wifi_configure_handler(httpd_req_t *request)
+{
+    if (!management_csrf_is_valid(request))
+    {
+        return management_send_json(
+            request, "403 Forbidden",
+            "{\"error\":\"Invalid session or CSRF token.\"}");
+    }
+
+    char body[MANAGEMENT_FORM_BODY_LIMIT + 1] = {0};
+    char ssid[WIFI_MANAGEMENT_SSID_MAX_LENGTH + 1U] = {0};
+    char password[WIFI_MANAGEMENT_PASSWORD_MAX_LENGTH + 1U] = {0};
+    char acknowledgement[6] = {0};
+    const esp_err_t form_result =
+        management_read_form_body(request, body, sizeof(body));
+    const bool fields_present =
+        form_result == ESP_OK &&
+        management_form_value(body, "ssid", ssid, sizeof(ssid)) &&
+        management_form_value(body, "password", password, sizeof(password)) &&
+        management_form_value(body, "acknowledge", acknowledgement,
+                              sizeof(acknowledgement));
+    mbedtls_platform_zeroize(body, sizeof(body));
+    if (!fields_present || strcmp(acknowledgement, "true") != 0)
+    {
+        mbedtls_platform_zeroize(ssid, sizeof(ssid));
+        mbedtls_platform_zeroize(password, sizeof(password));
+        mbedtls_platform_zeroize(acknowledgement, sizeof(acknowledgement));
+        return management_send_json(
+            request, "400 Bad Request",
+            "{\"error\":\"Wi-Fi changes require explicit confirmation.\"}");
+    }
+
+    const esp_err_t result = wifi_management_stage_credentials(ssid, password);
+    mbedtls_platform_zeroize(ssid, sizeof(ssid));
+    mbedtls_platform_zeroize(password, sizeof(password));
+    mbedtls_platform_zeroize(acknowledgement, sizeof(acknowledgement));
+    if (result == ESP_ERR_INVALID_ARG)
+    {
+        return management_send_json(
+            request, "400 Bad Request",
+            "{\"error\":\"Use a 1-32 character network name and an 8-63 character password, or leave the password blank for an open network. Enter a password when keeping the current secured network.\"}");
+    }
+    if (result == ESP_ERR_INVALID_STATE)
+    {
+        return management_send_json(
+            request, "409 Conflict",
+            "{\"error\":\"Wi-Fi is not currently connected; reconnect before changing networks.\"}");
+    }
+    if (result != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Unable to stage Wi-Fi credentials: %s",
+                 esp_err_to_name(result));
+        return management_send_json(
+            request, "500 Internal Server Error",
+            "{\"error\":\"Unable to stage Wi-Fi credentials. Try again.\"}");
+    }
+    return management_send_json(
+        request, "202 Accepted",
+        "{\"message\":\"Wi-Fi credentials staged. The device will restart and test the new network; the previous network remains the fallback if validation fails.\"}");
 }
 
 static esp_err_t management_status_handler(httpd_req_t *request)
@@ -2059,11 +2248,13 @@ esp_err_t management_server_start(void)
     const httpd_uri_t token_list = {.uri = "/api/v1/admin/tokens", .method = HTTP_GET, .handler = management_token_list_handler};
     const httpd_uri_t token_create = {.uri = "/api/v1/admin/tokens", .method = HTTP_POST, .handler = management_token_create_handler};
     const httpd_uri_t token_delete = {.uri = "/api/v1/admin/tokens", .method = HTTP_DELETE, .handler = management_token_delete_handler};
+    const httpd_uri_t wifi_scan = {.uri = "/api/v1/admin/wifi/scan", .method = HTTP_GET, .handler = management_wifi_scan_handler};
+    const httpd_uri_t wifi_configuration = {.uri = "/api/v1/admin/wifi", .method = HTTP_POST, .handler = management_wifi_configure_handler};
     const httpd_uri_t agent_ota = {.uri = "/api/v1/agent/ota/install", .method = HTTP_POST, .handler = management_agent_ota_install_handler};
     const httpd_uri_t *routes[] = {
         &root, &setup, &login_page, &login, &password, &logout, &status,
         &time_configuration, &ota, &token_list, &token_create, &token_delete,
-        &agent_ota};
+        &wifi_scan, &wifi_configuration, &agent_ota};
     _Static_assert(sizeof(routes) / sizeof(routes[0]) <=
                        MANAGEMENT_HTTPS_ROUTE_CAPACITY,
                    "HTTPS route count exceeds configured handler capacity");

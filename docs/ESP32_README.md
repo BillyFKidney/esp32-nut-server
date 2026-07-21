@@ -181,6 +181,20 @@ place. Firmware upload uses the authenticated HTTPS management API and the
 scoped Agent OTA route described above; do not rely on the former
 unauthenticated TCP port `8080` service.
 
+The planned `v2.5.0` administration update keeps this same authenticated page
+but organizes it with a responsive tab bar: **Dashboard**, **Device Status**,
+**Date and Time**, **Wi-Fi Configuration**, **ADMIN Password**, **API Tokens**,
+and **Update Firmware**. The tabs are presentation-only and do not change
+route authorization or transport security.
+
+The planned Wi-Fi Configuration panel will provide supported-network scanning
+through a visible selectable list containing each SSID, signal strength, and
+security mode. Manual SSID entry remains available for hidden or unlisted
+networks. The panel also provides safe credential staging and reconnect, plus
+a password field that is masked by default. Its local **Show password** toggle
+changes only the current browser control; the stored password is never
+returned, persisted by the UI, or logged.
+
 HTTPS does not add TLS to the read-only NUT service on TCP port `3493`; keep
 that service within a trusted management network.
 

@@ -70,7 +70,7 @@ human-facing device name.
 
 **Question:** What must the initial dashboard show?
 
-**Answer:** Show firmware version, uptime, Wi-Fi signal/IP, connected UPS
+**Answer:** Show firmware version, uptime, Wi-Fi SSID/signal/IP, connected UPS
 identity, `ups.status`, battery/load/runtime, NUT server status, last update
 result, UPS serial number, and input/output voltage.
 
@@ -78,10 +78,17 @@ result, UPS serial number, and input/output voltage.
 
 **Question:** What Wi-Fi operations are required from the console?
 
-**Answer:** Permit SSID scanning, signal-strength display, changing
-credentials, and forcing reconnect. Never display the stored Wi-Fi password.
-A confirmation screen must appear before committing Wi-Fi changes. The owner
-must also be able to clear Wi-Fi through the physical button.
+**Answer:** Permit SSID scanning with a visible selectable list showing each
+SSID, signal strength, and security mode; changing credentials; and forcing
+reconnect. Manual SSID entry remains available for hidden or unlisted
+networks. After selecting a scan result, collapse the list and focus the
+password field; scanning again reopens the list. Never display the stored
+Wi-Fi password.
+The Wi-Fi password field must default to masked and provide a local **Show
+password** toggle; the toggle changes only the current browser control and is
+never persisted, returned by an API, or logged. A confirmation screen must
+appear before committing Wi-Fi changes. The owner must also be able to clear
+Wi-Fi through the physical button.
 
 **Hardware note:** ESP32-S3 Wi-Fi is 2.4 GHz only. Its scan results should
 therefore show only networks it can actually detect and join; 5 GHz-only
@@ -169,8 +176,14 @@ Milestone 6.
 
 **Question:** What visual design is wanted now?
 
-**Answer:** A utilitarian, mobile-friendly device-administration page. UX
-improvements are much later work.
+**Answer:** A utilitarian, mobile-friendly device-administration page. For
+`v2.5.0`, the console adds a responsive, client-side tab bar across the top
+with these panels: **Dashboard**, **Device Status**, **Date and Time**, **Wi-Fi
+Configuration**, **ADMIN Password**, **API Tokens**, and **Update Firmware**.
+Tabs are a presentation-only navigation shell; they do not create new
+authentication, authorization, or transport boundaries. The default panel is
+Dashboard, and the tab bar must remain usable without page-level horizontal
+overflow.
 
 ### 18. Definition of done
 
@@ -181,6 +194,9 @@ improvements are much later work.
 - Confirm the setup AP has a unique `ESP32-NUT-xxxx` SSID.
 - Clear Wi-Fi with a physical button and reconfigure Wi-Fi in the web console
   after an explicit confirmation.
+- Navigate the ADMIN console through the seven named tabs and use the Wi-Fi
+  **Show password** toggle without the stored password being returned,
+  persisted, or logged.
 - Be required to change the ADMIN password during initial setup, and later
   change it in the console.
 - Issue at least two non-expiring, uniquely named access tokens.
@@ -293,3 +309,16 @@ Production OTA?
 self-signed certificate for the LAN-only administration interface. Milestone 3
 replaces that certificate with one issued by the local CA, alongside production
 OTA hardening. Management is never to be exposed outside the trusted LAN.
+
+### Resolved question H: ADMIN console navigation
+
+**Question:** May the existing ADMIN console sections be organized into a
+phpMyAdmin-style tab bar, and does that change any security boundary?
+
+**Recorded choice:** Yes. The Project Maintainer requested the tabbed layout
+on 2026-07-21. Implement it as a client-side tab shell in the existing
+authenticated page. Use the labels **Dashboard**, **Device Status**, **Date and
+Time**, **Wi-Fi Configuration**, **ADMIN Password**, **API Tokens**, and
+**Update Firmware**. Tabs do not add routes, sessions, roles, cookies, or
+transport modes; every panel remains protected by the existing ADMIN session,
+and state-changing actions retain their existing CSRF requirements.
