@@ -17,16 +17,16 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 01:11 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 01:20 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | API tokens `v2.3.0` remain final and published; the `v2.4.0` management-dashboard implementation is in progress on `feature/management-dashboard` |
-| Repository branch | `feature/management-dashboard` is based directly on synchronized `main` at `75aa270ed`; no push, merge, tag, or release has been performed |
-| Validated implementation state | PR #20 merged the API-token implementation at `595e3dcda`; annotated tag `v2.3.0` points to that merge commit |
-| Remote state | Live `origin/main` is synchronized, no pull request is open, and the final GitHub `v2.3.0` release is public |
-| Source worktree | Clean on `feature/management-dashboard`; the branch changes `version.txt`, `include/ota.h`, `src/ota.c`, `src/management.c`, and this status document; generated ESP-IDF outputs remain ignored |
+| Active slice target | API tokens `v2.3.0` and management dashboard `v2.4.0` are final and published |
+| Repository branch | `main` is synchronized at the PR #21 merge commit `349c19c21`; annotated tag `v2.4.0` and the public release point to the validated implementation merge |
+| Validated implementation state | PR #20 merged the API-token implementation at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21` |
+| Remote state | Live `origin/main` is synchronized, no pull request is open, and the final GitHub `v2.4.0` release is public |
+| Source worktree | Clean on `main`; management-dashboard implementation and status changes are merged; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | Local `v2.4.0` dashboard candidate built successfully with ESP-IDF v6.0.2; 1,294,080 bytes (`0x13bf00`), SHA-256 `154503e00d0c7b83ee1cfba1cd6e6bccae05cfedee97e389db23175c709b69be`, and 61% of the smallest application partition free; this exact candidate is installed and target-validated |
-| Latest published release | Final `v2.3.0`, tagged at PR #20 merge commit `595e3dcda` and published with the exact-tag ESP32-S3 application image and checksum asset: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.3.0) |
+| Latest published release | Final `v2.4.0`, tagged at PR #21 merge commit `349c19c21` and published with the exact validated ESP32-S3 application image and corrected checksum asset: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.4.0) |
 | Installed firmware | **Observed:** clean `v2.4.0` is running after the authorized Chrome OTA install; protected status reports `app1` running, `app0` next, and `update.last_result = installed` |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
@@ -36,13 +36,12 @@ private keys, or Wi-Fi credentials here.
 
 ## Current objective
 
-The API-token `v2.3.0` slice is complete and published. The `v2.4.0`
-management-dashboard implementation and proportional target validation are
-complete locally, pending maintainer review on `feature/management-dashboard`,
-based directly on synchronized `main`.
-Continue to preserve LAN-only HTTPS, read-only NUT, and the existing ADMIN and
-Agent authorization boundaries. UPS access remains read-only. The next action
-is maintainer review; publication remains out of scope.
+The API-token `v2.3.0` slice and management-dashboard `v2.4.0` slice are
+complete, target-validated, merged, tagged, and published. Continue to
+preserve LAN-only HTTPS, read-only NUT, and the existing ADMIN and Agent
+authorization boundaries. UPS access remains read-only. The next action is to
+define the next explicitly authorized slice; publication of `v2.4.0` is
+complete.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
@@ -1031,6 +1030,13 @@ UPS behavior.
 **Not tested:** NUT stale/unavailable behavior and additional target-hardware
 regression checks remain outside this validation run. Serial remains unopened.
 
+**Observed on 2026-07-21 01:18–01:20 PDT:** PR #21 merged the validated
+management-dashboard implementation into `main` at
+`349c19c21ce53a552c862e537594ef2b856a0621`. Annotated tag `v2.4.0` points to
+that merge commit, and the public GitHub release includes the exact validated
+ESP32-S3 image and checksum asset. The released image SHA-256 is
+`154503e00d0c7b83ee1cfba1cd6e6bccae05cfedee97e389db23175c709b69be`.
+
 ## Implemented versus remaining
 
 ### Implemented foundation
@@ -1062,9 +1068,8 @@ regression checks remain outside this validation run. Serial remains unopened.
 
 ## Exact next action
 
-Review the recorded `v2.4.0` dashboard validation, then prepare the local
-branch for maintainer review. Do not modify the published `v2.3.0` release or
-publish this branch.
+Define the next explicitly authorized development slice. Do not modify the
+published `v2.4.0` release without a new scope and validation plan.
 
 ## Operational procedures
 
