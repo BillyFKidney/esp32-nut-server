@@ -68,6 +68,65 @@ device starts a LAN-only HTTPS administration service on TCP port `443`.
   CSRF header.
 - Password login attempts are throttled after repeated failures.
 
+#### API-token and OTA authorization boundaries
+
+ESP32-NUT supports at most four active, uniquely named API tokens. Each token
+contains 256 bits of device-generated randomness and is returned only in the
+successful creation response. The device retains a random salt, a SHA-256
+salted verifier, the name, device-generated UTC issue date, final four
+characters, public identifier, and explicit scope bits. It never retains or
+lists the complete token. The versioned NVS representation is one fixed
+456-byte blob in the existing 20 KiB management partition: a short header and
+four fixed 112-byte records. An unknown version, record size, or invalid record
+fails closed instead of being interpreted or silently migrated. There is no
+legacy token state to migrate into v2.3.0.
+
+All v2.3.0 tokens have only the `ota.install` scope. Send a token in the HTTPS
+`Authorization` header using the Bearer scheme; query parameters and cookies
+are not accepted as API-token credentials. Verifiers are compared in constant
+time. The route boundaries are:
+
+| Route | Method | Authorization | Boundary |
+| --- | --- | --- | --- |
+| `/api/v1/admin/tokens` | `GET` | ADMIN session | List non-secret token metadata only |
+| `/api/v1/admin/tokens` | `POST` | ADMIN session and CSRF | Create a token and disclose it once |
+| `/api/v1/admin/tokens` | `DELETE` | ADMIN session, CSRF, and acknowledgement | Permanently revoke one token |
+| `/api/v1/ota/install` | `POST` | ADMIN session and CSRF | Preserve authenticated Safari OTA |
+| `/api/v1/agent/ota/install` | `POST` | Bearer token with `ota.install` | Accept only a raw ESP-IDF application image with `Content-Type: application/octet-stream` for verified OTA installation |
+
+API tokens do not authorize browser pages, status, password changes, time
+configuration, token management, logout, or future management routes. A token
+is non-expiring until ADMIN deletes it or the fifteen-second physical factory
+reset erases the management NVS namespace. Token issue time is display metadata
+and never an authorization or expiration input.
+
+For Agent-driven OTA, place the token privately in the
+`ESP32_NUT_OTA_TOKEN` environment variable and run:
+
+```bash
+python3 tools/esp32-agent-ota.py \
+  --device <current-esp32-ip> \
+  --firmware build/nut-esp32s3.bin \
+  --certificate-sha256 <trusted-device-certificate-sha256>
+```
+
+The helper never accepts a token on its command line and does not print the
+Authorization header. Pin the fingerprint of the v2.x self-signed certificate
+after confirming it through an already trusted browser, or provide a trusted
+PEM with `--ca-file`. The explicit `--insecure-self-signed` mode is limited to
+temporary diagnostics because it does not authenticate the peer and can expose
+the Bearer token to a LAN attacker. Unset the environment variable after use.
+If a token may have been disclosed, delete it in the ADMIN console and create a
+replacement rather than attempting to recover it.
+
+Use `tools/esp32-api-token-probe.py` for small authorization-boundary tests.
+It accepts only the explicitly allowlisted status, token-management, and Agent
+OTA paths; verifies the configured certificate fingerprint on the same TLS
+connection before sending Authorization; reads the token only from the same
+environment variable; and redacts token-shaped response text. Do not use
+`curl -k` with a valid token: the device's self-signed v2.x certificate has no
+subjectAltName extension, so ordinary IP-hostname verification is unavailable.
+
 The authenticated console also manages device time. Automatic SNTP uses
 `pool.ntp.org` by default after station Wi-Fi receives an address. ADMIN may
 select a supported IANA time-zone name, configure the NTP hostname, disable or
@@ -173,6 +232,13 @@ ESP32 devices have limited resources:
 - RAM: ~520KB available
 - Flash: Varies by module
 - CPU: Dual-core 240MHz
+
+The operational firmware configures 16 shared LWIP sockets. The HTTPS server
+can use three internal sockets plus four client sockets; the remaining bounded
+capacity is reserved for the read-only NUT service, DHCP/SNTP, and transient
+browser or Agent connections. Reducing the global limit to ESP-IDF's default
+of 10 can exhaust the shared socket table when a browser keeps HTTPS open and
+can make both new HTTPS and NUT connections reset.
 
 **Recommendations**:
 - Monitor memory usage

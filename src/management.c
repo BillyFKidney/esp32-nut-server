@@ -5,7 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
+#include "api_tokens.h"
 #include "esp_app_desc.h"
 #include "esp_check.h"
 #include "esp_err.h"
@@ -51,7 +53,8 @@
 #define MANAGEMENT_SESSION_HEX_LENGTH (MANAGEMENT_SESSION_BYTES * 2)
 #define MANAGEMENT_SESSION_IDLE_US (15LL * 60LL * 1000000LL)
 #define MANAGEMENT_FORM_BODY_LIMIT 640
-#define MANAGEMENT_ADMIN_PAGE_SIZE 12000
+#define MANAGEMENT_ADMIN_PAGE_SIZE 14000
+#define MANAGEMENT_HTTPS_ROUTE_CAPACITY 16
 #define MANAGEMENT_CERTIFICATE_BUFFER_SIZE 2048
 #define MANAGEMENT_PRIVATE_KEY_BUFFER_SIZE 1024
 #define MANAGEMENT_LOGIN_MAX_FAILURES 5
@@ -953,6 +956,43 @@ static bool management_require_session(httpd_req_t *request)
     return false;
 }
 
+static bool management_bearer_is_authorized(httpd_req_t *request,
+                                             uint32_t required_scope)
+{
+    static const char prefix[] = "Bearer ";
+    const size_t expected_length = sizeof(prefix) - 1U + API_TOKEN_VALUE_LENGTH;
+    const size_t header_length =
+        httpd_req_get_hdr_value_len(request, "Authorization");
+    if (header_length != expected_length)
+    {
+        return false;
+    }
+
+    char authorization[sizeof(prefix) - 1U + API_TOKEN_VALUE_LENGTH + 1U];
+    if (httpd_req_get_hdr_value_str(request, "Authorization", authorization,
+                                    sizeof(authorization)) != ESP_OK)
+    {
+        mbedtls_platform_zeroize(authorization, sizeof(authorization));
+        return false;
+    }
+    const bool authorized =
+        strncmp(authorization, prefix, sizeof(prefix) - 1U) == 0 &&
+        api_tokens_authorize(authorization + sizeof(prefix) - 1U,
+                             required_scope);
+    mbedtls_platform_zeroize(authorization, sizeof(authorization));
+    return authorized;
+}
+
+static esp_err_t management_send_bearer_unauthorized(httpd_req_t *request)
+{
+    httpd_resp_set_hdr(
+        request, "WWW-Authenticate",
+        "Bearer realm=\"ESP32-NUT Agent OTA\", scope=\"ota.install\"");
+    return management_send_json(
+        request, "401 Unauthorized",
+        "{\"error\":\"A valid API token with ota.install scope is required.\"}");
+}
+
 static const char management_setup_page_template[] =
     "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
     "<title>ESP32-NUT setup</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem;max-width:42rem;color:#17212b}input,button{font:inherit;padding:.75rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem;font-weight:600}.hint{color:#52606d}.check{display:flex;gap:.5rem;align-items:center}.check input{width:auto;margin:0}</style>"
@@ -1010,7 +1050,7 @@ static esp_err_t management_root_handler(httpd_req_t *request)
     }
     const int page_length = snprintf(page, MANAGEMENT_ADMIN_PAGE_SIZE,
              "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
-             "<title>ESP32-NUT administration</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem;max-width:48rem;color:#17212b}pre{background:#f0f3f5;padding:1rem;overflow:auto}input,button,select{font:inherit;padding:.7rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem}.secondary{background:#52606d}.check{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}.check input{width:auto;margin:0}.result{min-height:1.5rem}.hint{color:#52606d}</style>"
+             "<title>ESP32-NUT administration</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem;max-width:48rem;color:#17212b}pre{background:#f0f3f5;padding:1rem;overflow:auto}input,button,select{font:inherit;padding:.7rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem}.secondary{background:#52606d}.danger{background:#a12622}.check{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}.check input{width:auto;margin:0}.result{min-height:1.5rem}.hint{color:#52606d}.token-once{border:2px solid #b7791f;background:#fffaf0;padding:1rem;margin:1rem 0}.token-once code{display:block;overflow-wrap:anywhere;margin:.75rem 0;font-size:.95rem}.token-row{border-top:1px solid #cbd5e1;padding:.8rem 0}.token-row button{margin:.6rem 0 0}.actions{display:flex;gap:.75rem}.actions button{margin:0}dialog{max-width:32rem;border:0;border-radius:.5rem;padding:1.25rem;box-shadow:0 1rem 3rem #0006}dialog::backdrop{background:#0008}</style>"
              "<h1>ESP32-NUT administration</h1><p>HTTPS is active with this device's self-signed certificate."
              " The administration API is LAN-only.</p><h2>Device status</h2><pre id=status>Loading…</pre>"
              "<h2>Date and time</h2><p id=timeSummary>Loading time status…</p>"
@@ -1030,11 +1070,18 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<label>New password<input id=newPassword name=password type=password required minlength=12 maxlength=128 autocomplete=new-password></label>"
              "<label>Confirm new password<input id=confirmPassword name=confirm type=password required minlength=12 maxlength=128 autocomplete=new-password></label>"
              "<label class=check><input id=showPasswords type=checkbox> Show passwords</label><button type=submit>Change password</button></form><p id=passwordResult class=result role=status></p>"
+             "<h2>API tokens</h2><p>Create up to four named, non-expiring tokens. In this release every token is limited to Agent-driven firmware installation.</p>"
+             "<form id=tokenForm><label>Token name<input id=tokenName name=name required minlength=1 maxlength=32 pattern='[-A-Za-z0-9._ ]+' autocomplete=off></label><button type=submit>Create API token</button></form>"
+             "<section id=tokenOnce class=token-once hidden><strong>Copy this token now. It will never be shown again.</strong><code id=tokenValue></code><span id=tokenMetadata></span></section>"
+             "<div id=tokenList>Loading API tokens…</div><p id=tokenResult class=result role=status></p>"
+             "<dialog id=deleteTokenDialog><h3>Delete API token</h3><p>Delete <strong id=deleteTokenName></strong>? Requests using it will be rejected immediately.</p>"
+             "<label class=check><input id=deleteTokenAck type=checkbox> I acknowledge that this token will be permanently revoked.</label>"
+             "<div class=actions><button id=deleteTokenCancel class=secondary type=button>Cancel</button><button id=deleteTokenConfirm class=danger type=button disabled>Delete token</button></div></dialog>"
              "<h2>Install firmware</h2><p>Select a local ESP32-NUT application image. The device verifies the image before restarting into the inactive OTA slot.</p>"
              "<form id=otaForm><label>Firmware .bin file<input id=otaFile type=file accept='.bin,application/octet-stream' required></label><button id=otaButton type=submit>Install firmware</button></form><p id=otaResult class=result role=status></p>"
-             "<p>Wi-Fi changes, API tokens, and additional diagnostics are being added to this authenticated console.</p>"
+             "<p>Wi-Fi changes and additional diagnostics are being added to this authenticated console.</p>"
              "<button onclick=logout()>Sign out</button><script>"
-             "const csrf='%s',status=document.getElementById('status'),timeSummary=document.getElementById('timeSummary'),timeConfigForm=document.getElementById('timeConfigForm'),ntpEnabled=document.getElementById('ntpEnabled'),ntpServer=document.getElementById('ntpServer'),timeZone=document.getElementById('timeZone'),syncNow=document.getElementById('syncNow'),manualTimeForm=document.getElementById('manualTimeForm'),manualDateTime=document.getElementById('manualDateTime'),timeResult=document.getElementById('timeResult'),currentPassword=document.getElementById('currentPassword'),newPassword=document.getElementById('newPassword'),confirmPassword=document.getElementById('confirmPassword'),passwordForm=document.getElementById('passwordForm'),passwordResult=document.getElementById('passwordResult'),otaForm=document.getElementById('otaForm'),otaFile=document.getElementById('otaFile'),otaButton=document.getElementById('otaButton'),otaResult=document.getElementById('otaResult');"
+             "const csrf='%s',status=document.getElementById('status'),timeSummary=document.getElementById('timeSummary'),timeConfigForm=document.getElementById('timeConfigForm'),ntpEnabled=document.getElementById('ntpEnabled'),ntpServer=document.getElementById('ntpServer'),timeZone=document.getElementById('timeZone'),syncNow=document.getElementById('syncNow'),manualTimeForm=document.getElementById('manualTimeForm'),manualDateTime=document.getElementById('manualDateTime'),timeResult=document.getElementById('timeResult'),currentPassword=document.getElementById('currentPassword'),newPassword=document.getElementById('newPassword'),confirmPassword=document.getElementById('confirmPassword'),passwordForm=document.getElementById('passwordForm'),passwordResult=document.getElementById('passwordResult'),tokenForm=document.getElementById('tokenForm'),tokenOnce=document.getElementById('tokenOnce'),tokenValue=document.getElementById('tokenValue'),tokenMetadata=document.getElementById('tokenMetadata'),tokenList=document.getElementById('tokenList'),tokenResult=document.getElementById('tokenResult'),deleteTokenDialog=document.getElementById('deleteTokenDialog'),deleteTokenName=document.getElementById('deleteTokenName'),deleteTokenAck=document.getElementById('deleteTokenAck'),deleteTokenConfirm=document.getElementById('deleteTokenConfirm'),otaForm=document.getElementById('otaForm'),otaFile=document.getElementById('otaFile'),otaButton=document.getElementById('otaButton'),otaResult=document.getElementById('otaResult');let pendingTokenId='';"
              "async function loadStatus(){try{const r=await fetch('/api/v1/status',{cache:'no-store'}),x=await r.json();status.textContent=JSON.stringify(x,null,2);if(x.time){ntpEnabled.checked=x.time.ntp_enabled;ntpServer.value=x.time.ntp_server;timeZone.value=x.time.timezone;syncNow.disabled=!x.time.ntp_enabled;if(x.time.available){timeSummary.textContent=x.time.local+' ('+x.time.timezone+'), UTC '+x.time.utc+', source '+x.time.source+(x.time.synchronization_pending?' — synchronization pending':'');manualDateTime.value=x.time.local.slice(0,16)}else{timeSummary.textContent=x.time.synchronization_pending?'Time is not set; waiting for NTP.':'Time is not set.'}}}catch(error){status.textContent='Unable to load device status.'}}"
              "async function submitTime(body){timeResult.textContent='Applying time settings…';try{const r=await fetch('/api/v1/admin/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body}),x=await r.json();timeResult.textContent=x.message||x.error||'Time operation failed.';if(r.ok)setTimeout(loadStatus,500)}catch(error){timeResult.textContent='Unable to reach the time API.'}}"
              "timeConfigForm.onsubmit=e=>{e.preventDefault();const body=new URLSearchParams(new FormData(timeConfigForm));body.set('action','configure');body.set('ntp_enabled',ntpEnabled.checked?'true':'false');submitTime(body)};"
@@ -1042,8 +1089,13 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "syncNow.onclick=()=>submitTime(new URLSearchParams({action:'sync'}));"
              "document.getElementById('showPasswords').onchange=e=>{currentPassword.type=newPassword.type=confirmPassword.type=e.target.checked?'text':'password'};"
              "passwordForm.onsubmit=async e=>{e.preventDefault();passwordResult.textContent='Changing password…';const body=new URLSearchParams(new FormData(passwordForm));const r=await fetch('/api/v1/admin/password',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body});const x=await r.json();passwordResult.textContent=x.message||x.error||'Password change failed.';if(r.ok){passwordForm.reset();setTimeout(()=>location='/',3000)}};"
+             "async function loadTokens(){tokenList.textContent='Loading API tokens…';try{const r=await fetch('/api/v1/admin/tokens',{cache:'no-store'}),x=await r.json();if(!r.ok)throw new Error(x.error||'Unable to load API tokens.');tokenList.replaceChildren();if(!x.tokens.length){tokenList.textContent='No active API tokens.';return}for(const token of x.tokens){const row=document.createElement('div'),summary=document.createElement('div'),button=document.createElement('button');row.className='token-row';summary.textContent=token.name+' — issued '+token.issued_at+' — final four '+token.final_four;button.type='button';button.className='danger';button.textContent='Delete '+token.name;button.onclick=()=>openTokenDelete(token);row.append(summary,button);tokenList.append(row)}}catch(error){tokenList.textContent=error.message||'Unable to load API tokens.'}}"
+             "tokenForm.onsubmit=async e=>{e.preventDefault();tokenResult.textContent='Creating API token…';tokenOnce.hidden=true;tokenValue.textContent='';const body=new URLSearchParams(new FormData(tokenForm));try{const r=await fetch('/api/v1/admin/tokens',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body}),x=await r.json();tokenResult.textContent=x.error||'';if(r.ok){tokenValue.textContent=x.token;tokenMetadata.textContent=x.name+' — issued '+x.issued_at+' — scope ota.install — final four '+x.final_four;tokenOnce.hidden=false;tokenResult.textContent='API token created.';tokenForm.reset();loadTokens()}}catch(error){tokenResult.textContent='Unable to reach the API-token service.'}};"
+             "function openTokenDelete(token){pendingTokenId=token.id;deleteTokenName.textContent=token.name+' (final four '+token.final_four+')';deleteTokenAck.checked=false;deleteTokenConfirm.disabled=true;deleteTokenDialog.showModal()}"
+             "deleteTokenAck.onchange=()=>deleteTokenConfirm.disabled=!deleteTokenAck.checked;document.getElementById('deleteTokenCancel').onclick=()=>deleteTokenDialog.close();deleteTokenDialog.addEventListener('close',()=>{pendingTokenId='';deleteTokenAck.checked=false;deleteTokenConfirm.disabled=true});"
+             "deleteTokenConfirm.onclick=async()=>{if(!pendingTokenId||!deleteTokenAck.checked)return;const id=pendingTokenId;deleteTokenConfirm.disabled=true;tokenResult.textContent='Deleting API token…';try{const body=new URLSearchParams({id,acknowledge:'true'}),r=await fetch('/api/v1/admin/tokens',{method:'DELETE',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body}),x=await r.json();tokenResult.textContent=x.message||x.error||'Token deletion failed.';if(r.ok){deleteTokenDialog.close();loadTokens()}else{deleteTokenConfirm.disabled=false}}catch(error){tokenResult.textContent='Unable to reach the API-token service.';deleteTokenConfirm.disabled=false}};"
              "otaForm.onsubmit=async e=>{e.preventDefault();const file=otaFile.files[0];if(!file||!window.confirm('Install '+file.name+' and restart ESP32-NUT?'))return;otaButton.disabled=true;otaResult.textContent='Uploading and verifying firmware…';try{const r=await fetch('/api/v1/ota/install',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||'Firmware installation failed.';if(r.ok){setTimeout(reconnect,5000)}else{otaButton.disabled=false}}catch(error){otaResult.textContent='Connection closed. The device may be restarting…';setTimeout(reconnect,3000)}};"
-             "function reconnect(){fetch('/',{cache:'no-store'}).then(()=>location='/').catch(()=>setTimeout(reconnect,2000))}function logout(){fetch('/logout',{method:'POST',headers:{'X-ESP32-NUT-CSRF':csrf}}).then(()=>location='/')}loadStatus();</script>",
+             "function reconnect(){fetch('/',{cache:'no-store'}).then(()=>location='/').catch(()=>setTimeout(reconnect,2000))}function logout(){fetch('/logout',{method:'POST',headers:{'X-ESP32-NUT-CSRF':csrf}}).then(()=>location='/')}loadStatus();loadTokens();</script>",
              csrf);
     mbedtls_platform_zeroize(csrf, sizeof(csrf));
     if (page_length < 0 || page_length >= MANAGEMENT_ADMIN_PAGE_SIZE)
@@ -1306,6 +1358,208 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     return management_send_json(request, "200 OK", response);
 }
 
+static esp_err_t management_token_list_handler(httpd_req_t *request)
+{
+    if (!management_require_session(request))
+    {
+        return ESP_OK;
+    }
+
+    ApiTokenList list;
+    const esp_err_t result = api_tokens_list(&list);
+    if (result != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Unable to list API-token metadata: %s",
+                 esp_err_to_name(result));
+        return management_send_json(
+            request, "500 Internal Server Error",
+            "{\"error\":\"Unable to load API-token metadata.\"}");
+    }
+
+    char response[1400];
+    int written = snprintf(response, sizeof(response), "{\"tokens\":[");
+    size_t used = written > 0 ? (size_t)written : sizeof(response);
+    for (size_t index = 0; index < list.count && used < sizeof(response); index++)
+    {
+        const ApiTokenMetadata *token = &list.tokens[index];
+        written = snprintf(
+            response + used, sizeof(response) - used,
+            "%s{\"id\":\"%s\",\"name\":\"%s\",\"issued_at\":\"%s\","
+            "\"final_four\":\"%s\",\"scopes\":[\"ota.install\"]}",
+            index == 0U ? "" : ",", token->id, token->name,
+            token->issued_at, token->final_four);
+        if (written < 0 || (size_t)written >= sizeof(response) - used)
+        {
+            used = sizeof(response);
+            break;
+        }
+        used += (size_t)written;
+    }
+    if (used < sizeof(response))
+    {
+        written = snprintf(response + used, sizeof(response) - used,
+                           "],\"maximum\":%u}",
+                           (unsigned int)API_TOKEN_MAX_COUNT);
+    }
+    mbedtls_platform_zeroize(&list, sizeof(list));
+    if (used >= sizeof(response) || written < 0 ||
+        (size_t)written >= sizeof(response) - used)
+    {
+        mbedtls_platform_zeroize(response, sizeof(response));
+        return management_send_json(
+            request, "500 Internal Server Error",
+            "{\"error\":\"Unable to prepare API-token metadata.\"}");
+    }
+
+    const esp_err_t send_result =
+        management_send_json(request, "200 OK", response);
+    mbedtls_platform_zeroize(response, sizeof(response));
+    return send_result;
+}
+
+static esp_err_t management_token_create_handler(httpd_req_t *request)
+{
+    if (!management_csrf_is_valid(request))
+    {
+        return management_send_json(
+            request, "403 Forbidden",
+            "{\"error\":\"Invalid session or CSRF token.\"}");
+    }
+
+    char body[MANAGEMENT_FORM_BODY_LIMIT + 1];
+    char name[API_TOKEN_NAME_MAX_LENGTH + 1U] = {0};
+    const esp_err_t form_result =
+        management_read_form_body(request, body, sizeof(body));
+    const bool name_present =
+        form_result == ESP_OK &&
+        management_form_value(body, "name", name, sizeof(name));
+    mbedtls_platform_zeroize(body, sizeof(body));
+    if (!name_present || !api_token_name_is_valid(name))
+    {
+        mbedtls_platform_zeroize(name, sizeof(name));
+        return management_send_json(
+            request, "400 Bad Request",
+            "{\"error\":\"Use a unique 1-32 character token name containing letters, numbers, spaces, periods, underscores, or hyphens.\"}");
+    }
+
+    TimeConfigStatus time_status;
+    time_config_get_status(&time_status);
+    if (!time_status.available)
+    {
+        mbedtls_platform_zeroize(name, sizeof(name));
+        return management_send_json(
+            request, "409 Conflict",
+            "{\"error\":\"Set or synchronize device time before creating an API token.\"}");
+    }
+
+    ApiTokenMetadata metadata;
+    char token[API_TOKEN_VALUE_LENGTH + 1U] = {0};
+    const esp_err_t result =
+        api_tokens_create(name, time(NULL), API_TOKEN_SCOPE_OTA_INSTALL,
+                          &metadata, token);
+    mbedtls_platform_zeroize(name, sizeof(name));
+    if (result == ESP_ERR_INVALID_STATE)
+    {
+        mbedtls_platform_zeroize(token, sizeof(token));
+        return management_send_json(
+            request, "409 Conflict",
+            "{\"error\":\"An active API token already uses that name.\"}");
+    }
+    if (result == ESP_ERR_NO_MEM)
+    {
+        mbedtls_platform_zeroize(token, sizeof(token));
+        return management_send_json(
+            request, "409 Conflict",
+            "{\"error\":\"The maximum of four active API tokens has been reached.\"}");
+    }
+    if (result != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Unable to create API token: %s", esp_err_to_name(result));
+        mbedtls_platform_zeroize(token, sizeof(token));
+        return management_send_json(
+            request, "500 Internal Server Error",
+            "{\"error\":\"Unable to create the API token.\"}");
+    }
+
+    char response[420];
+    const int response_length = snprintf(
+        response, sizeof(response),
+        "{\"token\":\"%s\",\"id\":\"%s\",\"name\":\"%s\","
+        "\"issued_at\":\"%s\",\"final_four\":\"%s\","
+        "\"scopes\":[\"ota.install\"]}",
+        token, metadata.id, metadata.name, metadata.issued_at,
+        metadata.final_four);
+    esp_err_t send_result;
+    if (response_length < 0 || response_length >= (int)sizeof(response))
+    {
+        send_result = management_send_json(
+            request, "500 Internal Server Error",
+            "{\"error\":\"The API token was created but its one-time response could not be prepared. Delete the undisclosed token and create another.\"}");
+    }
+    else
+    {
+        send_result = management_send_json(request, "201 Created", response);
+    }
+    mbedtls_platform_zeroize(response, sizeof(response));
+    mbedtls_platform_zeroize(token, sizeof(token));
+    mbedtls_platform_zeroize(&metadata, sizeof(metadata));
+    return send_result;
+}
+
+static esp_err_t management_token_delete_handler(httpd_req_t *request)
+{
+    if (!management_csrf_is_valid(request))
+    {
+        return management_send_json(
+            request, "403 Forbidden",
+            "{\"error\":\"Invalid session or CSRF token.\"}");
+    }
+
+    char body[MANAGEMENT_FORM_BODY_LIMIT + 1];
+    char id[API_TOKEN_ID_HEX_LENGTH + 1U] = {0};
+    char acknowledgement[6] = {0};
+    const esp_err_t form_result =
+        management_read_form_body(request, body, sizeof(body));
+    const bool fields_present =
+        form_result == ESP_OK &&
+        management_form_value(body, "id", id, sizeof(id)) &&
+        management_form_value(body, "acknowledge", acknowledgement,
+                              sizeof(acknowledgement));
+    mbedtls_platform_zeroize(body, sizeof(body));
+    if (!fields_present || strcmp(acknowledgement, "true") != 0)
+    {
+        mbedtls_platform_zeroize(id, sizeof(id));
+        return management_send_json(
+            request, "400 Bad Request",
+            "{\"error\":\"Token deletion requires the acknowledgement checkbox and explicit confirmation.\"}");
+    }
+
+    const esp_err_t result = api_tokens_delete(id);
+    mbedtls_platform_zeroize(id, sizeof(id));
+    if (result == ESP_ERR_INVALID_ARG)
+    {
+        return management_send_json(
+            request, "400 Bad Request",
+            "{\"error\":\"A valid API-token identifier is required.\"}");
+    }
+    if (result == ESP_ERR_NOT_FOUND)
+    {
+        return management_send_json(
+            request, "404 Not Found",
+            "{\"error\":\"The API token is no longer active.\"}");
+    }
+    if (result != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Unable to delete API token: %s", esp_err_to_name(result));
+        return management_send_json(
+            request, "500 Internal Server Error",
+            "{\"error\":\"Unable to delete the API token.\"}");
+    }
+    return management_send_json(
+        request, "200 OK",
+        "{\"message\":\"API token deleted and revoked.\"}");
+}
+
 static esp_err_t management_time_config_handler(httpd_req_t *request)
 {
     if (!management_csrf_is_valid(request))
@@ -1432,6 +1686,29 @@ static esp_err_t management_ota_install_handler(httpd_req_t *request)
     return ota_install_from_request(request);
 }
 
+static esp_err_t management_agent_ota_install_handler(httpd_req_t *request)
+{
+    if (!management_bearer_is_authorized(request,
+                                         API_TOKEN_SCOPE_OTA_INSTALL))
+    {
+        return management_send_bearer_unauthorized(request);
+    }
+
+    static const char expected_content_type[] = "application/octet-stream";
+    char content_type[sizeof(expected_content_type)] = {0};
+    if (httpd_req_get_hdr_value_len(request, "Content-Type") !=
+            sizeof(expected_content_type) - 1U ||
+        httpd_req_get_hdr_value_str(request, "Content-Type", content_type,
+                                    sizeof(content_type)) != ESP_OK ||
+        strcmp(content_type, expected_content_type) != 0)
+    {
+        return management_send_json(
+            request, "415 Unsupported Media Type",
+            "{\"error\":\"Agent OTA requires an application/octet-stream firmware body.\"}");
+    }
+    return ota_install_from_request(request);
+}
+
 esp_err_t management_factory_reset(void)
 {
     nvs_handle_t handle = 0;
@@ -1465,7 +1742,7 @@ esp_err_t management_server_start(void)
     configuration.httpd.server_port = MANAGEMENT_HTTPS_PORT;
     configuration.httpd.stack_size = 12288;
     configuration.httpd.max_open_sockets = 4;
-    configuration.httpd.max_uri_handlers = 9;
+    configuration.httpd.max_uri_handlers = MANAGEMENT_HTTPS_ROUTE_CAPACITY;
     configuration.httpd.lru_purge_enable = true;
     configuration.servercert = management_certificate;
     configuration.servercert_len = management_certificate_length;
@@ -1489,7 +1766,17 @@ esp_err_t management_server_start(void)
     const httpd_uri_t status = {.uri = "/api/v1/status", .method = HTTP_GET, .handler = management_status_handler};
     const httpd_uri_t time_configuration = {.uri = "/api/v1/admin/time", .method = HTTP_POST, .handler = management_time_config_handler};
     const httpd_uri_t ota = {.uri = "/api/v1/ota/install", .method = HTTP_POST, .handler = management_ota_install_handler};
-    const httpd_uri_t *routes[] = {&root, &setup, &login_page, &login, &password, &logout, &status, &time_configuration, &ota};
+    const httpd_uri_t token_list = {.uri = "/api/v1/admin/tokens", .method = HTTP_GET, .handler = management_token_list_handler};
+    const httpd_uri_t token_create = {.uri = "/api/v1/admin/tokens", .method = HTTP_POST, .handler = management_token_create_handler};
+    const httpd_uri_t token_delete = {.uri = "/api/v1/admin/tokens", .method = HTTP_DELETE, .handler = management_token_delete_handler};
+    const httpd_uri_t agent_ota = {.uri = "/api/v1/agent/ota/install", .method = HTTP_POST, .handler = management_agent_ota_install_handler};
+    const httpd_uri_t *routes[] = {
+        &root, &setup, &login_page, &login, &password, &logout, &status,
+        &time_configuration, &ota, &token_list, &token_create, &token_delete,
+        &agent_ota};
+    _Static_assert(sizeof(routes) / sizeof(routes[0]) <=
+                       MANAGEMENT_HTTPS_ROUTE_CAPACITY,
+                   "HTTPS route count exceeds configured handler capacity");
     for (size_t index = 0; index < sizeof(routes) / sizeof(routes[0]); index++)
     {
         result = httpd_register_uri_handler(management_https_server, routes[index]);

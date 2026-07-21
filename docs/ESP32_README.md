@@ -158,6 +158,15 @@ verifiers. Authenticated browser sessions use Secure, HttpOnly, SameSite cookies
 and expire after fifteen minutes of idle time. The HTTPS management API also
 uses CSRF protection and throttles repeated failed password attempts.
 
+ADMIN can create up to four named, non-expiring API tokens. A complete token is
+shown exactly once; later lists show only its name, device-generated UTC issue
+date, and final four characters. Token deletion requires an acknowledgement
+checkbox and explicit confirmation. In `v2.3.0`, each token is limited to the
+Bearer-authenticated `ota.install` route for Agent-driven firmware upload and
+cannot authenticate token management or other ADMIN routes. See
+[ESP32_SECURITY.md](ESP32_SECURITY.md) for the exact route boundaries and safe
+client workflow.
+
 The administration console shows device UTC/local time and whether the clock is
 unavailable, retained, manually set, waiting for NTP, or synchronized. Automatic
 SNTP defaults to `pool.ntp.org`; ADMIN may configure the hostname, request an
