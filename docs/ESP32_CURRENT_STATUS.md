@@ -17,17 +17,17 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-20 22:54 PDT, America/Los_Angeles |
+| Updated | 2026-07-20 23:02 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | API tokens `v2.3.0`; implementation, target validation, Chrome UI regression, factory-reset token erasure, clean firmware build, delayed browser OTA installation, and post-reset network checks have passed; explicit publication authorization is now received |
-| Repository branch | Local `feature/api-tokens` created directly from synchronized `main` at `f15989464`; uncommitted implementation and documentation changes are not pushed |
-| Validated implementation state | PR #16 merged the target-validated time-configuration implementation at `7cfa26f8a`; annotated tag `v2.2.0` points to that merge commit |
-| Remote state | Live `origin/main` is `f15989464`, no pull request is open, and annotated tag `v2.2.0` plus the final GitHub release are public; `feature/api-tokens` exists only locally |
-| Source worktree | Tracked and untracked API-token implementation/documentation changes are present; generated ESP-IDF outputs remain ignored |
+| Active slice target | API tokens `v2.3.0` are implemented, target-validated, merged, tagged, and published; Chrome UI regression, factory-reset token erasure, clean build, delayed browser OTA installation, and post-reset network checks passed |
+| Repository branch | Local `main` is synchronized with `origin/main` at merge commit `595e3dcda`; the reviewed `feature/api-tokens` branch remains available on the remote |
+| Validated implementation state | PR #20 merged the API-token implementation at `595e3dcda`; annotated tag `v2.3.0` points to that merge commit |
+| Remote state | Live `origin/main` is `595e3dcda`, no pull request is open, and the final GitHub `v2.3.0` release is public |
+| Source worktree | Clean on `main`; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | Clean `v2.3.0`-prefixed ESP-IDF v6.0.2 candidate selected by `version.txt`; 1,285,920 bytes (`0x139f20`), SHA-256 `1bf58d525715af4d5f8f00c535ba07fe174a61af9b5dbe2c2d57a69bf2686357`, valid ESP32-S3 checksum/validation hash, and 62% of the smallest application partition free; this newer prefixed candidate was not the image reported by the device after the delayed upload |
-| Latest published release | Final `v2.2.0`, tagged at PR #16 merge commit `7cfa26f8a` and published with the exact-tag ESP32-S3 application image and 82-byte SHA-256 checksum asset |
-| Installed firmware | **Observed:** the Device Operator reports a successful clean `v2.3.0` installation; the device reports uptime 303 seconds, Wi-Fi `192.168.40.173`, and the restored operational configuration. The exact installed image digest and latest OTA-slot state are **not independently tested** in this session; the latest local clean candidate is the `v2.3.0` image recorded above |
+| Latest local build | Exact-tag clean `v2.3.0` ESP-IDF v6.0.2 candidate selected by `version.txt`; 1,285,920 bytes (`0x139f20`), SHA-256 `1bf58d525715af4d5f8f00c535ba07fe174a61af9b5dbe2c2d57a69bf2686357`, valid ESP32-S3 checksum/validation hash, and 62% of the smallest application partition free; GitHub's release-asset digest matches |
+| Latest published release | Final `v2.3.0`, tagged at PR #20 merge commit `595e3dcda` and published with the exact-tag ESP32-S3 application image and checksum asset: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.3.0) |
+| Installed firmware | **Observed:** the Device Operator reports a successful clean `v2.3.0` installation; the device reports uptime 303 seconds, Wi-Fi `192.168.40.173`, and the restored operational configuration. The exact running-image digest and latest OTA-slot state are **not independently exposed** by the device; the published image digest is independently verified above |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173`; post-reset MAC rediscovery, ping, HTTPS 200, NUT/UPS `OL`, and retired-port checks passed, in addition to the earlier unauthenticated route boundaries, supported mixed load, and ten-minute Chrome-connected soak |
@@ -36,10 +36,10 @@ private keys, or Wi-Fi credentials here.
 
 ## Current objective
 
-Deliver the locked Operational Management milestone: a LAN-only, mobile-friendly
-HTTPS administration console and emerging REST API with ADMIN authentication,
-diagnostics, Wi-Fi management, named API tokens, authenticated local OTA, and
-physical recovery. UPS access remains read-only.
+The API-token `v2.3.0` slice is complete and published. The next planned slice
+is the management dashboard `v2.4.0`; continue to preserve LAN-only HTTPS,
+read-only NUT, and the existing ADMIN and Agent authorization boundaries. UPS
+access remains read-only.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
@@ -62,6 +62,10 @@ The authoritative scope and security decisions are in
   working-tree change as `0fcd9e1f9`.
 - Merged the independently validated HTTPS foundation through PR #10 and split
   the remaining Operational Management scope into small implementation branches.
+- Added four-slot named API tokens with one-time display, verifier-only NVS
+  storage, ADMIN-session-only lifecycle management, and scoped Agent OTA.
+- Merged the validated API-token slice through PR #20, tagged it as `v2.3.0`,
+  and published the exact-tag firmware and checksum assets.
 
 ## Installed firmware and hardware evidence
 
@@ -85,7 +89,7 @@ The earlier failing image overflowed the ESP-IDF `sys_evt` task while starting
 HTTPS. That failure is the reason for commit `0fcd9e1f9`; do not move expensive
 certificate or HTTPS startup work back into the system event callback.
 
-## Current branch work
+## Branch history and implementation evidence
 
 **Observed on 2026-07-15:** the live device at `192.168.40.173` responded on
 HTTPS TCP 443, returned the one-time ADMIN setup page, rejected unauthenticated
@@ -935,6 +939,15 @@ device status included uptime 303 seconds, Wi-Fi IP `192.168.40.173`, and the
 restored operational configuration. The exact installed image digest and
 latest OTA-slot state were not independently exposed for this report.
 
+**Observed during authorized publication on 2026-07-20 22:59 PDT:** PR #20
+merged the API-token slice to `main` at
+`595e3dcda24b7fb894ca2e2ea3ca82dc08361a42`. Annotated tag `v2.3.0` points to
+that merge commit, and the final GitHub release published `nut-esp32s3.bin`
+with SHA-256
+`1bf58d525715af4d5f8f00c535ba07fe174a61af9b5dbe2c2d57a69bf2686357` plus its
+checksum asset. Local `main` is clean and synchronized with `origin/main`; the
+release is not a draft or prerelease.
+
 ## Implemented versus remaining
 
 ### Implemented foundation
@@ -945,6 +958,8 @@ latest OTA-slot state were not independently exposed for this report.
 - Initial status JSON endpoint
 - Authenticated device time, NTP, and supported IANA time-zone configuration
 - Authenticated local OTA installation endpoint
+- Named, non-expiring API tokens with ADMIN-only lifecycle management
+- Scoped Bearer-authenticated Agent OTA installation endpoint
 - Authenticated Safari firmware file picker with confirmation and reconnect
 - Runtime-monitored three-second Wi-Fi reset and fifteen-second management
   factory reset; the fifteen-second ADMIN recovery path passed end to end
@@ -953,9 +968,8 @@ latest OTA-slot state were not independently exposed for this report.
 
 ### Remaining Operational Management work
 
-- Review the complete feature diff and prepare the local implementation
-  handoff; commit, push, merge, tag, and publish remain separately authorized
-  actions.
+- Begin the documented preflight and scope review for the next planned
+  management-dashboard `v2.4.0` slice from synchronized `main`.
 - Full dashboard data, including UPS identity, serial number, status, battery,
   load, runtime, input/output voltage, NUT health, and last update result
 - Wi-Fi scan, signal display, credential change, confirmation, and reconnect
@@ -967,9 +981,9 @@ latest OTA-slot state were not independently exposed for this report.
 
 ## Exact next action
 
-Review the clean `v2.3.0` build/install evidence and decide whether the local
-feature branch is ready for a commit/PR. Do not tag, push, merge, or publish
-without explicit authorization.
+Begin preflight for `v2.4.0` management-dashboard work from synchronized
+`main` at `595e3dcda`; do not modify the published `v2.3.0` release or begin
+hardware interaction until that preflight is complete.
 
 ## Operational procedures
 

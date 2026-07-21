@@ -177,8 +177,9 @@ States continental zones, `America/Phoenix`, `America/Anchorage`, and
 `Pacific/Honolulu`. An unset clock is never presented as a valid 1970 date.
 
 The existing dual 3.3 MB OTA slots and bootloader rollback behavior remain in
-place. Firmware upload is being moved to the authenticated HTTPS management
-API; do not rely on the former unauthenticated TCP port `8080` service.
+place. Firmware upload uses the authenticated HTTPS management API and the
+scoped Agent OTA route described above; do not rely on the former
+unauthenticated TCP port `8080` service.
 
 HTTPS does not add TLS to the read-only NUT service on TCP port `3493`; keep
 that service within a trusted management network.

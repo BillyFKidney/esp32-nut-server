@@ -85,9 +85,9 @@ Wi-Fi connected.
 That endpoint was intentionally unauthenticated for trusted-LAN development.
 It was retired during the initial Operational Management work before a secure
 Agent-driven replacement had been validated, which materially changed the
-development workflow. `v2.1.0` restores user-approved Safari OTA, and `v2.3.0`
-is expected to restore scoped Agent-driven OTA without ADMIN-password
-disclosure. The unauthenticated listener must never be restored as a production
+development workflow. `v2.1.0` restores user-approved Safari OTA, and published
+`v2.3.0` restores scoped Agent-driven OTA without ADMIN-password disclosure.
+The unauthenticated listener must never be restored as a production
 mechanism; any service retirement or replacement now requires the explicit
 approval and continuity review defined below.
 
@@ -144,7 +144,7 @@ proportional build and target-hardware validation.
 | 1 | `v2.0.0` | `feature/operational-management` | HTTPS and ADMIN authentication foundation: device certificate, initial password setup, secure browser session, CSRF and login throttling, initial status/OTA routes, and stack-safe startup. Delivered by PR #10 and published as `v2.0.0`. |
 | 2 | `v2.1.0` | `feature/admin-password-management` | Complete and validate initial setup, password change, session expiration, login throttling, and physical password recovery. The authenticated Safari OTA picker was pulled forward with explicit approval to restore the development workflow before the retired service's replacement branch. Delivered by PR #12 and published as `v2.1.0`. |
 | 3 | `v2.2.0` | `feature/time-configuration` | Establish device-owned time before timestamp-consuming slices: synchronize through configurable NTP with `pool.ntp.org` as the default, provide a manual date/time fallback, store the selected IANA time-zone name with `America/Los_Angeles` as the default, and expose UTC/local time plus synchronization state through the authenticated status API and console. Delivered by PR #16 and published as `v2.2.0`. |
-| 4 | `v2.3.0` | `feature/api-tokens` | Create, list, identify, and delete named non-expiring API tokens with device-generated issue timestamps and the required confirmation flow, including a scoped path for Agent-driven OTA without ADMIN-password disclosure. |
+| 4 | `v2.3.0` | `feature/api-tokens` | Complete. PR #20 merged the validated token lifecycle and scoped Agent OTA at `595e3dcda`; annotated tag `v2.3.0` and the final GitHub release are published. |
 | 5 | `v2.4.0` | `feature/management-dashboard` | Expose and render the required firmware, Wi-Fi, NUT, UPS, voltage, battery, load, runtime, update, and time diagnostics. |
 | 6 | `v2.5.0` | `feature/wifi-management` | Scan supported networks, show signal strength, confirm credential changes, reconnect, and never reveal the stored password. |
 | 7 | `v2.6.0` | `feature/local-ota-management` | Complete check/download/install controls and corrupt-image validation; reuse the authenticated local picker delivered early in `v2.1.0`. |
@@ -154,16 +154,16 @@ proportional build and target-hardware validation.
 
 The Project Maintainer approved moving time configuration ahead of API tokens
 on 2026-07-19 so tokens, dashboards, OTA results, and diagnostics share one
-device-owned timestamp model. This deliberately moves restoration of scoped
+device-owned timestamp model. This deliberately moved restoration of scoped
 Agent-driven OTA from `v2.2.0` to `v2.3.0`. The existing authenticated Safari
-OTA path remains available; the Device Operator or Project Maintainer will
-perform the one additional browser-assisted `v2.2.0` installation needed before
-the Agent replacement path is delivered. No service is retired by this reorder.
+OTA path remains available, and the required browser-assisted `v2.2.0`
+installation was completed before the Agent replacement path was delivered.
+No service was retired by this reorder.
 
 These rows identify release targets; completed rows may also identify existing
-tags. `v1.0.0`, `v1.1.0`, `v2.0.0`, `v2.0.1`, `v2.1.0`, and `v2.2.0` are
-tagged and published. The Project Maintainer explicitly authorized `v2.2.0`
-after its acceptance boundary passed.
+tags. `v1.0.0`, `v1.1.0`, `v2.0.0`, `v2.0.1`, `v2.1.0`, `v2.2.0`, and `v2.3.0`
+are tagged and published. The Project Maintainer explicitly authorized
+`v2.3.0` after its acceptance boundary passed.
 
 The console and REST API are cross-cutting design requirements applied to each
 slice rather than separate branches. A slice may be split further when review
