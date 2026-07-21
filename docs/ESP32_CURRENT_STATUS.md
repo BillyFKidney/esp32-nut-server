@@ -17,17 +17,17 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 10:14 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 11:42 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | API tokens `v2.3.0` and management dashboard `v2.4.0` are final and published; `v2.5.0` Wi-Fi management and tabbed ADMIN-console implementation is built locally for review |
-| Repository branch | `feature/wifi-management` is based on synchronized published `v2.4.0` `main`; no v2.5.0 remote branch, target update, or publication has been made |
-| Validated implementation state | PR #20 merged the API-token implementation at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; v2.5.0 source changes compile locally but are not target-validated |
-| Remote state | Live `origin/main` is synchronized, no pull request is open, and the final GitHub `v2.4.0` release is public; no v2.5.0 publication has been attempted |
-| Source worktree | v2.5.0 documentation, Wi-Fi management, authenticated tabbed console, and `version.txt` changes are local; generated ESP-IDF outputs remain ignored |
+| Active slice target | API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` are final and published; select the next slice through a new preflight |
+| Repository branch | `main` contains the merged v2.5.0 implementation; the local branch is being synchronized after publication-status documentation is recorded |
+| Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806` |
+| Remote state | PR #22 is merged, tag `v2.5.0` is public, and the GitHub release is final with firmware and checksum assets; the post-publication status-doc synchronization is in progress |
+| Source worktree | v2.5.0 source and documentation are merged; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | Local `v2.5.0` Wi-Fi-management candidate built successfully with ESP-IDF v6.0.2; 1,303,664 bytes (`0x13e470`), SHA-256 `2ccb38f4c9a7dc29a73507eb43e7731955a1014da9dba351409554683c434823`, and 61% of the smallest application partition free; target installation is not yet authorized or tested |
-| Latest published release | Final `v2.4.0`, tagged at PR #21 merge commit `349c19c21` and published with the exact validated ESP32-S3 application image and corrected checksum asset: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.4.0) |
-| Installed firmware | **Observed:** the target remains on the previously validated clean `v2.4.0`; the v2.5.0 candidate has not been uploaded |
+| Latest local build | `v2.5.0` Wi-Fi-management image built successfully with ESP-IDF v6.0.2; 1,304,736 bytes, SHA-256 `a28055a80f7c926c229044d1f3cc4243f26165fec65c6a5929d9ac720172ca32`, and 61% of the smallest application partition free; the same image and checksum are attached to the v2.5.0 release |
+| Latest published release | Final `v2.5.0`, tagged at PR #22 merge commit `36fb7886a90172520c2a34af8785cf8238619806` and published with the firmware and checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.5.0) |
+| Installed firmware | **Observed:** the Device Operator reports the target running `v2.5.0` with Wi-Fi management validation complete; the exact installed-image hash was not independently checked after publication |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173`; post-reset MAC rediscovery, ping, protected HTTPS 200, NUT/UPS `OL`, and retired-port checks passed; the installed `v2.4.0` candidate then completed a ten-minute network-first soak |
@@ -36,14 +36,14 @@ private keys, or Wi-Fi credentials here.
 
 ## Current objective
 
-The API-token `v2.3.0` slice and management-dashboard `v2.4.0` slice are
-complete, target-validated, merged, tagged, and published. The `v2.5.0`
-Wi-Fi-management implementation now includes the requested tabbed
-ADMIN-console presentation shell and a local Wi-Fi Show password toggle. The
-candidate builds successfully, but target installation and hardware
-validation remain outstanding. Continue to preserve LAN-only HTTPS,
-read-only NUT, and the existing ADMIN and Agent authorization boundaries.
-UPS access remains read-only.
+The API-token `v2.3.0`, management-dashboard `v2.4.0`, and Wi-Fi-management
+`v2.5.0` slices are complete, target-validated by the Device Operator, merged,
+tagged, and published. The v2.5.0 release includes the requested tabbed
+ADMIN-console presentation shell, local Wi-Fi Show password toggle, bounded
+2.4 GHz network scan, visible SSID/RSSI/security rows, manual SSID fallback,
+dashboard SSID display, and scan-selection collapse/focus behavior. Continue to
+preserve LAN-only HTTPS, read-only NUT, and the existing ADMIN and Agent
+authorization boundaries. UPS access remains read-only.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
@@ -70,6 +70,12 @@ The authoritative scope and security decisions are in
   storage, ADMIN-session-only lifecycle management, and scoped Agent OTA.
 - Merged the validated API-token slice through PR #20, tagged it as `v2.3.0`,
   and published the exact-tag firmware and checksum assets.
+- Added authenticated Wi-Fi scan and credential management, tabbed ADMIN
+  navigation, Wi-Fi Show password control, dashboard SSID display, and
+  scan-selection collapse/focus behavior for `v2.5.0`.
+- Merged the v2.5.0 Wi-Fi-management slice through PR #22 at
+  `36fb7886a90172520c2a34af8785cf8238619806`, tagged it `v2.5.0`, and published
+  the exact firmware and checksum assets.
 
 ## Installed firmware and hardware evidence
 
