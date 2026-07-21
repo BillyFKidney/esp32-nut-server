@@ -2,12 +2,14 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #include "api_tokens.h"
+#include "drivers/dstate.h"
 #include "esp_app_desc.h"
 #include "esp_check.h"
 #include "esp_err.h"
@@ -53,7 +55,9 @@
 #define MANAGEMENT_SESSION_HEX_LENGTH (MANAGEMENT_SESSION_BYTES * 2)
 #define MANAGEMENT_SESSION_IDLE_US (15LL * 60LL * 1000000LL)
 #define MANAGEMENT_FORM_BODY_LIMIT 640
-#define MANAGEMENT_ADMIN_PAGE_SIZE 14000
+#define MANAGEMENT_ADMIN_PAGE_SIZE 20000
+#define MANAGEMENT_STATUS_RESPONSE_SIZE 5000
+#define MANAGEMENT_NUT_VALUE_LENGTH 96
 #define MANAGEMENT_HTTPS_ROUTE_CAPACITY 16
 #define MANAGEMENT_CERTIFICATE_BUFFER_SIZE 2048
 #define MANAGEMENT_PRIVATE_KEY_BUFFER_SIZE 1024
@@ -101,6 +105,8 @@ static portMUX_TYPE management_session_lock = portMUX_INITIALIZER_UNLOCKED;
 static portMUX_TYPE management_login_lock = portMUX_INITIALIZER_UNLOCKED;
 static unsigned int management_login_failures;
 static int64_t management_login_cooldown_until_us;
+
+extern const char *upsname;
 
 static void management_set_response_headers(httpd_req_t *request)
 {
@@ -174,6 +180,188 @@ static bool management_constant_time_equal(const uint8_t *left, const uint8_t *r
         difference |= left[index] ^ right[index];
     }
     return difference == 0;
+}
+
+static bool management_json_append(char *destination, size_t destination_size,
+                                   size_t *used, const char *format, ...)
+{
+    if (destination == NULL || used == NULL || *used >= destination_size)
+    {
+        return false;
+    }
+
+    va_list arguments;
+    va_start(arguments, format);
+    const int written = vsnprintf(destination + *used,
+                                  destination_size - *used, format, arguments);
+    va_end(arguments);
+    if (written < 0 || (size_t)written >= destination_size - *used)
+    {
+        *used = destination_size;
+        return false;
+    }
+    *used += (size_t)written;
+    return true;
+}
+
+static bool management_json_append_string(char *destination, size_t destination_size,
+                                          size_t *used, const char *value)
+{
+    if (!management_json_append(destination, destination_size, used, "\""))
+    {
+        return false;
+    }
+
+    if (value == NULL)
+    {
+        value = "";
+    }
+    for (const unsigned char *cursor = (const unsigned char *)value; *cursor != '\0'; cursor++)
+    {
+        switch (*cursor)
+        {
+        case '\\':
+            if (!management_json_append(destination, destination_size, used, "\\\\"))
+            {
+                return false;
+            }
+            break;
+        case '"':
+            if (!management_json_append(destination, destination_size, used, "\\\""))
+            {
+                return false;
+            }
+            break;
+        case '\b':
+            if (!management_json_append(destination, destination_size, used, "\\b"))
+            {
+                return false;
+            }
+            break;
+        case '\f':
+            if (!management_json_append(destination, destination_size, used, "\\f"))
+            {
+                return false;
+            }
+            break;
+        case '\n':
+            if (!management_json_append(destination, destination_size, used, "\\n"))
+            {
+                return false;
+            }
+            break;
+        case '\r':
+            if (!management_json_append(destination, destination_size, used, "\\r"))
+            {
+                return false;
+            }
+            break;
+        case '\t':
+            if (!management_json_append(destination, destination_size, used, "\\t"))
+            {
+                return false;
+            }
+            break;
+        default:
+            if (*cursor < 0x20U &&
+                !management_json_append(destination, destination_size, used,
+                                         "\\u%04x", (unsigned int)*cursor))
+            {
+                return false;
+            }
+            else if (*cursor >= 0x20U &&
+                     !management_json_append(destination, destination_size, used,
+                                              "%c", (char)*cursor))
+            {
+                return false;
+            }
+            break;
+        }
+    }
+    return management_json_append(destination, destination_size, used, "\"");
+}
+
+typedef struct
+{
+    bool available;
+    bool stale;
+    char ups_name[32];
+    char manufacturer[MANAGEMENT_NUT_VALUE_LENGTH];
+    char model[MANAGEMENT_NUT_VALUE_LENGTH];
+    char serial[MANAGEMENT_NUT_VALUE_LENGTH];
+    char status[MANAGEMENT_NUT_VALUE_LENGTH];
+    char battery_charge[MANAGEMENT_NUT_VALUE_LENGTH];
+    char battery_runtime[MANAGEMENT_NUT_VALUE_LENGTH];
+    char battery_voltage[MANAGEMENT_NUT_VALUE_LENGTH];
+    char load[MANAGEMENT_NUT_VALUE_LENGTH];
+    char input_voltage[MANAGEMENT_NUT_VALUE_LENGTH];
+    char output_voltage[MANAGEMENT_NUT_VALUE_LENGTH];
+    char ups_power[MANAGEMENT_NUT_VALUE_LENGTH];
+    char ups_realpower[MANAGEMENT_NUT_VALUE_LENGTH];
+    char ups_firmware[MANAGEMENT_NUT_VALUE_LENGTH];
+} ManagementNutSnapshot;
+
+static void management_copy_nut_value(const char *name, char *destination,
+                                      size_t destination_size)
+{
+    const char *value = dstate_getinfo(name);
+    if (value == NULL || *value == '\0')
+    {
+        snprintf(destination, destination_size, "unavailable");
+        return;
+    }
+    snprintf(destination, destination_size, "%s", value);
+}
+
+static void management_collect_nut_snapshot(ManagementNutSnapshot *snapshot)
+{
+    memset(snapshot, 0, sizeof(*snapshot));
+    snapshot->stale = dstate_is_stale() != 0;
+    const char *status = dstate_getinfo("ups.status");
+    snapshot->available = status != NULL && !snapshot->stale;
+    snprintf(snapshot->ups_name, sizeof(snapshot->ups_name), "%s",
+             upsname != NULL && *upsname != '\0' ? upsname : "cyberpower");
+    management_copy_nut_value("device.mfr", snapshot->manufacturer,
+                              sizeof(snapshot->manufacturer));
+    if (strcmp(snapshot->manufacturer, "unavailable") == 0)
+    {
+        management_copy_nut_value("ups.mfr", snapshot->manufacturer,
+                                  sizeof(snapshot->manufacturer));
+    }
+    management_copy_nut_value("device.model", snapshot->model,
+                              sizeof(snapshot->model));
+    if (strcmp(snapshot->model, "unavailable") == 0)
+    {
+        management_copy_nut_value("ups.model", snapshot->model,
+                                  sizeof(snapshot->model));
+    }
+    management_copy_nut_value("device.serial", snapshot->serial,
+                              sizeof(snapshot->serial));
+    if (strcmp(snapshot->serial, "unavailable") == 0)
+    {
+        management_copy_nut_value("ups.serial", snapshot->serial,
+                                  sizeof(snapshot->serial));
+    }
+    management_copy_nut_value("ups.status", snapshot->status,
+                              sizeof(snapshot->status));
+    management_copy_nut_value("battery.charge", snapshot->battery_charge,
+                              sizeof(snapshot->battery_charge));
+    management_copy_nut_value("battery.runtime", snapshot->battery_runtime,
+                              sizeof(snapshot->battery_runtime));
+    management_copy_nut_value("battery.voltage", snapshot->battery_voltage,
+                              sizeof(snapshot->battery_voltage));
+    management_copy_nut_value("ups.load", snapshot->load,
+                              sizeof(snapshot->load));
+    management_copy_nut_value("input.voltage", snapshot->input_voltage,
+                              sizeof(snapshot->input_voltage));
+    management_copy_nut_value("output.voltage", snapshot->output_voltage,
+                              sizeof(snapshot->output_voltage));
+    management_copy_nut_value("ups.power", snapshot->ups_power,
+                              sizeof(snapshot->ups_power));
+    management_copy_nut_value("ups.realpower", snapshot->ups_realpower,
+                              sizeof(snapshot->ups_realpower));
+    management_copy_nut_value("ups.firmware", snapshot->ups_firmware,
+                              sizeof(snapshot->ups_firmware));
 }
 
 static esp_err_t management_open_nvs(nvs_open_mode_t mode, nvs_handle_t *handle)
@@ -1050,9 +1238,25 @@ static esp_err_t management_root_handler(httpd_req_t *request)
     }
     const int page_length = snprintf(page, MANAGEMENT_ADMIN_PAGE_SIZE,
              "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
-             "<title>ESP32-NUT administration</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem;max-width:48rem;color:#17212b}pre{background:#f0f3f5;padding:1rem;overflow:auto}input,button,select{font:inherit;padding:.7rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem}.secondary{background:#52606d}.danger{background:#a12622}.check{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}.check input{width:auto;margin:0}.result{min-height:1.5rem}.hint{color:#52606d}.token-once{border:2px solid #b7791f;background:#fffaf0;padding:1rem;margin:1rem 0}.token-once code{display:block;overflow-wrap:anywhere;margin:.75rem 0;font-size:.95rem}.token-row{border-top:1px solid #cbd5e1;padding:.8rem 0}.token-row button{margin:.6rem 0 0}.actions{display:flex;gap:.75rem}.actions button{margin:0}dialog{max-width:32rem;border:0;border-radius:.5rem;padding:1.25rem;box-shadow:0 1rem 3rem #0006}dialog::backdrop{background:#0008}</style>"
+             "<title>ESP32-NUT administration</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem;max-width:48rem;color:#17212b}pre{background:#f0f3f5;padding:1rem;overflow:auto}input,button,select{font:inherit;padding:.7rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem}.secondary{background:#52606d}.danger{background:#a12622}.check{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}.check input{width:auto;margin:0}.result{min-height:1.5rem}.hint{color:#52606d}.token-once{border:2px solid #b7791f;background:#fffaf0;padding:1rem;margin:1rem 0}.token-once code{display:block;overflow-wrap:anywhere;margin:.75rem 0;font-size:.95rem}.token-row{border-top:1px solid #cbd5e1;padding:.8rem 0}.token-row button{margin:.6rem 0 0}.actions{display:flex;gap:.75rem}.actions button{margin:0}.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.75rem}.card{border:1px solid #cbd5e1;border-radius:.5rem;padding:1rem;background:#fff}.card h3{margin:.1rem 0 .75rem;font-size:1.05rem}.metric{margin:.45rem 0}.metric strong{display:block;font-size:.95rem}.metric span{display:block;margin-top:.15rem;overflow-wrap:anywhere}dialog{max-width:32rem;border:0;border-radius:.5rem;padding:1.25rem;box-shadow:0 1rem 3rem #0006}dialog::backdrop{background:#0008}</style>"
              "<h1>ESP32-NUT administration</h1><p>HTTPS is active with this device's self-signed certificate."
-             " The administration API is LAN-only.</p><h2>Device status</h2><pre id=status>Loading…</pre>"
+             " The administration API is LAN-only.</p><h2>Dashboard</h2><section class=dashboard-grid>"
+             "<article class=card><h3>Device</h3><p class=metric><strong>Firmware</strong><span id=dashboardFirmware>Loading…</span></p>"
+             "<p class=metric><strong>Uptime</strong><span id=dashboardUptime>Loading…</span></p>"
+             "<p class=metric><strong>Last update</strong><span id=dashboardUpdate>Loading…</span></p></article>"
+             "<article class=card><h3>Wi-Fi</h3><p class=metric><strong>Connection</strong><span id=dashboardWifi>Loading…</span></p>"
+             "<p class=metric><strong>Signal</strong><span id=dashboardSignal>Loading…</span></p></article>"
+             "<article class=card><h3>NUT service</h3><p class=metric><strong>Health</strong><span id=dashboardNut>Loading…</span></p>"
+             "<p class=metric><strong>UPS status</strong><span id=dashboardUpsStatus>Loading…</span></p></article>"
+             "<article class=card><h3>UPS identity</h3><p class=metric><strong>Model</strong><span id=dashboardUps>Loading…</span></p>"
+             "<p class=metric><strong>Serial number</strong><span id=dashboardSerial>Loading…</span></p></article>"
+             "<article class=card><h3>Battery and load</h3><p class=metric><strong>Charge</strong><span id=dashboardBattery>Loading…</span></p>"
+             "<p class=metric><strong>Runtime</strong><span id=dashboardRuntime>Loading…</span></p>"
+             "<p class=metric><strong>Load</strong><span id=dashboardLoad>Loading…</span></p></article>"
+             "<article class=card><h3>Power</h3><p class=metric><strong>Battery voltage</strong><span id=dashboardBatteryVoltage>Loading…</span></p>"
+             "<p class=metric><strong>Input voltage</strong><span id=dashboardInputVoltage>Loading…</span></p>"
+             "<p class=metric><strong>Output voltage</strong><span id=dashboardOutputVoltage>Loading…</span></p></article></section>"
+             "<h2>Device status</h2><details><summary>Raw status JSON</summary><pre id=status>Loading…</pre></details>"
              "<h2>Date and time</h2><p id=timeSummary>Loading time status…</p>"
              "<form id=timeConfigForm><label class=check><input id=ntpEnabled type=checkbox> Synchronize automatically with NTP</label>"
              "<label>NTP server<input id=ntpServer name=ntp_server required maxlength=63 autocomplete=off></label>"
@@ -1082,7 +1286,10 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<p>Wi-Fi changes and additional diagnostics are being added to this authenticated console.</p>"
              "<button onclick=logout()>Sign out</button><script>"
              "const csrf='%s',status=document.getElementById('status'),timeSummary=document.getElementById('timeSummary'),timeConfigForm=document.getElementById('timeConfigForm'),ntpEnabled=document.getElementById('ntpEnabled'),ntpServer=document.getElementById('ntpServer'),timeZone=document.getElementById('timeZone'),syncNow=document.getElementById('syncNow'),manualTimeForm=document.getElementById('manualTimeForm'),manualDateTime=document.getElementById('manualDateTime'),timeResult=document.getElementById('timeResult'),currentPassword=document.getElementById('currentPassword'),newPassword=document.getElementById('newPassword'),confirmPassword=document.getElementById('confirmPassword'),passwordForm=document.getElementById('passwordForm'),passwordResult=document.getElementById('passwordResult'),tokenForm=document.getElementById('tokenForm'),tokenOnce=document.getElementById('tokenOnce'),tokenValue=document.getElementById('tokenValue'),tokenMetadata=document.getElementById('tokenMetadata'),tokenList=document.getElementById('tokenList'),tokenResult=document.getElementById('tokenResult'),deleteTokenDialog=document.getElementById('deleteTokenDialog'),deleteTokenName=document.getElementById('deleteTokenName'),deleteTokenAck=document.getElementById('deleteTokenAck'),deleteTokenConfirm=document.getElementById('deleteTokenConfirm'),otaForm=document.getElementById('otaForm'),otaFile=document.getElementById('otaFile'),otaButton=document.getElementById('otaButton'),otaResult=document.getElementById('otaResult');let pendingTokenId='';"
-             "async function loadStatus(){try{const r=await fetch('/api/v1/status',{cache:'no-store'}),x=await r.json();status.textContent=JSON.stringify(x,null,2);if(x.time){ntpEnabled.checked=x.time.ntp_enabled;ntpServer.value=x.time.ntp_server;timeZone.value=x.time.timezone;syncNow.disabled=!x.time.ntp_enabled;if(x.time.available){timeSummary.textContent=x.time.local+' ('+x.time.timezone+'), UTC '+x.time.utc+', source '+x.time.source+(x.time.synchronization_pending?' — synchronization pending':'');manualDateTime.value=x.time.local.slice(0,16)}else{timeSummary.textContent=x.time.synchronization_pending?'Time is not set; waiting for NTP.':'Time is not set.'}}}catch(error){status.textContent='Unable to load device status.'}}"
+             "const dashboardFirmware=document.getElementById('dashboardFirmware'),dashboardUptime=document.getElementById('dashboardUptime'),dashboardUpdate=document.getElementById('dashboardUpdate'),dashboardWifi=document.getElementById('dashboardWifi'),dashboardSignal=document.getElementById('dashboardSignal'),dashboardNut=document.getElementById('dashboardNut'),dashboardUpsStatus=document.getElementById('dashboardUpsStatus'),dashboardUps=document.getElementById('dashboardUps'),dashboardSerial=document.getElementById('dashboardSerial'),dashboardBattery=document.getElementById('dashboardBattery'),dashboardRuntime=document.getElementById('dashboardRuntime'),dashboardLoad=document.getElementById('dashboardLoad'),dashboardBatteryVoltage=document.getElementById('dashboardBatteryVoltage'),dashboardInputVoltage=document.getElementById('dashboardInputVoltage'),dashboardOutputVoltage=document.getElementById('dashboardOutputVoltage');"
+             "function displayValue(value){return value===undefined||value===null||value===''?'Not available':String(value)}function formatUptime(seconds){if(typeof seconds!=='number')return displayValue(seconds);const days=Math.floor(seconds/86400),hours=Math.floor(seconds%%86400/3600),minutes=Math.floor(seconds%%3600/60),remaining=Math.floor(seconds%%60);return (days?days+'d ':'')+(hours?hours+'h ':'')+(minutes?minutes+'m ':'')+remaining+'s'}"
+             "function renderDashboard(x){const wifi=x.wifi||{},nut=x.nut||{},ups=x.ups||{},update=x.update||{};dashboardFirmware.textContent=displayValue(x.firmware);dashboardUptime.textContent=formatUptime(x.uptime_seconds);dashboardUpdate.textContent=displayValue(update.last_result);dashboardWifi.textContent=displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected');dashboardSignal.textContent=displayValue(wifi.rssi_dbm)+' dBm';dashboardNut.textContent=displayValue(nut.health)+' — TCP '+displayValue(nut.port)+(nut.data_stale?' — data stale':'');dashboardUpsStatus.textContent=displayValue(ups.status);dashboardUps.textContent=displayValue(nut.ups_name)+' — '+displayValue(ups.manufacturer)+' '+displayValue(ups.model);dashboardSerial.textContent=displayValue(ups.serial);dashboardBattery.textContent=displayValue(ups.battery_charge)+' %%';dashboardRuntime.textContent=displayValue(ups.battery_runtime)+' s';dashboardLoad.textContent=displayValue(ups.load)+' %%';dashboardBatteryVoltage.textContent=displayValue(ups.battery_voltage)+' V';dashboardInputVoltage.textContent=displayValue(ups.input_voltage)+' V';dashboardOutputVoltage.textContent=displayValue(ups.output_voltage)+' V'}"
+             "async function loadStatus(){try{const r=await fetch('/api/v1/status',{cache:'no-store'}),x=await r.json();status.textContent=JSON.stringify(x,null,2);renderDashboard(x);if(x.time){ntpEnabled.checked=x.time.ntp_enabled;ntpServer.value=x.time.ntp_server;timeZone.value=x.time.timezone;syncNow.disabled=!x.time.ntp_enabled;if(x.time.available){timeSummary.textContent=x.time.local+' ('+x.time.timezone+'), UTC '+x.time.utc+', source '+x.time.source+(x.time.synchronization_pending?' — synchronization pending':'');manualDateTime.value=x.time.local.slice(0,16)}else{timeSummary.textContent=x.time.synchronization_pending?'Time is not set; waiting for NTP.':'Time is not set.'}}}catch(error){status.textContent='Unable to load device status.'}}"
              "async function submitTime(body){timeResult.textContent='Applying time settings…';try{const r=await fetch('/api/v1/admin/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body}),x=await r.json();timeResult.textContent=x.message||x.error||'Time operation failed.';if(r.ok)setTimeout(loadStatus,500)}catch(error){timeResult.textContent='Unable to reach the time API.'}}"
              "timeConfigForm.onsubmit=e=>{e.preventDefault();const body=new URLSearchParams(new FormData(timeConfigForm));body.set('action','configure');body.set('ntp_enabled',ntpEnabled.checked?'true':'false');submitTime(body)};"
              "manualTimeForm.onsubmit=e=>{e.preventDefault();const body=new URLSearchParams(new FormData(manualTimeForm));body.set('action','manual');submitTime(body)};"
@@ -1325,37 +1532,120 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     const esp_partition_t *next_partition = esp_ota_get_next_update_partition(NULL);
     TimeConfigStatus time_status;
     time_config_get_status(&time_status);
+    ManagementNutSnapshot nut_snapshot;
+    management_collect_nut_snapshot(&nut_snapshot);
+    char last_update_result[32] = {0};
+    if (ota_get_last_result(last_update_result, sizeof(last_update_result)) != ESP_OK)
+    {
+        snprintf(last_update_result, sizeof(last_update_result), "unavailable");
+    }
     char address[16] = "unassigned";
+    char ssid[33] = "";
     if (ip_info.ip.addr != 0)
     {
         snprintf(address, sizeof(address), IPSTR, IP2STR(&ip_info.ip));
     }
+    if (access_point_result == ESP_OK)
+    {
+        memcpy(ssid, access_point.ssid, sizeof(access_point.ssid));
+        ssid[sizeof(ssid) - 1U] = '\0';
+    }
 
-    char response[1400];
-    snprintf(response, sizeof(response),
-             "{\"device_name\":\"%s\",\"firmware\":\"%s\",\"uptime_seconds\":%lld,"
-             "\"wifi\":{\"ip\":\"%s\",\"ssid\":\"%s\",\"rssi_dbm\":%d,\"connected\":%s},"
-             "\"management\":{\"transport\":\"https\",\"certificate\":\"self-signed\",\"role\":\"ADMIN\"},"
-             "\"time\":{\"available\":%s,\"utc\":\"%s\",\"local\":\"%s\","
-             "\"timezone\":\"%s\",\"source\":\"%s\",\"ntp_enabled\":%s,"
-             "\"ntp_server\":\"%s\",\"ntp_synchronized\":%s,\"synchronization_pending\":%s},"
-             "\"ota\":{\"running_slot\":\"%s\",\"next_slot\":\"%s\"},"
-             "\"nut\":{\"port\":3493,\"mode\":\"read-only\"}}",
-             MANAGEMENT_DEFAULT_DEVICE_NAME,
-             app_description != NULL ? app_description->version : "unknown",
-             (long long)(esp_timer_get_time() / 1000000LL), address,
-             access_point_result == ESP_OK ? (const char *)access_point.ssid : "",
-             access_point_result == ESP_OK ? access_point.rssi : 0,
-             access_point_result == ESP_OK ? "true" : "false",
-             time_status.available ? "true" : "false",
-             time_status.utc, time_status.local, time_status.timezone,
-             time_status.source, time_status.ntp_enabled ? "true" : "false",
-             time_status.ntp_server,
-             time_status.ntp_synchronized ? "true" : "false",
-             time_status.synchronization_pending ? "true" : "false",
-             running_partition != NULL ? running_partition->label : "unknown",
-             next_partition != NULL ? next_partition->label : "unavailable");
-    return management_send_json(request, "200 OK", response);
+    const char *nut_health = nut_snapshot.available ? "ok" :
+                             (nut_snapshot.stale ? "stale" : "unavailable");
+    char response[MANAGEMENT_STATUS_RESPONSE_SIZE];
+    size_t used = 0;
+    bool response_valid = true;
+#define MANAGEMENT_JSON_APPEND(...) \
+    response_valid = response_valid && \
+                     management_json_append(response, sizeof(response), &used, __VA_ARGS__)
+#define MANAGEMENT_JSON_STRING(value) \
+    response_valid = response_valid && \
+                     management_json_append_string(response, sizeof(response), &used, value)
+
+    MANAGEMENT_JSON_APPEND("{\"device_name\":");
+    MANAGEMENT_JSON_STRING(MANAGEMENT_DEFAULT_DEVICE_NAME);
+    MANAGEMENT_JSON_APPEND(",\"firmware\":");
+    MANAGEMENT_JSON_STRING(app_description != NULL ? app_description->version : "unknown");
+    MANAGEMENT_JSON_APPEND(",\"uptime_seconds\":%lld,\"wifi\":{\"ip\":",
+                           (long long)(esp_timer_get_time() / 1000000LL));
+    MANAGEMENT_JSON_STRING(address);
+    MANAGEMENT_JSON_APPEND(",\"ssid\":");
+    MANAGEMENT_JSON_STRING(ssid);
+    MANAGEMENT_JSON_APPEND(",\"rssi_dbm\":%d,\"connected\":%s},"
+                           "\"management\":{\"transport\":\"https\","
+                           "\"certificate\":\"self-signed\",\"role\":\"ADMIN\"},"
+                           "\"time\":{\"available\":%s,\"utc\":",
+                           access_point_result == ESP_OK ? access_point.rssi : 0,
+                           access_point_result == ESP_OK ? "true" : "false",
+                           time_status.available ? "true" : "false");
+    MANAGEMENT_JSON_STRING(time_status.utc);
+    MANAGEMENT_JSON_APPEND(",\"local\":");
+    MANAGEMENT_JSON_STRING(time_status.local);
+    MANAGEMENT_JSON_APPEND(",\"timezone\":");
+    MANAGEMENT_JSON_STRING(time_status.timezone);
+    MANAGEMENT_JSON_APPEND(",\"source\":");
+    MANAGEMENT_JSON_STRING(time_status.source);
+    MANAGEMENT_JSON_APPEND(",\"ntp_enabled\":%s,\"ntp_server\":",
+                           time_status.ntp_enabled ? "true" : "false");
+    MANAGEMENT_JSON_STRING(time_status.ntp_server);
+    MANAGEMENT_JSON_APPEND(",\"ntp_synchronized\":%s,\"synchronization_pending\":%s},"
+                           "\"ota\":{\"running_slot\":",
+                           time_status.ntp_synchronized ? "true" : "false",
+                           time_status.synchronization_pending ? "true" : "false");
+    MANAGEMENT_JSON_STRING(running_partition != NULL ? running_partition->label : "unknown");
+    MANAGEMENT_JSON_APPEND(",\"next_slot\":");
+    MANAGEMENT_JSON_STRING(next_partition != NULL ? next_partition->label : "unavailable");
+    MANAGEMENT_JSON_APPEND("},\"update\":{\"last_result\":");
+    MANAGEMENT_JSON_STRING(last_update_result);
+    MANAGEMENT_JSON_APPEND("},\"nut\":{\"port\":3493,\"mode\":\"read-only\","
+                           "\"available\":%s,\"data_stale\":%s,\"health\":",
+                           nut_snapshot.available ? "true" : "false",
+                           nut_snapshot.stale ? "true" : "false");
+    MANAGEMENT_JSON_STRING(nut_health);
+    MANAGEMENT_JSON_APPEND(",\"ups_name\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.ups_name);
+    MANAGEMENT_JSON_APPEND("},\"ups\":{\"manufacturer\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.manufacturer);
+    MANAGEMENT_JSON_APPEND(",\"model\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.model);
+    MANAGEMENT_JSON_APPEND(",\"serial\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.serial);
+    MANAGEMENT_JSON_APPEND(",\"status\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.status);
+    MANAGEMENT_JSON_APPEND(",\"battery_charge\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.battery_charge);
+    MANAGEMENT_JSON_APPEND(",\"battery_runtime\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.battery_runtime);
+    MANAGEMENT_JSON_APPEND(",\"battery_voltage\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.battery_voltage);
+    MANAGEMENT_JSON_APPEND(",\"load\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.load);
+    MANAGEMENT_JSON_APPEND(",\"input_voltage\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.input_voltage);
+    MANAGEMENT_JSON_APPEND(",\"output_voltage\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.output_voltage);
+    MANAGEMENT_JSON_APPEND(",\"power\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.ups_power);
+    MANAGEMENT_JSON_APPEND(",\"realpower\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.ups_realpower);
+    MANAGEMENT_JSON_APPEND(",\"firmware\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.ups_firmware);
+    MANAGEMENT_JSON_APPEND("}}");
+
+#undef MANAGEMENT_JSON_STRING
+#undef MANAGEMENT_JSON_APPEND
+
+    if (!response_valid)
+    {
+        mbedtls_platform_zeroize(response, sizeof(response));
+        return management_send_json(
+            request, "500 Internal Server Error",
+            "{\"error\":\"Unable to prepare device status.\"}");
+    }
+    const esp_err_t send_result = management_send_json(request, "200 OK", response);
+    mbedtls_platform_zeroize(response, sizeof(response));
+    return send_result;
 }
 
 static esp_err_t management_token_list_handler(httpd_req_t *request)

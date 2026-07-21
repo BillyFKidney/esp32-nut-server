@@ -17,17 +17,17 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-20 23:21 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 00:25 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | API tokens `v2.3.0` are implemented, target-validated, merged, tagged, and published; the `v2.4.0` management-dashboard preflight is complete and no implementation branch has been created yet |
-| Repository branch | Local `main` is synchronized with `origin/main` and includes implementation merge `595e3dcda`; the reviewed `feature/api-tokens` branch remains available on the remote |
+| Active slice target | API tokens `v2.3.0` remain final and published; the `v2.4.0` management-dashboard implementation is in progress on `feature/management-dashboard` |
+| Repository branch | `feature/management-dashboard` is based directly on synchronized `main` at `75aa270ed`; no push, merge, tag, or release has been performed |
 | Validated implementation state | PR #20 merged the API-token implementation at `595e3dcda`; annotated tag `v2.3.0` points to that merge commit |
 | Remote state | Live `origin/main` is synchronized, no pull request is open, and the final GitHub `v2.3.0` release is public |
-| Source worktree | Clean on `main`; generated ESP-IDF outputs remain ignored |
+| Source worktree | Modified only in `include/ota.h`, `src/ota.c`, and `src/management.c`; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | Exact-tag clean `v2.3.0` ESP-IDF v6.0.2 candidate selected by `version.txt`; 1,285,920 bytes (`0x139f20`), SHA-256 `1bf58d525715af4d5f8f00c535ba07fe174a61af9b5dbe2c2d57a69bf2686357`, valid ESP32-S3 checksum/validation hash, and 62% of the smallest application partition free; GitHub's release-asset digest matches |
+| Latest local build | Local `v2.4.0` dashboard candidate built successfully with ESP-IDF v6.0.2; 1,294,080 bytes (`0x13bf00`), SHA-256 `81d994d47671842a5a96b3791e810f0f85480f423c398abe6b143a9541542316`, and 61% of the smallest application partition free; not installed |
 | Latest published release | Final `v2.3.0`, tagged at PR #20 merge commit `595e3dcda` and published with the exact-tag ESP32-S3 application image and checksum asset: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.3.0) |
-| Installed firmware | **Observed:** the Device Operator reports a successful clean `v2.3.0` installation; the device reports uptime 303 seconds, Wi-Fi `192.168.40.173`, and the restored operational configuration. The exact running-image digest and latest OTA-slot state are **not independently exposed** by the device; the published image digest is independently verified above |
+| Installed firmware | **Observed before this branch:** the Device Operator reports a successful clean `v2.3.0` installation; the device reports uptime 303 seconds, Wi-Fi `192.168.40.173`, and the restored operational configuration. The local `v2.4.0` dashboard candidate is **not installed** |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173`; post-reset MAC rediscovery, ping, HTTPS 200, NUT/UPS `OL`, and retired-port checks passed, in addition to the earlier unauthenticated route boundaries, supported mixed load, and ten-minute Chrome-connected soak |
@@ -37,12 +37,12 @@ private keys, or Wi-Fi credentials here.
 ## Current objective
 
 The API-token `v2.3.0` slice is complete and published. The `v2.4.0`
-management-dashboard preflight is complete. The next action is a fresh
-implementation chat for source and route-capacity inspection, followed by
-creation of `feature/management-dashboard` directly from synchronized `main`
-only if no genuine blocker is found. Continue to preserve LAN-only HTTPS,
-read-only NUT, and the existing ADMIN and Agent authorization boundaries. UPS
-access remains read-only.
+management-dashboard implementation is in progress on
+`feature/management-dashboard`, based directly on synchronized `main`.
+Continue to preserve LAN-only HTTPS, read-only NUT, and the existing ADMIN and
+Agent authorization boundaries. UPS access remains read-only. The next action
+is proportional static/source validation followed by explicitly authorized
+target installation and browser/API checks; publication remains out of scope.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
@@ -970,9 +970,29 @@ protocol was used instead.
 the protected status JSON and current OTA slots were not independently checked
 in this preflight.
 
-**Not tested:** no `v2.4.0` source changes, dashboard routes, dashboard
-rendering, or target firmware changes have begun. Browser, serial, and
-firmware-install actions remain for the implementation and validation chat.
+**Observed on 2026-07-21 00:25 PDT:** after the required preflight, the
+`feature/management-dashboard` branch was created directly from synchronized
+`main` at `75aa270ed`. The existing authenticated `/api/v1/status` route now
+builds an escaped, no-store JSON snapshot containing firmware, uptime, Wi-Fi,
+synchronized time, OTA result, NUT health, UPS identity/serial, status,
+battery, load, runtime, voltage, and power fields. The authenticated console
+now renders those values in dashboard cards while retaining the existing ADMIN
+session, CSRF, time, token, and OTA controls. The existing 13 HTTPS handlers
+remain within the configured capacity of 16. The ESP-IDF v6.0.2 build passed;
+the candidate image is 1,294,064 bytes with SHA-256
+`81d994d47671842a5a96b3791e810f0f85480f423c398abe6b143a9541542316` and has
+61% of the smallest application partition free.
+
+**Inferred:** dashboard UPS values are read from the existing NUT dstate
+fields populated by the USB HID driver; the HTTPS task reads a bounded
+snapshot and reports a separate stale/unavailable health state. OTA result
+metadata is non-secret and stored in the existing management NVS namespace;
+factory reset erases it with the other management data.
+
+**Not tested:** the local `v2.4.0` candidate has not been installed. Protected
+status JSON values, dashboard rendering, browser layout, OTA-result transitions
+after a real install, NUT stale/unavailable behavior, reboot persistence, and
+target-hardware regression checks remain pending. Serial remains unopened.
 
 ## Implemented versus remaining
 
@@ -994,11 +1014,9 @@ firmware-install actions remain for the implementation and validation chat.
 
 ### Remaining Operational Management work
 
-- In a fresh `v2.4.0` chat, inspect the existing status/NUT/HTTPS code and
-  route-capacity budget, then create `feature/management-dashboard` directly
-  from synchronized `main` if no blocker is found.
-- Full dashboard data, including UPS identity, serial number, status, battery,
-  load, runtime, input/output voltage, NUT health, and last update result
+- Install and validate the `feature/management-dashboard` candidate on the
+  target through an explicitly authorized OTA or USB workflow, then exercise
+  the authenticated dashboard and status API.
 - Wi-Fi scan, signal display, credential change, confirmation, and reconnect
 - Corrupt OTA image rejection validation
 - Remote service controls and live browser diagnostics
@@ -1008,10 +1026,12 @@ firmware-install actions remain for the implementation and validation chat.
 
 ## Exact next action
 
-Open a fresh `v2.4.0` chat with the prepared handoff prompt; first repeat the
-required document review and network-first source/device inspection, then
-create `feature/management-dashboard` directly from synchronized `main` only
-if no genuine blocker is found. Do not modify the published `v2.3.0` release.
+Finish static review and target-independent checks for the local
+`feature/management-dashboard` build. Before installing it, obtain explicit
+authorization for the target update; then validate the dashboard/status API,
+NUT health and UPS fields, existing ADMIN/CSRF behavior, OTA result reporting,
+and network service continuity. Do not modify the published `v2.3.0` release
+or publish this branch.
 
 ## Operational procedures
 

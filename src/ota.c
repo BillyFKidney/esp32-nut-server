@@ -11,13 +11,75 @@
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "nvs.h"
 
 #define TAG "nut-ota"
+#define OTA_NVS_NAMESPACE "management"
+#define OTA_LAST_RESULT_KEY "ota-result"
 #define OTA_RECEIVE_BUFFER_SIZE 4096
 #define OTA_RECEIVE_TIMEOUT_RETRIES 3
 #define OTA_REBOOT_DELAY_MS 1000
 
 static bool ota_update_in_progress;
+
+static void ota_record_result(const char *result)
+{
+    nvs_handle_t handle = 0;
+    esp_err_t nvs_result = nvs_open(OTA_NVS_NAMESPACE, NVS_READWRITE, &handle);
+    if (nvs_result == ESP_OK)
+    {
+        nvs_result = nvs_set_str(handle, OTA_LAST_RESULT_KEY, result);
+    }
+    if (nvs_result == ESP_OK)
+    {
+        nvs_result = nvs_commit(handle);
+    }
+    if (handle != 0)
+    {
+        nvs_close(handle);
+    }
+    if (nvs_result != ESP_OK)
+    {
+        ESP_LOGW(TAG, "Unable to record OTA result: %s", esp_err_to_name(nvs_result));
+    }
+}
+
+esp_err_t ota_get_last_result(char *destination, size_t destination_size)
+{
+    if (destination == NULL || destination_size == 0)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    snprintf(destination, destination_size, "not_available");
+    nvs_handle_t handle = 0;
+    esp_err_t result = nvs_open(OTA_NVS_NAMESPACE, NVS_READONLY, &handle);
+    if (result == ESP_ERR_NVS_NOT_FOUND)
+    {
+        return ESP_OK;
+    }
+    if (result != ESP_OK)
+    {
+        snprintf(destination, destination_size, "unavailable");
+        return result;
+    }
+
+    size_t stored_length = destination_size;
+    result = nvs_get_str(handle, OTA_LAST_RESULT_KEY, destination, &stored_length);
+    nvs_close(handle);
+    if (result == ESP_ERR_NVS_NOT_FOUND)
+    {
+        snprintf(destination, destination_size, "not_available");
+        return ESP_OK;
+    }
+    if (result != ESP_OK)
+    {
+        snprintf(destination, destination_size, "unavailable");
+        return result;
+    }
+    destination[destination_size - 1U] = '\0';
+    return ESP_OK;
+}
 
 static void ota_set_response_headers(httpd_req_t *request)
 {
@@ -53,12 +115,14 @@ esp_err_t ota_install_from_request(httpd_req_t *request)
     const esp_partition_t *update_partition = esp_ota_get_next_update_partition(NULL);
     if (update_partition == NULL)
     {
+        ota_record_result("failed");
         return ota_send_error(request, "500 Internal Server Error",
                               "{\"status\":\"error\",\"message\":\"No inactive OTA partition is available.\"}");
     }
 
     if (request->content_len <= 0 || (size_t)request->content_len > update_partition->size)
     {
+        ota_record_result("rejected");
         return ota_send_error(request, "413 Payload Too Large",
                               "{\"status\":\"error\",\"message\":\"The uploaded image does not fit in the inactive OTA partition.\"}");
     }
@@ -72,6 +136,7 @@ esp_err_t ota_install_from_request(httpd_req_t *request)
     if (result != ESP_OK)
     {
         ota_update_in_progress = false;
+        ota_record_result("failed");
         ESP_LOGE(TAG, "Unable to begin OTA update: %s", esp_err_to_name(result));
         return ota_send_error(request, "500 Internal Server Error",
                               "{\"status\":\"error\",\"message\":\"Unable to begin OTA update.\"}");
@@ -137,10 +202,12 @@ esp_err_t ota_install_from_request(httpd_req_t *request)
     ota_update_in_progress = false;
     if (result != ESP_OK)
     {
+        ota_record_result("failed");
         return ota_send_error(request, "422 Unprocessable Content",
                               "{\"status\":\"error\",\"message\":\"The uploaded file is not a valid ESP32-NUT firmware image.\"}");
     }
 
+    ota_record_result("pending");
     ESP_LOGI(TAG, "OTA image verified and selected for the next boot");
     ota_set_response_headers(request);
     const esp_err_t response_result = httpd_resp_sendstr(
@@ -165,10 +232,12 @@ void ota_mark_running_image_valid(void)
         const esp_err_t result = esp_ota_mark_app_valid_cancel_rollback();
         if (result == ESP_OK)
         {
+            ota_record_result("installed");
             ESP_LOGI(TAG, "New OTA image marked valid");
         }
         else
         {
+            ota_record_result("failed");
             ESP_LOGE(TAG, "Unable to mark OTA image valid: %s", esp_err_to_name(result));
         }
     }
