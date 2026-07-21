@@ -20,9 +20,9 @@ private keys, or Wi-Fi credentials here.
 | Updated | 2026-07-20 23:02 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | API tokens `v2.3.0` are implemented, target-validated, merged, tagged, and published; Chrome UI regression, factory-reset token erasure, clean build, delayed browser OTA installation, and post-reset network checks passed |
-| Repository branch | Local `main` is synchronized with `origin/main` at merge commit `595e3dcda`; the reviewed `feature/api-tokens` branch remains available on the remote |
+| Repository branch | Local `main` is synchronized with `origin/main` at documentation commit `f6abe5e5d`, which includes implementation merge `595e3dcda`; the reviewed `feature/api-tokens` branch remains available on the remote |
 | Validated implementation state | PR #20 merged the API-token implementation at `595e3dcda`; annotated tag `v2.3.0` points to that merge commit |
-| Remote state | Live `origin/main` is `595e3dcda`, no pull request is open, and the final GitHub `v2.3.0` release is public |
+| Remote state | Live `origin/main` is `f6abe5e5d`, no pull request is open, and the final GitHub `v2.3.0` release is public |
 | Source worktree | Clean on `main`; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | Exact-tag clean `v2.3.0` ESP-IDF v6.0.2 candidate selected by `version.txt`; 1,285,920 bytes (`0x139f20`), SHA-256 `1bf58d525715af4d5f8f00c535ba07fe174a61af9b5dbe2c2d57a69bf2686357`, valid ESP32-S3 checksum/validation hash, and 62% of the smallest application partition free; GitHub's release-asset digest matches |
@@ -946,7 +946,8 @@ that merge commit, and the final GitHub release published `nut-esp32s3.bin`
 with SHA-256
 `1bf58d525715af4d5f8f00c535ba07fe174a61af9b5dbe2c2d57a69bf2686357` plus its
 checksum asset. Local `main` is clean and synchronized with `origin/main`; the
-release is not a draft or prerelease.
+release is not a draft or prerelease. The follow-up documentation sync is
+`f6abe5e5d` on `main`.
 
 ## Implemented versus remaining
 
@@ -982,7 +983,7 @@ release is not a draft or prerelease.
 ## Exact next action
 
 Begin preflight for `v2.4.0` management-dashboard work from synchronized
-`main` at `595e3dcda`; do not modify the published `v2.3.0` release or begin
+`main` at `f6abe5e5d`; do not modify the published `v2.3.0` release or begin
 hardware interaction until that preflight is complete.
 
 ## Operational procedures
