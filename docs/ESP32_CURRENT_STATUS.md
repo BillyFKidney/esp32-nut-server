@@ -17,9 +17,9 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-20 23:08 PDT, America/Los_Angeles |
+| Updated | 2026-07-20 23:21 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | API tokens `v2.3.0` are implemented, target-validated, merged, tagged, and published; Chrome UI regression, factory-reset token erasure, clean build, delayed browser OTA installation, and post-reset network checks passed |
+| Active slice target | API tokens `v2.3.0` are implemented, target-validated, merged, tagged, and published; the `v2.4.0` management-dashboard preflight is complete and no implementation branch has been created yet |
 | Repository branch | Local `main` is synchronized with `origin/main` and includes implementation merge `595e3dcda`; the reviewed `feature/api-tokens` branch remains available on the remote |
 | Validated implementation state | PR #20 merged the API-token implementation at `595e3dcda`; annotated tag `v2.3.0` points to that merge commit |
 | Remote state | Live `origin/main` is synchronized, no pull request is open, and the final GitHub `v2.3.0` release is public |
@@ -36,8 +36,11 @@ private keys, or Wi-Fi credentials here.
 
 ## Current objective
 
-The API-token `v2.3.0` slice is complete and published. The next planned slice
-is the management dashboard `v2.4.0`; continue to preserve LAN-only HTTPS,
+The API-token `v2.3.0` slice is complete and published. The `v2.4.0`
+management-dashboard preflight is complete. The next action is a fresh
+implementation chat for source and route-capacity inspection, followed by
+creation of `feature/management-dashboard` directly from synchronized `main`
+only if no genuine blocker is found. Continue to preserve LAN-only HTTPS,
 read-only NUT, and the existing ADMIN and Agent authorization boundaries. UPS
 access remains read-only.
 
@@ -949,6 +952,28 @@ checksum asset. Local `main` is clean and synchronized with `origin/main`; the
 release is not a draft or prerelease. The post-release documentation sync is
 recorded on `main`.
 
+**Observed during the v2.4.0 preflight on 2026-07-20 23:21 PDT:** local
+`main` was clean at `2c955b6496fd5becc3c4cc8d5842c28992b0a82c` and matched
+`origin/main`; the final `v2.3.0` release was present and no pull request was
+open. Network-first rediscovery found MAC `30:30:f9:16:89:a4` at
+`192.168.40.173` on `en0`; ping succeeded, HTTPS returned HTTP 200, TCP 443
+and TCP 3493 accepted connections, and retired TCP 8080 refused the
+connection. The unauthenticated status and token-management routes returned
+HTTP 401. A CRLF NUT probe identified `CyberPower CST150UC2` and returned
+`ups.status = OL`. The normal development USB path was rediscovered as
+`/dev/cu.usbmodem54E20396741` with no listed owner; serial was not opened.
+The Mac environment did not provide `upsc`, so the bounded raw read-only NUT
+protocol was used instead.
+
+**Inferred:** the Device Operator's latest report indicates that clean
+`v2.3.0` remains installed with restored Wi-Fi and ADMIN configuration, but
+the protected status JSON and current OTA slots were not independently checked
+in this preflight.
+
+**Not tested:** no `v2.4.0` source changes, dashboard routes, dashboard
+rendering, or target firmware changes have begun. Browser, serial, and
+firmware-install actions remain for the implementation and validation chat.
+
 ## Implemented versus remaining
 
 ### Implemented foundation
@@ -969,8 +994,9 @@ recorded on `main`.
 
 ### Remaining Operational Management work
 
-- Begin the documented preflight and scope review for the next planned
-  management-dashboard `v2.4.0` slice from synchronized `main`.
+- In a fresh `v2.4.0` chat, inspect the existing status/NUT/HTTPS code and
+  route-capacity budget, then create `feature/management-dashboard` directly
+  from synchronized `main` if no blocker is found.
 - Full dashboard data, including UPS identity, serial number, status, battery,
   load, runtime, input/output voltage, NUT health, and last update result
 - Wi-Fi scan, signal display, credential change, confirmation, and reconnect
@@ -982,9 +1008,10 @@ recorded on `main`.
 
 ## Exact next action
 
-Begin preflight for `v2.4.0` management-dashboard work from synchronized
-`main`; do not modify the published `v2.3.0` release or begin hardware
-interaction until that preflight is complete.
+Open a fresh `v2.4.0` chat with the prepared handoff prompt; first repeat the
+required document review and network-first source/device inspection, then
+create `feature/management-dashboard` directly from synchronized `main` only
+if no genuine blocker is found. Do not modify the published `v2.3.0` release.
 
 ## Operational procedures
 
