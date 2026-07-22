@@ -19,15 +19,15 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-22 02:31 PDT, America/Los_Angeles |
+| Updated | 2026-07-22 02:54 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, and the first read-only hardware-diagnostics implementation is target-validated on the development target from `feature/esp32-hardware-diagnostics` |
-| Repository branch | **Observed on 2026-07-22 02:22 PDT:** `feature/esp32-hardware-diagnostics` is a clean branch from updated `main` at `a5089c34d`; the hardware-diagnostics source commit is `4f65001a3`; the former mixed handoff is preserved locally as `feature/esp32-hardware-diagnostics-handoff`, and local `main` and `origin/main` are synchronized |
+| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, the read-only hardware-diagnostics implementation is target-validated on the development target, and the bounded runtime-log implementation is built locally and awaiting target validation on `feature/esp32-hardware-diagnostics` |
+| Repository branch | **Observed on 2026-07-22 02:54 PDT:** `feature/esp32-hardware-diagnostics` contains the accepted hardware-diagnostics source at `4f65001a3` and the bounded runtime-log source commit `ee80d1660`, from updated `main` at `a5089c34d`; no push has been made for this branch, and the former mixed handoff is preserved locally as `feature/esp32-hardware-diagnostics-handoff` |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc`; PR #26 merged optional NUT diagnostic fields at `24e7ee23`; PR #27 merged Git-derived development build identity at `a5089c34` |
 | Remote state | PR #24, PR #25, PR #26, and PR #27 are merged; annotated tag `v2.6.0` remains the latest public release, with no v2.7.0 tag or release; local `main` and `origin/main` are synchronized |
-| Source worktree | The clean hardware-diagnostics branch contains the merged `src/management.c` NUT-field change, root `CMakeLists.txt` build-identity change, v2.7 scope/acceptance documentation, and the first read-only chip/board/flash/PSRAM/memory/temperature diagnostics implementation with dashboard rendering; generated ESP-IDF outputs remain ignored, and only the authorized development target was updated through Chrome |
+| Source worktree | The hardware-diagnostics branch contains the merged `src/management.c` NUT-field change, root `CMakeLists.txt` build-identity change, v2.7 scope/acceptance documentation, the target-validated read-only chip/board/flash/PSRAM/memory/temperature diagnostics implementation, and a runtime-only bounded log ring with NUT syslog capture, authenticated status JSON, dashboard rendering, five-second refresh, and idle-session-safe status polling; generated ESP-IDF outputs remain ignored, and only the authorized development target was updated through Chrome |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | **Observed on 2026-07-22 02:22 PDT from source commit `4f65001a3`:** the hardware-diagnostics candidate built successfully with ESP-IDF v6.0.2 as `v2.6.0-14-g4f65001a3`; 1,316,256 bytes, SHA-256 `76c2244d56483b07f5bef640419fc8a4066cafaca1829983ffda23fafc05e3b9`, and 61% of the smallest application partition free; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
+| Latest local build | **Observed on 2026-07-22 02:54 PDT from clean source commit `ee80d1660`:** the bounded runtime-log candidate built successfully with ESP-IDF v6.0.2 as `v2.6.0-17-gee80d1660`; 1,318,880 bytes, SHA-256 `b17eeff4a0fe48d1811c4bccf2f87efd546cda63b519b43258bddfcb40f673d2`, and 61% of the smallest application partition free; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
 | Latest published release | Final `v2.6.0`, tagged at PR #24 merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2` and published with standard firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0) |
 | Installed firmware | **Observed on 2026-07-22 02:31 PDT in authenticated Chrome/FQDN validation:** development target `192.168.40.173` reports `v2.6.0-14-g4f65001a3`, `running_slot = app0`, `next_slot = app1`, uptime 51 seconds, and `last_result = installed`; the independent `.87` board remains reserved for Device Operator testing |
 | Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward; no v2.6.0 image was flashed in this layout-only slice |
@@ -56,7 +56,10 @@ The merged repository-layout cleanup is a source and documentation change only.
 It does not alter the HTTPS/NUT service boundaries, authorization behavior,
 partition contents, or release assets. The active hardware-diagnostics branch
 adds read-only runtime observation only; it does not add NVS or flash writes,
-service controls, or a new management route.
+service controls, or a new management route. The bounded runtime-log slice
+keeps its 24-entry capture in RAM, exposes only the newest six entries through
+the existing authenticated status response, and does not capture passwords,
+tokens, cookies, or Authorization headers.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
@@ -85,6 +88,19 @@ matched the new fields: `hardware.chip`, `hardware.board`, `hardware.flash`,
 `hardware.psram`, `hardware.memory`, and `hardware.chip_temperature`. The
 existing ADMIN/CSRF, HTTPS, read-only NUT, and `.87`-untouched boundaries
 remained intact. No serial monitor was opened.
+
+**Observed on 2026-07-22 02:54 PDT:** source commit `ee80d1660` adds the next
+bounded v2.7.0 slice: a runtime-only 24-entry log ring, ESP-IDF and embedded
+NUT log capture, timestamp fields that remain null until valid time is
+available, the newest six entries in authenticated status JSON, and a
+dashboard log card refreshed every five seconds. Status polling does not
+refresh the fifteen-minute ADMIN idle deadline, and expired authentication
+reloads the sign-in page. The clean ESP-IDF v6.0.2 candidate is
+`v2.6.0-17-gee80d1660`, 1,318,880 bytes, SHA-256
+`b17eeff4a0fe48d1811c4bccf2f87efd546cda63b519b43258bddfcb40f673d2`, with
+61% of the smallest application partition free. It has not been uploaded or
+target-validated; the installed development target remains
+`v2.6.0-14-g4f65001a3`, and `.87` remains untouched.
 
 ## v2.7.0 scope recorded
 
@@ -1392,7 +1408,10 @@ pending explicit authorization.
 
 ### Remaining Operational Management work
 
-- Add the bounded timestamped browser log stream.
+- Target-validate the bounded timestamped browser log stream in authenticated
+  Chrome, including status JSON, dashboard rendering, time/unavailable
+  timestamp behavior, session-expiry behavior, and preserved NUT/HTTPS
+  boundaries.
 - Add the bounded CPU-utilization sample only if target performance validation
   passes; otherwise expose `Not available`.
 - Fix timeout cookie invalidation and add the final-five-minute
@@ -1405,11 +1424,12 @@ pending explicit authorization.
 
 ## Exact next action
 
-Begin the next bounded v2.7.0 slice: the timestamped browser log stream on
-`feature/esp32-hardware-diagnostics`. Keep `.87` untouched, retain LAN-only
-HTTPS 443, read-only NUT 3493, refused 8080, and the existing ADMIN/CSRF
-boundaries, and require a fresh preflight plus explicit authorization before
-installing any subsequent candidate. Do not publish or release this build.
+The new candidate is ready for the next authenticated Chrome upload to the
+development target at `192.168.40.173` through the required FQDN. Before
+uploading, complete a fresh preflight and confirm the target; keep `.87`
+untouched. Validate the dashboard and authenticated status JSON, then record
+the installed firmware identity and slot transition. Do not push, merge, tag,
+publish, or release this slice.
 
 ## Operational procedures
 
