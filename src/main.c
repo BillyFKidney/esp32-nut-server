@@ -13,7 +13,6 @@
 #include "esp_vfs.h"
 #include "esp_vfs_fat.h"
 #include "esp_task_wdt.h"
-#include "cpu_diagnostics.h"
 #include "management.h"
 #include "ota.h"
 #include "wifi-provisioning.h"
@@ -185,7 +184,6 @@ void rtos_yield(void)
 void app_main()
 {
     management_log_capture_start();
-    cpu_diagnostics_start();
     nut_debug_level = 9;
 
     esp_task_wdt_config_t twdt_config = {

@@ -181,14 +181,10 @@ silently.
 
 The Project Maintainer expanded the `v2.7.0` live-diagnostics scope on
 2026-07-22. The slice must add the standard NUT battery chemistry,
-battery-manufacturing-date, and UPS-temperature fields when available; report
-runtime ESP32 chip, board-profile, memory, and chip-temperature information;
-and provide sampled CPU utilization only when its measurement is bounded and
-low overhead. Full FreeRTOS task runtime statistics must not be enabled solely
-for the browser metric. The preferred implementation is a cached, on-demand
-or infrequent idle-time sample whose status response reports the sample age
-and interval; if target validation shows service impact, CPU utilization must
-remain `Not available` rather than shipping a performance regression.
+battery-manufacturing-date, and UPS-temperature fields when available and
+report runtime ESP32 chip, board-profile, memory, and chip-temperature
+information. CPU-utilization monitoring was evaluated and removed after target
+validation showed unacceptable service impact.
 
 The same slice adds a toolbar warning during the final five minutes of the
 existing fifteen-minute idle ADMIN session. The deadline is server

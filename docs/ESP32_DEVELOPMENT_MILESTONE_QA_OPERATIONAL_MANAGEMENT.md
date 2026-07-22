@@ -238,9 +238,6 @@ and Safari behavior.
   when the UPS reports them, with missing values shown as `Not available`.
 - View the ESP32 chip/board profile, runtime memory, and internal chip
   temperature without exposing secrets or writing diagnostic samples to flash.
-- View a bounded, sampled CPU-utilization value with its sampling age and
-  interval, or an explicit `Not available` result when the low-overhead
-  measurement is unsupported or fails its performance guardrail.
 - See an ADMIN session countdown during the final five minutes of inactivity;
   at zero, the browser reloads and the sign-in page appears. Background
   diagnostics must not extend an idle session.

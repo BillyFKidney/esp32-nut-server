@@ -1,5 +1,4 @@
 #include "management.h"
-#include "cpu_diagnostics.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -1787,7 +1786,7 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<p class=metric><strong>PSRAM</strong><span id=dashboardPsram>Loading…</span></p>"
              "<p class=metric><strong>Free memory</strong><span id=dashboardMemory>Loading…</span></p>"
              "<p class=metric><strong>Chip temperature</strong><span id=dashboardChipTemperature>Loading…</span></p>"
-             "<p class=metric><strong>CPU utilization</strong><span id=dashboardCpu>Loading…</span></p></article>"
+             "</article>"
              "<article class='card log-card'><h3>Runtime logs</h3><pre id=dashboardLogs>Loading…</pre></article></section></section>"
              "<section id=panel-status class=panel hidden><h2>Device Status</h2><details><summary>Raw status JSON</summary><pre id=status>Loading…</pre></details></section>"
              "<section id=panel-time class=panel hidden><h2>Date and Time</h2><p id=timeSummary>Loading time status…</p>"
@@ -1835,9 +1834,6 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "function selectPanel(name){for(const tab of tabs)tab.setAttribute('aria-selected',tab.dataset.panel===name?'true':'false');for(const panelName in panels)panels[panelName].hidden=panelName!==name}"
              "tabs.forEach(tab=>tab.onclick=()=>selectPanel(tab.dataset.panel));"
              "function renderDashboard(x){const wifi=x.wifi||{},nut=x.nut||{},ups=x.ups||{},update=x.update||{},hardware=x.hardware||{},chip=hardware.chip||{},board=hardware.board||{},flash=hardware.flash||{},psram=hardware.psram||{},memory=hardware.memory||{},temperature=hardware.chip_temperature||{},logs=x.logs||{};dashboardFirmware.textContent=displayValue(x.firmware);dashboardUptime.textContent=formatUptime(x.uptime_seconds);dashboardUpdate.textContent=displayValue(update.last_result);dashboardWifi.textContent=displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected');dashboardSignal.textContent=displayValue(wifi.rssi_dbm)+' dBm';dashboardNut.textContent=displayValue(nut.health)+' — TCP '+displayValue(nut.port)+(nut.data_stale?' — data stale':'');dashboardUpsStatus.textContent=displayValue(ups.status);dashboardUps.textContent=displayValue(nut.ups_name)+' — '+displayValue(ups.manufacturer)+' '+displayValue(ups.model);dashboardSerial.textContent=displayValue(ups.serial);dashboardBatteryType.textContent=displayValue(ups.battery_type);dashboardBatteryMfrDate.textContent=displayValue(ups.battery_mfr_date);dashboardUpsTemperature.textContent=displayValue(ups.temperature);dashboardBattery.textContent=displayValue(ups.battery_charge)+' %%';dashboardRuntime.textContent=displayValue(ups.battery_runtime)+' s';dashboardLoad.textContent=displayValue(ups.load)+' %%';dashboardBatteryVoltage.textContent=displayValue(ups.battery_voltage)+' V';dashboardInputVoltage.textContent=displayValue(ups.input_voltage)+' V';dashboardOutputVoltage.textContent=displayValue(ups.output_voltage)+' V';dashboardChip.textContent=displayValue(chip.model)+' rev '+displayValue(chip.revision)+' — '+displayValue(chip.cores)+' cores';dashboardBoard.textContent=displayValue(board.profile)+' — '+displayValue(board.module);dashboardFlash.textContent=flash.size_bytes?formatBytes(flash.size_bytes)+' — '+displayValue(flash.mode)+' '+displayValue(flash.frequency):'Not available';dashboardPsram.textContent=psram.available?formatBytes(psram.size_bytes)+' — '+displayValue(psram.mode)+' '+displayValue(psram.frequency_mhz)+' MHz':'Not available';dashboardMemory.textContent='Internal '+formatBytes(memory.free_internal_bytes)+' — PSRAM '+formatBytes(memory.free_psram_bytes)+' — min '+formatBytes(memory.minimum_free_bytes);dashboardChipTemperature.textContent=temperature.available?displayValue(temperature.celsius)+' °C':'Not available';dashboardLogs.textContent=Array.isArray(logs)?(logs.length?logs.map(log=>(log.timestamp_local||log.timestamp_utc||('+'+(Number(log.uptime_ms||0)/1000).toFixed(3)+'s'))+' '+displayValue(log.level).toUpperCase()+' '+displayValue(log.message)).join('\\n'):'No runtime logs yet.'):'Not available'}"
-             "const dashboardCpu=document.getElementById('dashboardCpu');"
-             "function renderCpu(cpu){if(!cpu||!cpu.available){dashboardCpu.textContent='Not available';return}const age=typeof cpu.sample_age_ms==='number'?(cpu.sample_age_ms/1000).toFixed(1)+'s':'age unavailable',interval=typeof cpu.sample_interval_ms==='number'?(cpu.sample_interval_ms/1000).toFixed(1)+'s':'interval unavailable';dashboardCpu.textContent=displayValue(cpu.utilization_percent)+' %% — sample '+age+' old / '+interval+' interval'}"
-             "const renderDashboardBase=renderDashboard;renderDashboard=function(x){renderDashboardBase(x);renderCpu(x.cpu||{})}"
              "function renderWifi(x){const wifi=x.wifi||{};wifiCurrent.textContent='Current network: '+displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected')+' — '+displayValue(wifi.rssi_dbm)+' dBm';if(!wifiSsid.value&&wifi.ssid)wifiSsid.value=wifi.ssid}"
              "async function loadStatus(){try{const r=await fetch('/api/v1/status',{cache:'no-store'});if(r.status===401||r.status===403){location='/';return}const x=await r.json();status.textContent=JSON.stringify(x,null,2);renderDashboard(x);renderWifi(x);if(x.time){ntpEnabled.checked=x.time.ntp_enabled;ntpServer.value=x.time.ntp_server;timeZone.value=x.time.timezone;syncNow.disabled=!x.time.ntp_enabled;if(x.time.available){timeSummary.textContent=x.time.local+' ('+x.time.timezone+'), UTC '+x.time.utc+', source '+x.time.source+(x.time.synchronization_pending?' — synchronization pending':'');manualDateTime.value=x.time.local.slice(0,16)}else{timeSummary.textContent=x.time.synchronization_pending?'Time is not set; waiting for NTP.':'Time is not set.'}}}catch(error){status.textContent='Unable to load device status.';wifiCurrent.textContent='Unable to load current Wi-Fi status.'}}"
              "wifiShowPassword.onchange=()=>wifiPassword.type=wifiShowPassword.checked?'text':'password';"
@@ -2255,8 +2251,6 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     management_initialize_hardware_diagnostics();
     ManagementHardwareSnapshot hardware_snapshot;
     management_collect_hardware_snapshot(&hardware_snapshot);
-    CpuDiagnosticsSnapshot cpu_snapshot;
-    cpu_diagnostics_get_snapshot(&cpu_snapshot);
     char last_update_result[32] = {0};
     if (ota_get_last_result(last_update_result, sizeof(last_update_result)) != ESP_OK)
     {
@@ -2365,29 +2359,7 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     {
         MANAGEMENT_JSON_APPEND("null");
     }
-    MANAGEMENT_JSON_APPEND("}},\"cpu\":{\"available\":%s,"
-                           "\"utilization_percent\":",
-                           cpu_snapshot.available ? "true" : "false");
-    if (cpu_snapshot.available)
-    {
-        MANAGEMENT_JSON_APPEND("%u", cpu_snapshot.utilization_percent);
-    }
-    else
-    {
-        MANAGEMENT_JSON_APPEND("null");
-    }
-    MANAGEMENT_JSON_APPEND(",\"sample_age_ms\":");
-    if (cpu_snapshot.available)
-    {
-        MANAGEMENT_JSON_APPEND("%u", cpu_snapshot.sample_age_ms);
-    }
-    else
-    {
-        MANAGEMENT_JSON_APPEND("null");
-    }
-    MANAGEMENT_JSON_APPEND(",\"sample_interval_ms\":%u,"
-                           "\"method\":\"idle-tick\"}",
-                           cpu_snapshot.sample_interval_ms);
+    MANAGEMENT_JSON_APPEND("}}");
     if (!management_append_log_snapshot(response, sizeof(response), &used))
     {
         response_valid = false;
