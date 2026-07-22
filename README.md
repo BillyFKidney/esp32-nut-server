@@ -5,8 +5,8 @@ ESP32-NUT is a downstream ESP32-S3 application built from Network UPS Tools
 USB HID polling, a LAN NUT server, and an authenticated HTTPS administration
 console.
 
-This is the application guide for the downstream project. The upstream NUT
-source-tree overview remains in [README.adoc](README.adoc) for reference.
+This is the Markdown application guide for the downstream project. An
+AsciiDoc companion is available in [README.adoc](README.adoc).
 
 ## What this application provides
 

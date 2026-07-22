@@ -17,9 +17,9 @@ documentation references and obtain Project Maintainer approval.
 
 ## Start here
 
-The application-facing landing page is the root `README.md`. The original
-upstream NUT overview remains in `README.adoc` for source-tree reference.
-For the current Synology/AdGuard management path, use
+The application-facing landing pages are the root `README.md` and
+`README.adoc`; the former is Markdown and the latter is the AsciiDoc
+companion. For the current Synology/AdGuard management path, use
 `docs/ESP32_MANAGEMENT_PROXY.md`.
 
 Before hardware or implementation work, read:
