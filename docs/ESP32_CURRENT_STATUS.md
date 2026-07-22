@@ -19,15 +19,15 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-22 02:59 PDT, America/Los_Angeles |
+| Updated | 2026-07-22 03:12 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, the read-only hardware-diagnostics implementation is target-validated on the development target, and the bounded runtime-log implementation is target-validated on `.173` while the branch remains unpublished |
-| Repository branch | **Observed on 2026-07-22 02:59 PDT:** `feature/esp32-hardware-diagnostics` contains the accepted hardware-diagnostics source at `4f65001a3` and bounded runtime-log source commit `ee80d1660`, from updated `main` at `a5089c34d`; the runtime-log acceptance is recorded locally with no push, merge, tag, or release, and the former mixed handoff is preserved locally as `feature/esp32-hardware-diagnostics-handoff` |
+| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, the read-only hardware-diagnostics implementation and bounded runtime-log implementation are target-validated on `.173`, and the cached CPU-utilization implementation is built locally and awaiting target validation while the branch remains unpublished |
+| Repository branch | **Observed on 2026-07-22 03:12 PDT:** `feature/esp32-hardware-diagnostics` contains accepted hardware-diagnostics source `4f65001a3`, bounded runtime-log source `ee80d1660`, and cached CPU-diagnostics source `92837e857`, from updated `main` at `a5089c34d`; no push, merge, tag, or release has been made for this branch, and the former mixed handoff is preserved locally as `feature/esp32-hardware-diagnostics-handoff` |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc`; PR #26 merged optional NUT diagnostic fields at `24e7ee23`; PR #27 merged Git-derived development build identity at `a5089c34` |
 | Remote state | PR #24, PR #25, PR #26, and PR #27 are merged; annotated tag `v2.6.0` remains the latest public release, with no v2.7.0 tag or release; local `main` and `origin/main` are synchronized |
-| Source worktree | The hardware-diagnostics branch contains the merged `src/management.c` NUT-field change, root `CMakeLists.txt` build-identity change, v2.7 scope/acceptance documentation, the target-validated read-only chip/board/flash/PSRAM/memory/temperature diagnostics implementation, and the target-validated runtime-only bounded log ring with NUT syslog capture, authenticated status JSON, dashboard rendering, five-second refresh, and idle-session-safe status polling; generated ESP-IDF outputs remain ignored, and only the authorized development target was updated through Chrome |
+| Source worktree | The hardware-diagnostics branch contains the merged `src/management.c` NUT-field change, root `CMakeLists.txt` build-identity change, v2.7 scope/acceptance documentation, the target-validated read-only chip/board/flash/PSRAM/memory/temperature diagnostics implementation, the target-validated runtime-only bounded log ring, and a separate cached CPU sampler using per-core idle/tick hooks, authenticated status JSON, dashboard rendering, and sample age/interval fields; generated ESP-IDF outputs remain ignored, and only the authorized development target was updated through Chrome |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | **Observed on 2026-07-22 02:54 PDT from clean source commit `ee80d1660`:** the bounded runtime-log candidate built successfully with ESP-IDF v6.0.2 as `v2.6.0-17-gee80d1660`; 1,318,880 bytes, SHA-256 `b17eeff4a0fe48d1811c4bccf2f87efd546cda63b519b43258bddfcb40f673d2`, and 61% of the smallest application partition free; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
+| Latest local build | **Observed on 2026-07-22 03:12 PDT from clean source commit `92837e857`:** the cached CPU-diagnostics candidate built successfully with ESP-IDF v6.0.2 as `v2.6.0-20-g92837e857`; 1,321,168 bytes, SHA-256 `bde861ed948a22a50dc4172b67b280ee7c711bb0148fd377f11b021850e1c1fb`, and 60% of the smallest application partition free; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
 | Latest published release | Final `v2.6.0`, tagged at PR #24 merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2` and published with standard firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0) |
 | Installed firmware | **Observed on 2026-07-22 02:58 PDT in the Project Maintainer's authenticated status JSON:** development target `192.168.40.173` reports `v2.6.0-17-gee80d1660`, `running_slot = app1`, `next_slot = app0`, uptime 87 seconds, and `last_result = installed`; the independent `.87` board remains reserved for Device Operator testing |
 | Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward; no v2.6.0 image was flashed in this layout-only slice |
@@ -119,6 +119,21 @@ No request or evidence involved `.87`.
 authenticated operation with valid NTP time and active NUT traffic. The
 provided evidence does not test the pre-NTP null-timestamp path, ring rollover,
 or idle-session expiration while the five-second status polling is active.
+
+**Observed on 2026-07-22 03:12 PDT:** source commit `92837e857` adds the next
+bounded v2.7.0 CPU slice in `src/cpu_diagnostics.c` and
+`include/cpu_diagnostics.h`. It samples aggregate per-core idle-tick slack
+every ten seconds in a low-priority task, caches the rounded utilization
+percentage, and reports `available`, `utilization_percent`, `sample_age_ms`,
+`sample_interval_ms`, and `method = idle-tick` in the existing authenticated
+status JSON. The dashboard renders the utilization and sample age/interval.
+FreeRTOS task-runtime statistics, task tables, flash writes, NUT controls, and
+HTTP-path sampling were not added. The clean ESP-IDF v6.0.2 candidate is
+`v2.6.0-20-g92837e857`, 1,321,168 bytes, SHA-256
+`bde861ed948a22a50dc4172b67b280ee7c711bb0148fd377f11b021850e1c1fb`, with
+60% of the smallest application partition free. It has not been uploaded;
+the installed target remains `v2.6.0-17-gee80d1660` and `.87` remains
+untouched.
 
 ## v2.7.0 scope recorded
 
@@ -1428,8 +1443,9 @@ pending explicit authorization.
 
 ### Remaining Operational Management work
 
-- Add the bounded CPU-utilization sample only if target performance validation
-  passes; otherwise expose `Not available`.
+- Target-validate the cached CPU-utilization sample on `.173`, including
+  sample age/interval, HTTPS/NUT/Wi-Fi/heap/watchdog stability, and the
+  `Not available` fallback if performance impact is observed.
 - Fix timeout cookie invalidation and add the final-five-minute
   server-authoritative ADMIN idle-session countdown.
 - Review remote service controls without changing LAN-only HTTPS 443,
@@ -1440,11 +1456,11 @@ pending explicit authorization.
 
 ## Exact next action
 
-Begin the next bounded v2.7.0 slice: a sampled CPU-utilization diagnostic on
-`feature/esp32-hardware-diagnostics`. Keep it runtime-only and read-only, keep
-CPU measurement outside the HTTP request path, keep `.87` untouched, and do
-not push, merge, tag, publish, release, or upload another firmware candidate
-until the slice is built and reviewed.
+The CPU-diagnostics candidate is ready for authenticated Chrome upload to the
+development target at `192.168.40.173` through the required FQDN. Complete a
+fresh preflight and confirm the target before uploading; keep `.87` untouched.
+After reboot, verify the CPU fields and preserved HTTPS/NUT/Wi-Fi behavior.
+Do not push, merge, tag, publish, or release this slice.
 
 ## Operational procedures
 
