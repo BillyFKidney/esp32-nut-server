@@ -19,17 +19,17 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-22 13:15 PDT, America/Los_Angeles |
+| Updated | 2026-07-22 13:22 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Latest source change | **Observed on 2026-07-22 09:57 PDT:** browser activity-refresh and stale-session-cookie cleanup are committed locally at `24f66a8f7`; the branch remains unpublished and `.87` remains untouched |
-| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, and the CPU-free read-only hardware-diagnostics, bounded runtime-log, server-authoritative countdown, and explicit session-activity implementations are target-validated on `.173`; a v2.7.0 release-candidate image is built locally from this accepted source state; the branch remains unpublished |
-| Repository branch | **Observed on 2026-07-22 09:57 PDT:** `feature/admin-session-countdown` contains source commit `24f66a8f7` for explicit authenticated user-activity refresh and stale ADMIN-cookie cleanup; no push, merge, tag, or release has been made for this branch, and `.87` remains untouched |
+| Latest source change | **Observed on 2026-07-22 09:57 PDT:** browser activity-refresh and stale-session-cookie cleanup are included in the published v2.7.0 release at `24f66a8f7`; `.87` remains untouched |
+| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; v2.7.0 is now merged, tagged, and published with the accepted CPU-free diagnostics, bounded runtime logs, and ADMIN session-activity slice; `.87` remains untouched |
+| Repository branch | **Observed on 2026-07-22 13:22 PDT:** `main` and `origin/main` contain merged release commit `7782239d2`; tag `v2.7.0` and its GitHub release are published; `.87` remains untouched |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc`; PR #26 merged optional NUT diagnostic fields at `24e7ee23`; PR #27 merged Git-derived development build identity at `a5089c34` |
-| Remote state | PR #24, PR #25, PR #26, and PR #27 are merged; annotated tag `v2.6.0` remains the latest public release, with no v2.7.0 tag or release; local `main` and `origin/main` are synchronized |
+| Remote state | PR #24, PR #25, PR #26, PR #27, and PR #28 are merged; annotated tag `v2.7.0` is the latest public release; local `main` and `origin/main` are synchronized |
 | Source worktree | The current branch contains the merged `src/management.c` NUT-field change, root `CMakeLists.txt` build-identity change, v2.7 scope/acceptance documentation, the target-validated read-only chip/board/flash/PSRAM/memory/temperature diagnostics implementation, the target-validated runtime-only bounded log ring, the server-authoritative ADMIN countdown, and the local explicit user-activity refresh/stale-cookie cleanup; CPU-utilization monitoring source, hooks, status fields, and dashboard rendering have been removed; generated ESP-IDF outputs remain ignored, and only the authorized development target was updated through Chrome |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | **Observed on 2026-07-22 13:13 PDT from accepted source commit `500b93a4e`:** the v2.7.0 release-candidate rebuilt successfully in an isolated temporary clone with a local-only `v2.7.0` tag, using ESP-IDF v6.0.2, as `v2.7.0`; 1,321,472 bytes, SHA-256 `eda1ac1a22c7409d70503eb89ff14f58bb0204ff5ee368b2a5c5bd1da79a7026`, and 60% of the smallest application partition free. The image header independently verifies ESP32-S3, 16 MB DIO/80 MHz, valid checksum and validation hash. The upload copy and `.sha256` sidecar have the same verified digest. The local-only tag was not created in this repository; no v2.7.0 push, merge, tag, or release has occurred. The published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
-| Latest published release | Final `v2.6.0`, tagged at PR #24 merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2` and published with standard firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0) |
+| Latest local build | **Observed on 2026-07-22 13:13 PDT from accepted source commit `500b93a4e`:** the v2.7.0 image rebuilt successfully in an isolated temporary clone with a local-only `v2.7.0` tag, using ESP-IDF v6.0.2; 1,321,472 bytes, SHA-256 `eda1ac1a22c7409d70503eb89ff14f58bb0204ff5ee368b2a5c5bd1da79a7026`, and 60% of the smallest application partition free. The image header independently verifies ESP32-S3, 16 MB DIO/80 MHz, valid checksum and validation hash. The GitHub release asset reports the same digest. |
+| Latest published release | Final `v2.7.0`, tagged at merged commit `7782239d2` and published with verified firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.7.0) |
 | Installed firmware | **Reported by the Project Maintainer on 2026-07-22 13:02 PDT:** development target `192.168.40.173` is running the corrected `v2.6.0-30-g24f66a8f7` candidate and all requested countdown, interactive-activity, non-activity, expiry, and baseline service tests passed; `.87` remains reserved and untouched |
 | Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward; no v2.7.0 image has been uploaded or flashed in this handoff slice |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
@@ -220,8 +220,9 @@ expired session cookie when serving the sign-in page. It has not been uploaded;
 requested v30 countdown, interactive-activity, non-activity, expiry, cookie,
 and preserved-service tests passed on the authorized development target at
 `192.168.40.173`. The explicit ADMIN session-activity refresh and stale-cookie
-cleanup slice is target-accepted. No push, merge, tag, publication, or release
-has been performed, and `.87` remains untouched.
+cleanup slice is target-accepted. It was merged as PR #28 and published as
+v2.7.0; the firmware has not yet been uploaded to `.173`, and `.87` remains
+untouched.
 
 ## v2.7.0 scope recorded
 
@@ -1526,10 +1527,8 @@ pending explicit authorization.
 
 ### Remaining Operational Management work
 
-- Upload the local v2.7.0 release-candidate to `.173` through Chrome and perform
-  the requested dashboard and authenticated-status spot checks; then decide
-  whether to push, merge, tag, or release it. No remote mutation is authorized
-  yet.
+- Upload the published v2.7.0 firmware to `.173` through Chrome and perform the
+  requested dashboard and authenticated-status spot checks.
 - Review remote service controls without changing LAN-only HTTPS 443,
   read-only NUT 3493, refused 8080, or ADMIN/CSRF boundaries.
 - Standalone three-second Wi-Fi-only recovery validation in the later physical
@@ -1538,12 +1537,10 @@ pending explicit authorization.
 
 ## Exact next action
 
-Upload `nut-esp32s3-v2.7.0-release-candidate.bin` from the local task output
-through Chrome to the authorized development target `.173`. Verify that the
-dashboard and authenticated status JSON report `v2.7.0`, then perform the
-planned spot checks. After acceptance, decide whether to push, merge, tag, or
-publish v2.7.0. Keep `.87` untouched and do not mutate remote state without
-explicit authorization.
+Download `nut-esp32s3-v2.7.0-release-candidate.bin` from the published GitHub
+release and upload it through Chrome to `.173`. Verify that the dashboard and
+authenticated status JSON report `v2.7.0`, then perform the planned spot
+checks. Keep `.87` untouched.
 
 ## Operational procedures
 
