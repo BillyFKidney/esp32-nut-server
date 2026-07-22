@@ -17,7 +17,7 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 11:42 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 20:59 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` are final and published; select the next slice through a new preflight |
 | Repository branch | `main` contains the merged v2.5.0 implementation and publication-status documentation; local `main` is synchronized with `origin/main` |
@@ -28,10 +28,11 @@ private keys, or Wi-Fi credentials here.
 | Latest local build | `v2.5.0` Wi-Fi-management image built successfully with ESP-IDF v6.0.2; 1,304,736 bytes, SHA-256 `a28055a80f7c926c229044d1f3cc4243f26165fec65c6a5929d9ac720172ca32`, and 61% of the smallest application partition free; the same image and checksum are attached to the v2.5.0 release |
 | Latest published release | Final `v2.5.0`, tagged at PR #22 merge commit `36fb7886a90172520c2a34af8785cf8238619806` and published with the firmware and checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.5.0) |
 | Installed firmware | **Observed:** the Device Operator reports the target running `v2.5.0` with Wi-Fi management validation complete; the exact installed-image hash was not independently checked after publication |
+| Last USB flash | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | `192.168.40.173`; post-reset MAC rediscovery, ping, protected HTTPS 200, NUT/UPS `OL`, and retired-port checks passed; the installed `v2.4.0` candidate then completed a ten-minute network-first soak |
-| Last observed development USB path | Normal COM rediscovered as `/dev/cu.usbmodem54E20396741` with no listed owner. A bounded console open unexpectedly reset the board despite disabled DTR/RTS; do not reopen it as a nominally read-only diagnostic. Native USB ROM download previously used `/dev/cu.usbmodem1101` for corrective installation |
+| Last observed development USB path | New board rediscovered as `/dev/cu.usbmodem1101` with no listed owner; no serial monitor was opened. The previously observed `/dev/cu.usbmodem54E20396741` path belongs to the earlier board and is historical |
 | Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
 ## Current objective
@@ -78,6 +79,15 @@ The authoritative scope and security decisions are in
   the exact firmware and checksum assets.
 
 ## Installed firmware and hardware evidence
+
+**Observed on 2026-07-21:** a newly connected ESP32-S3 identified as MAC
+`30:30:f9:16:8c:08` on `/dev/cu.usbmodem1101`. The complete published
+`v2.5.0` bootloader, partition table, OTA metadata, filesystem partitions, and
+application image were flashed with ESP-IDF v6.0.2 tooling. Each write passed
+esptool hash verification and the board completed the requested hard reset. No
+new LAN address appeared in the post-flash ARP check; Wi-Fi provisioning,
+HTTPS, NUT, and target UI validation for this new board remain **not tested**.
+No serial monitor was opened.
 
 The board was last verified running the working-tree build that was subsequently
 committed as `0fcd9e1f9`. Its reported version was
