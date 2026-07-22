@@ -30,8 +30,8 @@ private keys, or Wi-Fi credentials here.
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | **Observed on 2026-07-22 13:13 PDT from accepted source commit `500b93a4e`:** the v2.7.0 image rebuilt successfully in an isolated temporary clone with a local-only `v2.7.0` tag, using ESP-IDF v6.0.2; 1,321,472 bytes, SHA-256 `eda1ac1a22c7409d70503eb89ff14f58bb0204ff5ee368b2a5c5bd1da79a7026`, and 60% of the smallest application partition free. The image header independently verifies ESP32-S3, 16 MB DIO/80 MHz, valid checksum and validation hash. The GitHub release asset reports the same digest. |
 | Latest published release | Final `v2.7.0`, tagged at merged commit `7782239d2` and published with verified firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.7.0) |
-| Installed firmware | **Reported by the Project Maintainer on 2026-07-22 13:02 PDT:** development target `192.168.40.173` is running the corrected `v2.6.0-30-g24f66a8f7` candidate and all requested countdown, interactive-activity, non-activity, expiry, and baseline service tests passed; `.87` remains reserved and untouched |
-| Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward; no v2.7.0 image has been uploaded or flashed in this handoff slice |
+| Installed firmware | **Reported by the Project Maintainer on 2026-07-22:** development target `192.168.40.173` is running published `v2.7.0`; release verification and requested spot checks passed; `.87` remains reserved and untouched |
+| Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward. The published v2.7.0 image was installed through Chrome OTA on `.173`; `.87` was not touched |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | **Observed:** `192.168.40.87` (MAC `30:30:f9:16:8c:08`) and `192.168.40.173` (MAC `30:30:f9:16:89:a4`) both accepted HTTPS 443 and NUT 3493, returned HTTPS 200, and refused retired TCP 8080; the new board at `.87` returned read-only NUT `ups.status = OL` |
@@ -220,9 +220,9 @@ expired session cookie when serving the sign-in page. It has not been uploaded;
 requested v30 countdown, interactive-activity, non-activity, expiry, cookie,
 and preserved-service tests passed on the authorized development target at
 `192.168.40.173`. The explicit ADMIN session-activity refresh and stale-cookie
-cleanup slice is target-accepted. It was merged as PR #28 and published as
-v2.7.0; the firmware has not yet been uploaded to `.173`, and `.87` remains
-untouched.
+cleanup slice is target-accepted. It was merged as PR #28, published as
+v2.7.0, installed on `.173`, and verified by the Project Maintainer; `.87`
+remains untouched.
 
 ## v2.7.0 scope recorded
 
@@ -1537,10 +1537,9 @@ pending explicit authorization.
 
 ## Exact next action
 
-Download `nut-esp32s3-v2.7.0-release-candidate.bin` from the published GitHub
-release and upload it through Chrome to `.173`. Verify that the dashboard and
-authenticated status JSON report `v2.7.0`, then perform the planned spot
-checks. Keep `.87` untouched.
+No additional release action is pending. The published v2.7.0 firmware is
+installed and accepted on `.173`; preserve `.87` and resume from this clean,
+synchronized state when capacity is available.
 
 ## Operational procedures
 
