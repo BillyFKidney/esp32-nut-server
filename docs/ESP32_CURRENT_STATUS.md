@@ -83,6 +83,11 @@ controls remain required before the slice can be called complete.
 target, candidate installation, rollback/persistence after reboot, and browser
 release-link behavior.
 
+**Operational assignment observed on 2026-07-21:** the Project Maintainer
+designated `192.168.40.173` as the Codex development target and reserved the
+board at `192.168.40.87` (MAC ending `8c:08`) for independent Device Operator
+testing. The `.87` board has not been modified by this slice.
+
 ## Last completed work
 
 - Replaced the development HTTP OTA listener on TCP port 8080 with an HTTPS
@@ -1204,11 +1209,11 @@ pending explicit authorization.
 
 ## Exact next action
 
-After the v2.6 candidate is reviewed, obtain explicit target-install
-authorization and use the network-first preflight to exercise the authenticated
-Check, corrupt-image rejection, and Install controls on one rediscovered board.
-Do not push, merge, tag, or publish until browser, negative-authentication,
-network, persistence, rollback, and target-hardware validation are complete.
+After explicit target-install authorization, use the network-first preflight to
+install and exercise the v2.6 candidate on development target `192.168.40.173`.
+Keep `192.168.40.87` untouched for independent testing. Do not push, merge,
+tag, or publish until browser, negative-authentication, network, persistence,
+rollback, and target-hardware validation are complete.
 
 ## Operational procedures
 
