@@ -19,15 +19,15 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 23:35 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 23:42 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; repository layout cleanup is the pre-v2.7.0 slice; live diagnostics `v2.7.0` follows it |
-| Repository branch | `feature/repository-layout` was created from synchronized `main` at `780d1f086`; this branch contains layout and documentation changes only |
+| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; live diagnostics `v2.7.0` follows it |
+| Repository branch | Local `main` and `origin/main` are synchronized at merge commit `24f1b36da`; PR #25 merged the layout-only commit `23d6aee42` |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc` |
-| Remote state | PR #24 is merged, annotated tag `v2.6.0` is public, and the final GitHub release contains the firmware and checksum assets; local `main` and `origin/main` are synchronized at `780d1f086` |
-| Source worktree | `feature/repository-layout` retains the published v2.6.0 implementation while reorganizing documentation and board support files; generated ESP-IDF outputs remain ignored |
+| Remote state | PR #24 and PR #25 are merged, annotated tag `v2.6.0` is public, and the final GitHub release contains the firmware and checksum assets; local `main` and `origin/main` are synchronized at `24f1b36da` |
+| Source worktree | `main` contains the published v2.6.0 implementation and the merged repository-layout cleanup; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | **Observed:** `feature/repository-layout` built successfully with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `ff5220693d20f3ba6656dbbd3b84a1618cfac727051f4b31aa6ec7f9084d0b0e`, valid ESP32-S3 checksum/validation hash, and 61% of the smallest application partition free; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
+| Latest local build | **Observed:** the merged repository-layout commit built successfully with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `ff5220693d20f3ba6656dbbd3b84a1618cfac727051f4b31aa6ec7f9084d0b0e`, valid ESP32-S3 checksum/validation hash, and 61% of the smallest application partition free; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
 | Latest published release | Final `v2.6.0`, tagged at PR #24 merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2` and published with standard firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0) |
 | Installed firmware | **Observed:** development target `192.168.40.173` is running v2.6.0 with `running_slot = app0`, `next_slot = app1`, and `last_result = installed`; the independent `.87` board remains reserved for Device Operator testing |
 | Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward; no v2.6.0 image was flashed in this layout-only slice |
@@ -51,8 +51,8 @@ dashboard SSID display, and scan-selection collapse/focus behavior. Continue to
 preserve LAN-only HTTPS, read-only NUT, and the existing ADMIN and Agent
 authorization boundaries. UPS access remains read-only.
 
-The current `feature/repository-layout` branch is a source and documentation
-cleanup only. It does not alter firmware source, the HTTPS/NUT service
+The merged repository-layout cleanup is a source and documentation change only.
+It does not alter firmware source, the HTTPS/NUT service
 boundaries, authorization behavior, partition contents, or release assets.
 
 The authoritative scope and security decisions are in
@@ -195,7 +195,8 @@ remained refused. No serial port was opened.
 - Merged the v2.6.0 local OTA-management slice through PR #24 at
   `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2`, tagged it `v2.6.0`, and published
   the exact firmware and checksum assets.
-- Started the pre-v2.7.0 repository-layout slice on `feature/repository-layout`.
+- Completed the pre-v2.7.0 repository-layout cleanup as a source and
+  documentation-only change.
 - Moved upstream narrative documents to `docs/upstream/`, the ESP-IDF/PlatformIO
   partition table to `boards/partitions/`, and the formatting helper to
   `tools/`; updated the build, distribution, documentation, and agent-routing
@@ -204,6 +205,9 @@ remained refused. No serial port was opened.
   the files intentionally retained for external CI compatibility.
 - Rebuilt the layout branch with ESP-IDF v6.0.2; the firmware build completed
   successfully and no firmware source files changed in this slice.
+- Merged the layout cleanup through PR #25 into `main` at
+  `24f1b36da051f43d502e7adfa623f1909fdb9721` and synchronized local `main` with
+  `origin/main`.
 
 ## Installed firmware and hardware evidence
 
@@ -1287,8 +1291,6 @@ pending explicit authorization.
 
 ### Remaining Operational Management work
 
-- Review and merge the pre-v2.7.0 repository-layout slice before starting
-  live-diagnostics implementation.
 - Begin the v2.7.0 live-diagnostics slice after its own preflight and scope
   review.
 - Remote service controls and live browser diagnostics
@@ -1298,10 +1300,9 @@ pending explicit authorization.
 
 ## Exact next action
 
-Review and merge `feature/repository-layout` into the published v2.6.0 `main`.
-After that merge, prepare the v2.7.0 live-diagnostics preflight. Do not modify
-the independently reserved `.87` board unless the Project Maintainer explicitly
-changes that scope.
+Prepare the v2.7.0 live-diagnostics preflight from synchronized `main`. Do not
+modify the independently reserved `.87` board unless the Project Maintainer
+explicitly changes that scope.
 
 ## Operational procedures
 
