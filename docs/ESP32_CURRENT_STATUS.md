@@ -19,24 +19,25 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-22 03:21 PDT, America/Los_Angeles |
+| Updated | 2026-07-22 03:50 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, the read-only hardware-diagnostics implementation and bounded runtime-log implementation are target-validated on `.173`, and the cached CPU-utilization implementation has been freshly rebuilt and is awaiting target validation while the branch remains unpublished |
+| Latest branch commit | **Observed on 2026-07-22 03:50 PDT:** the IRAM-safety fix is committed locally at `d88210ab4`; the branch remains unpublished and `.87` remains untouched |
+| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, the read-only hardware-diagnostics implementation and bounded runtime-log implementation are target-validated on `.173`, and the cached CPU-utilization implementation now has an IRAM-safety fix and a fresh candidate awaiting target validation while the branch remains unpublished |
 | Repository branch | **Observed on 2026-07-22 03:12 PDT:** `feature/esp32-hardware-diagnostics` contains accepted hardware-diagnostics source `4f65001a3`, bounded runtime-log source `ee80d1660`, and cached CPU-diagnostics source `92837e857`, from updated `main` at `a5089c34d`; no push, merge, tag, or release has been made for this branch, and the former mixed handoff is preserved locally as `feature/esp32-hardware-diagnostics-handoff` |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc`; PR #26 merged optional NUT diagnostic fields at `24e7ee23`; PR #27 merged Git-derived development build identity at `a5089c34` |
 | Remote state | PR #24, PR #25, PR #26, and PR #27 are merged; annotated tag `v2.6.0` remains the latest public release, with no v2.7.0 tag or release; local `main` and `origin/main` are synchronized |
 | Source worktree | The hardware-diagnostics branch contains the merged `src/management.c` NUT-field change, root `CMakeLists.txt` build-identity change, v2.7 scope/acceptance documentation, the target-validated read-only chip/board/flash/PSRAM/memory/temperature diagnostics implementation, the target-validated runtime-only bounded log ring, and a separate cached CPU sampler using per-core idle/tick hooks, authenticated status JSON, dashboard rendering, and sample age/interval fields; generated ESP-IDF outputs remain ignored, and only the authorized development target was updated through Chrome |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | **Observed on 2026-07-22 03:21 PDT from clean branch `HEAD` `65424b254`:** the cached CPU-diagnostics candidate rebuilt successfully with ESP-IDF v6.0.2 as `v2.6.0-21-g65424b254`; 1,321,168 bytes, SHA-256 `6ce922fe8a75cd6457da5d25b3f48f779b8345ec10f6ee9279aa5abe7eb64616`, and 60% of the smallest application partition free. The uniquely named upload copy has the same checksum; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
+| Latest local build | **Observed on 2026-07-22 03:50 PDT from clean branch `HEAD` `d88210ab4`:** the IRAM-safe CPU-diagnostics candidate rebuilt successfully with ESP-IDF v6.0.2 as `v2.6.0-23-gd88210ab4`; 1,321,168 bytes, SHA-256 `18f50aa298450cfd469cca735f933d21a3346d3db15b5389dad8261c627c2450`, and 60% of the smallest application partition free. The image header independently verifies ESP32-S3, 16 MB DIO/80 MHz, valid checksum and validation hash. The uniquely named upload copy has the same checksum; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
 | Latest published release | Final `v2.6.0`, tagged at PR #24 merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2` and published with standard firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0) |
-| Installed firmware | **Observed on 2026-07-22 03:16 PDT in the Project Maintainer's authenticated status JSON:** development target `192.168.40.173` still reports `v2.6.0-17-gee80d1660`, `running_slot = app1`, `next_slot = app0`, uptime 54 seconds, and `last_result = pending`; the CPU field is absent because the rebuilt candidate has not been uploaded; the independent `.87` board remains reserved for Device Operator testing |
+| Installed firmware | **Observed on 2026-07-22 03:26 PDT in the Project Maintainer's authenticated status JSON:** development target `192.168.40.173` still reports `v2.6.0-17-gee80d1660`, `running_slot = app1`, `next_slot = app0`, uptime 49 seconds, and `last_result = pending`; the CPU field is absent because the corrected candidate has not been uploaded; the independent `.87` board remains reserved for Device Operator testing |
 | Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward; no v2.6.0 image was flashed in this layout-only slice |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | **Observed:** `192.168.40.87` (MAC `30:30:f9:16:8c:08`) and `192.168.40.173` (MAC `30:30:f9:16:89:a4`) both accepted HTTPS 443 and NUT 3493, returned HTTPS 200, and refused retired TCP 8080; the new board at `.87` returned read-only NUT `ups.status = OL` |
 | Trusted reverse-proxy endpoint | **Observed:** `https://esp32nut-3dprinter.28670avenidacondesa.com/` resolved to Synology `192.168.40.10`; curl validation without certificate bypass returned HTTP/2 200 for the console and 401 for unauthenticated `/api/v1/status`. Chrome's FQDN tab returned `Header fields are too long` while fresh requests and Safari worked. The user clarified that `.173` is the MacMini COM-port target and that Chrome validation must use the FQDN; direct `.173` remains the current NUT wire-validation target, while the FQDN TCP 3493 path returned raw NUT `ACCESS-DENIED` |
 | Browser validation procedure | **Operator guidance:** use Chrome with the FQDN; during long authenticated validation, manually refresh the ADMIN console at least every ten minutes. If Chrome has already timed out, delete the stale FQDN session cookie before signing in again. This is a manual validation workaround, not a firmware keepalive. |
-| Last observed development USB path | **Observed:** `/dev/cu.usbmodem54E20396741` with no listed owner; no serial monitor was opened. Earlier `/dev/cu.usbmodem1101` flash evidence remains historical |
+| Last observed development USB path | **Observed:** `/dev/cu.usbmodem54E20396741` with no listed owner; a temporary no-reset serial monitor was used only to capture the OTA rollback panic. Earlier `/dev/cu.usbmodem1101` flash evidence remains historical |
 | Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
 ## Current objective
@@ -144,6 +145,20 @@ uniquely named copy,
 `build/nut-esp32s3-cpu-diagnostics-v2.6.0-21-g65424b254.bin`, was created
 for Chrome upload and has the identical SHA-256. It has not been uploaded;
 the target still reports `v2.6.0-17-gee80d1660`, and `.87` remains untouched.
+
+**Observed on 2026-07-22 03:26–03:50 PDT:** the Project Maintainer uploaded
+the `v2.6.0-21-g65424b254` candidate through Chrome twice. The target received
+the 1,321,168-byte image into `app0`, verified it, selected it for the next
+boot, and restarted; during the flash/NVS operation the CPU-diagnostics idle
+and tick hooks caused an ESP32-S3 `Cache error` panic because the callbacks
+were still executing from flash. The bootloader rolled back to `app1`, leaving
+the authenticated status JSON at `v2.6.0-17-gee80d1660`, `running_slot = app1`,
+`next_slot = app0`, and `last_result = pending`. The callbacks are now marked
+`IRAM_ATTR` in source commit `d88210ab4`. A clean ESP-IDF v6.0.2 rebuild
+produced `v2.6.0-23-gd88210ab4`, 1,321,168 bytes, SHA-256
+`18f50aa298450cfd469cca735f933d21a3346d3db15b5389dad8261c627c2450`; the
+image header and validation hash are valid, and both hook symbols link in
+IRAM. The corrected candidate has not been uploaded; `.87` remains untouched.
 
 ## v2.7.0 scope recorded
 
@@ -1466,12 +1481,14 @@ pending explicit authorization.
 
 ## Exact next action
 
-Upload the uniquely named CPU-diagnostics candidate
-`build/nut-esp32s3-cpu-diagnostics-v2.6.0-21-g65424b254.bin` through
+Upload only the corrected uniquely named CPU-diagnostics candidate
+`build/nut-esp32s3-cpu-diagnostics-iram-v2.6.0-23-gd88210ab4.bin` through
 authenticated Chrome to the development target at `192.168.40.173` through
-the required FQDN. Complete a fresh preflight and confirm the target before
-uploading; keep `.87` untouched. After reboot, refresh the authenticated
-status JSON and verify `cpu.available`, `utilization_percent`,
+the required FQDN. Do not upload the retired `v2.6.0-21` file again. Complete
+a fresh preflight and confirm the target before uploading; keep `.87`
+untouched. After reboot, refresh the authenticated status JSON and verify
+firmware `v2.6.0-23-gd88210ab4`, `running_slot = app0`, `next_slot = app1`,
+`last_result = installed`, `cpu.available`, `utilization_percent`,
 `sample_age_ms`, and `sample_interval_ms` together with preserved
 HTTPS/NUT/Wi-Fi behavior.
 Do not push, merge, tag, publish, or release this slice.
