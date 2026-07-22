@@ -19,12 +19,12 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 23:42 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 23:43 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; live diagnostics `v2.7.0` follows it |
-| Repository branch | Local `main` and `origin/main` are synchronized at merge commit `24f1b36da`; PR #25 merged the layout-only commit `23d6aee42` |
+| Repository branch | Local `main` and `origin/main` are synchronized; PR #25 merged the layout-only commit `23d6aee42` at merge commit `24f1b36da` |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc` |
-| Remote state | PR #24 and PR #25 are merged, annotated tag `v2.6.0` is public, and the final GitHub release contains the firmware and checksum assets; local `main` and `origin/main` are synchronized at `24f1b36da` |
+| Remote state | PR #24 and PR #25 are merged, annotated tag `v2.6.0` is public, and the final GitHub release contains the firmware and checksum assets; local `main` and `origin/main` include the post-merge status synchronization |
 | Source worktree | `main` contains the published v2.6.0 implementation and the merged repository-layout cleanup; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | **Observed:** the merged repository-layout commit built successfully with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `ff5220693d20f3ba6656dbbd3b84a1618cfac727051f4b31aa6ec7f9084d0b0e`, valid ESP32-S3 checksum/validation hash, and 61% of the smallest application partition free; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
