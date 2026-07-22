@@ -19,7 +19,7 @@ private keys, or Wi-Fi credentials here.
 | --- | --- |
 | Updated | 2026-07-21 22:53 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | Local OTA management `v2.6.0` is in progress; API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` remain final and published |
+| Active slice target | Local OTA management `v2.6.0` is validated and awaiting publication; API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` remain final and published |
 | Repository branch | `feature/local-ota-management` was created directly from synchronized `main` at `09e5e2cb88714104c84bbba6e0bc8bebaea47844`; no v2.6 changes are published |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; the v2.6 working tree adds local image checking |
 | Remote state | PR #22 is merged, tag `v2.5.0` is public, the GitHub release is final with firmware and checksum assets, and no v2.6 branch, tag, PR, or release exists |
@@ -1253,8 +1253,8 @@ pending explicit authorization.
 
 ### Remaining Operational Management work
 
-- Complete an explicit rollback/persistence check for the v2.6 candidate only
-  if the release gate requires it.
+- Publish the validated `v2.6.0` local OTA-management slice and complete the
+  post-publication release audit.
 - Remote service controls and live browser diagnostics
 - Standalone three-second Wi-Fi-only recovery validation in the later physical
   recovery slice
@@ -1262,11 +1262,12 @@ pending explicit authorization.
 
 ## Exact next action
 
-Reconcile the existing user-owned worktree changes, review the v2.6 branch,
-and decide whether the explicit rollback/persistence check is required. The
-Project Maintainer waived a second install and `.87` testing. Do not push,
-merge, tag, or publish until the branch review is complete and the Project
-Maintainer explicitly authorizes publication.
+Publish the validated v2.6.0 slice: push the reviewed branch, open and merge
+its pull request, tag the implementation merge, create the final GitHub
+release with the exact firmware and checksum assets, and synchronize this
+status document with the resulting refs. The Project Maintainer authorized
+those actions after the `.173` rollback/persistence gate passed. Do not modify
+the independently reserved `.87` board.
 
 ## Operational procedures
 

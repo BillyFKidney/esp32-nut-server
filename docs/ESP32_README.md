@@ -204,6 +204,14 @@ a password field that is masked by default. Its local **Show password** toggle
 changes only the current browser control; the stored password is never
 returned, persisted by the UI, or logged.
 
+The `v2.6.0` local OTA-management slice adds an ADMIN-session and CSRF-
+protected **Check firmware** action before installation. The device validates
+the complete local ESP32 image without selecting a boot slot, rejects invalid
+images, and continues to use the existing authenticated install and scoped
+Agent OTA routes. The v2.6 candidate passed target rollback/persistence
+validation on the `.173` development device; the device never downloads
+firmware from a remote source.
+
 HTTPS does not add TLS to the read-only NUT service on TCP port `3493`; keep
 that service within a trusted management network.
 

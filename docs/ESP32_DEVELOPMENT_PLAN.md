@@ -154,7 +154,7 @@ proportional build and target-hardware validation.
 | 4 | `v2.3.0` | `feature/api-tokens` | Complete. PR #20 merged the validated token lifecycle and scoped Agent OTA at `595e3dcda`; annotated tag `v2.3.0` and the final GitHub release are published. |
 | 5 | `v2.4.0` | `feature/management-dashboard` | Expose and render the required firmware, Wi-Fi, NUT, UPS, voltage, battery, load, runtime, update, and time diagnostics. |
 | 6 | `v2.5.0` | `feature/wifi-management` | Add the client-side ADMIN tab bar and Wi-Fi Configuration panel; scan supported networks, show signal strength, provide an off-by-default local `Show password` toggle, confirm credential changes, reconnect safely, and never reveal the stored password. |
-| 7 | `v2.6.0` | `feature/local-ota-management` | Complete check/download/install controls and corrupt-image validation; reuse the authenticated local picker delivered early in `v2.1.0`. |
+| 7 | `v2.6.0` | `feature/local-ota-management` | Implementation and target validation complete: local Check/Install controls, corrupt-image rejection, release-link guidance, and rollback/persistence validation; publication audit remains. |
 | 8 | `v2.7.0` | `feature/live-diagnostics` | Add bounded timestamped live browser logs and reviewed remote service controls without high-frequency flash writes. |
 | 9 | `v2.8.0` | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
 | 10 | `v2.9.0` | `feature/operational-management-acceptance` | Integrate and validate the definition of done from iPhone and MacBook Air, close documentation gaps, and publish the final `v2.x` acceptance release. |
