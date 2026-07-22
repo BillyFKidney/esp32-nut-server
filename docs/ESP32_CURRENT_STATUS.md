@@ -79,14 +79,24 @@ automatic updates satisfy those portions of the v2.6 policy. Target evidence
 for corrupt-image rejection and browser exercise of the new Check/Download
 controls remain required before the slice can be called complete.
 
-**Not yet tested:** authenticated v2.6 UI behavior, corrupt-image check on the
-target, candidate installation, rollback/persistence after reboot, and browser
-release-link behavior.
+**Not yet tested:** the new authenticated Check control with valid and corrupt
+images, proof that checking does not reboot or change OTA slots, complete
+Update Firmware-panel behavior, rollback/persistence after a v2.6 reboot, and
+browser release-link behavior.
 
 **Operational assignment observed on 2026-07-21:** the Project Maintainer
 designated `192.168.40.173` as the Codex development target and reserved the
 board at `192.168.40.87` (MAC ending `8c:08`) for independent Device Operator
 testing. The `.87` board has not been modified by this slice.
+
+**Observed on 2026-07-21:** the Device Operator installed the v2.6.0 candidate
+on `192.168.40.173`. The authenticated dashboard displayed firmware `v2.6.0`,
+`last update installed`, connected Wi-Fi, NUT health `ok — TCP 3493`,
+`ups.status = OL`, CyberPower CST150UC2 identity, and populated battery/load and
+voltage fields. Independent network checks then returned HTTPS 200,
+unauthenticated status 401, TCP 443 and 3493 open, TCP 8080 refused, and
+read-only NUT `ups.status = OL` / `device.model = CST150UC2`. Serial remained
+closed.
 
 ## Last completed work
 
@@ -1209,11 +1219,12 @@ pending explicit authorization.
 
 ## Exact next action
 
-After explicit target-install authorization, use the network-first preflight to
-install and exercise the v2.6 candidate on development target `192.168.40.173`.
-Keep `192.168.40.87` untouched for independent testing. Do not push, merge,
-tag, or publish until browser, negative-authentication, network, persistence,
-rollback, and target-hardware validation are complete.
+Use the authenticated v2.6 console on development target `192.168.40.173` to
+exercise the new Check control with one known-good image and one deliberately
+corrupt image, then verify no reboot/slot change after checks. Keep
+`192.168.40.87` untouched for independent testing. Do not push, merge, tag, or
+publish until browser, negative-authentication, network, persistence, rollback,
+and target-hardware validation are complete.
 
 ## Operational procedures
 
