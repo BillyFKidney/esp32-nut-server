@@ -19,10 +19,10 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-22 04:01 PDT, America/Los_Angeles |
+| Updated | 2026-07-22 08:21 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Latest branch commit | **Observed on 2026-07-22 04:01 PDT:** the CPU-utilization removal is committed locally at `9d4a410f6`; the branch remains unpublished and `.87` remains untouched |
-| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, the read-only hardware-diagnostics implementation and bounded runtime-log implementation are target-validated on `.173`, and CPU-utilization monitoring has been removed after target validation showed unacceptable service impact while the branch remains unpublished |
+| Latest source change | **Observed on 2026-07-22 04:01 PDT:** the CPU-utilization removal is committed locally at `9d4a410f6`; the branch remains unpublished and `.87` remains untouched |
+| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, and the CPU-free read-only hardware-diagnostics and bounded runtime-log implementations are target-validated on `.173` while the branch remains unpublished |
 | Repository branch | **Observed on 2026-07-22 03:12 PDT:** `feature/esp32-hardware-diagnostics` contains accepted hardware-diagnostics source `4f65001a3`, bounded runtime-log source `ee80d1660`, and cached CPU-diagnostics source `92837e857`, from updated `main` at `a5089c34d`; no push, merge, tag, or release has been made for this branch, and the former mixed handoff is preserved locally as `feature/esp32-hardware-diagnostics-handoff` |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc`; PR #26 merged optional NUT diagnostic fields at `24e7ee23`; PR #27 merged Git-derived development build identity at `a5089c34` |
 | Remote state | PR #24, PR #25, PR #26, and PR #27 are merged; annotated tag `v2.6.0` remains the latest public release, with no v2.7.0 tag or release; local `main` and `origin/main` are synchronized |
@@ -30,7 +30,7 @@ private keys, or Wi-Fi credentials here.
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | **Observed on 2026-07-22 04:01 PDT from clean source commit `9d4a410f6`:** the CPU-free hardware-diagnostics candidate rebuilt successfully with ESP-IDF v6.0.2 as `v2.6.0-25-g9d4a410f6`; 1,318,880 bytes, SHA-256 `390dbe7bf39e442a6d0d3a8975eb1c10770f0529f70b09bec40bd8c5bbb7b858`, and 61% of the smallest application partition free. The image header independently verifies ESP32-S3, 16 MB DIO/80 MHz, valid checksum and validation hash. The uniquely named upload copy has the same checksum; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
 | Latest published release | Final `v2.6.0`, tagged at PR #24 merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2` and published with standard firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0) |
-| Installed firmware | **Observed on 2026-07-22 after the Project Maintainer uploaded `v2.6.0-23-gd88210ab4`:** the Chrome dashboard remained at its initial `Loading…` state and was not accepted as operational; authenticated status JSON was not available from the frozen UI. The CPU-free replacement has not been installed; the independent `.87` board remains reserved for Device Operator testing |
+| Installed firmware | **Observed on 2026-07-22 08:21 PDT in the Project Maintainer's authenticated Chrome view:** development target `192.168.40.173` reports `v2.6.0-25-g9d4a410f6`, `last update = installed`, healthy Wi-Fi, NUT `ok` on TCP 3493, UPS status `OL`, and the restored CyberPower identity. The CPU-monitoring card is absent; the independent `.87` board remains reserved for Device Operator testing |
 | Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward; no v2.6.0 image was flashed in this layout-only slice |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
@@ -170,6 +170,17 @@ read-only hardware diagnostics and bounded runtime logs are retained. For
 recovery, the UPS is disconnected, the MacMini USB path is attached, and the
 BOOT-RESET-BOOT sequence has completed. No USB flash has been performed yet;
 `.87` remains untouched.
+
+**Observed on 2026-07-22 08:21 PDT (Project Maintainer-provided Chrome
+screenshot):** after the USB recovery flash and UPS reconnection, the CPU-free
+candidate remained responsive for 15 minutes 19 seconds and rendered the
+target-validated dashboard. Wi-Fi was connected to `ClubHouse_IoT` at
+`192.168.40.173` with `-38 dBm`; NUT reported `ok — TCP 3493`, UPS status `OL`,
+CyberPower `CST150UC2`, battery charge `100`, runtime `25650 s`, load `0`,
+battery voltage `26.3 V`, and input/output voltage `119.0 V`. The hardware
+diagnostics card continued to report ESP32-S3 rev 2, YD-ESP32-23,
+ESP32-S3-WROOM-1-N16R8, 16 MB DIO flash, and 8 MB octal PSRAM. No CPU
+monitoring UI or status field was present. `.87` remains untouched.
 
 ## v2.7.0 scope recorded
 
@@ -1484,15 +1495,11 @@ pending explicit authorization.
 
 ## Exact next action
 
-Install only the CPU-free uniquely named candidate
-`outputs/nut-esp32s3-hardware-diagnostics-no-cpu-v2.6.0-25-g9d4a410f6.bin`.
-Because the installed `v2.6.0-23` dashboard is frozen, use the prepared
-MacMini USB recovery path rather than Chrome. Complete a fresh preflight and
-confirm the target before writing; keep the UPS disconnected during the flash
-and keep `.87` untouched. After reboot, refresh the authenticated status JSON
-and verify firmware `v2.6.0-25-g9d4a410f6`, a responsive dashboard, preserved
-HTTPS/NUT/Wi-Fi behavior, and the absence of a `cpu` object in status JSON.
-Do not push, merge, tag, publish, or release this slice.
+The CPU-free hardware-diagnostics slice is target-validated on `.173`; no
+additional device action is required. Keep `.87` untouched. Do not push,
+merge, tag, publish, or release this branch without explicit authorization.
+The next implementation candidate remains the server-authoritative
+final-five-minute ADMIN idle-session countdown.
 
 ## Operational procedures
 
