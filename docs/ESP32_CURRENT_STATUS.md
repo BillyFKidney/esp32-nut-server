@@ -19,10 +19,10 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-22 09:58 PDT, America/Los_Angeles |
+| Updated | 2026-07-22 13:02 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Latest source change | **Observed on 2026-07-22 09:57 PDT:** browser activity-refresh and stale-session-cookie cleanup are committed locally at `24f66a8f7`; the branch remains unpublished and `.87` remains untouched |
-| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, and the CPU-free read-only hardware-diagnostics and bounded runtime-log implementations are target-validated on `.173`; the corrected session-activity candidate awaits target validation |
+| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, and the CPU-free read-only hardware-diagnostics, bounded runtime-log, server-authoritative countdown, and explicit session-activity implementations are target-validated on `.173`; the branch remains unpublished |
 | Repository branch | **Observed on 2026-07-22 09:57 PDT:** `feature/admin-session-countdown` contains source commit `24f66a8f7` for explicit authenticated user-activity refresh and stale ADMIN-cookie cleanup; no push, merge, tag, or release has been made for this branch, and `.87` remains untouched |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc`; PR #26 merged optional NUT diagnostic fields at `24e7ee23`; PR #27 merged Git-derived development build identity at `a5089c34` |
 | Remote state | PR #24, PR #25, PR #26, and PR #27 are merged; annotated tag `v2.6.0` remains the latest public release, with no v2.7.0 tag or release; local `main` and `origin/main` are synchronized |
@@ -30,13 +30,13 @@ private keys, or Wi-Fi credentials here.
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | **Observed on 2026-07-22 09:57 PDT from clean source commit `24f66a8f7`:** the corrected session-activity candidate rebuilt successfully with ESP-IDF v6.0.2 as `v2.6.0-30-g24f66a8f7`; 1,321,472 bytes, SHA-256 `93a4f34451e9ac80b4dbbdc1712284211e4576ae47c5510b56662a3a1eed43db`, and 60% of the smallest application partition free. The image header independently verifies ESP32-S3, 16 MB DIO/80 MHz, valid checksum and validation hash. The uniquely named upload copy has the same checksum; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
 | Latest published release | Final `v2.6.0`, tagged at PR #24 merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2` and published with standard firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0) |
-| Installed firmware | **Observed on 2026-07-22 09:58 PDT in the Project Maintainer's authenticated Chrome validation:** development target `192.168.40.173` reports `v2.6.0-28-ge1b710506`, `last update = installed`, healthy Wi-Fi, NUT `ok` on TCP 3493, UPS status `OL`, and the restored CyberPower identity. The countdown expires and reloads to sign-in; the corrected session-activity candidate has not been uploaded; the independent `.87` board remains reserved for Device Operator testing |
+| Installed firmware | **Reported by the Project Maintainer on 2026-07-22 13:02 PDT:** development target `192.168.40.173` is running the corrected `v2.6.0-30-g24f66a8f7` candidate and all requested countdown, interactive-activity, non-activity, expiry, and baseline service tests passed; `.87` remains reserved and untouched |
 | Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward; no v2.6.0 image was flashed in this layout-only slice |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | **Observed:** `192.168.40.87` (MAC `30:30:f9:16:8c:08`) and `192.168.40.173` (MAC `30:30:f9:16:89:a4`) both accepted HTTPS 443 and NUT 3493, returned HTTPS 200, and refused retired TCP 8080; the new board at `.87` returned read-only NUT `ups.status = OL` |
 | Trusted reverse-proxy endpoint | **Observed:** `https://esp32nut-3dprinter.28670avenidacondesa.com/` resolved to Synology `192.168.40.10`; curl validation without certificate bypass returned HTTP/2 200 for the console and 401 for unauthenticated `/api/v1/status`. Chrome's FQDN tab returned `Header fields are too long` while fresh requests and Safari worked. The user clarified that `.173` is the MacMini COM-port target and that Chrome validation must use the FQDN; direct `.173` remains the current NUT wire-validation target, while the FQDN TCP 3493 path returned raw NUT `ACCESS-DENIED` |
-| Browser validation procedure | **Operator guidance:** use Chrome with the FQDN. The v28 countdown candidate's expiry and baseline service behavior are accepted; after uploading the corrected activity candidate, retest interactive activity refresh and verify that cookie deletion is no longer required after expiry. Keep manual cookie deletion available as a fallback until that retest passes. |
+| Browser validation procedure | **Accepted on 2026-07-22:** Chrome/FQDN validation passed for the corrected v30 candidate, including interactive session refresh, no refresh from scrolling or runtime-log polling, expiry/sign-in recovery without manual cookie deletion, and preserved HTTPS/NUT/Wi-Fi behavior. |
 | Last observed development USB path | **Observed:** `/dev/cu.usbmodem54E20396741` with no listed owner; a temporary no-reset serial monitor was used only to capture the OTA rollback panic. Earlier `/dev/cu.usbmodem1101` flash evidence remains historical |
 | Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
@@ -215,6 +215,13 @@ corrected source now adds an explicit authenticated activity request for
 meaningful clicks, focus, typing, changes, and form submission, and clears the
 expired session cookie when serving the sign-in page. It has not been uploaded;
 `.87` remains untouched.
+
+**Accepted on 2026-07-22 13:02 PDT (Project Maintainer report):** all
+requested v30 countdown, interactive-activity, non-activity, expiry, cookie,
+and preserved-service tests passed on the authorized development target at
+`192.168.40.173`. The explicit ADMIN session-activity refresh and stale-cookie
+cleanup slice is target-accepted. No push, merge, tag, publication, or release
+has been performed, and `.87` remains untouched.
 
 ## v2.7.0 scope recorded
 
@@ -1519,8 +1526,8 @@ pending explicit authorization.
 
 ### Remaining Operational Management work
 
-- Target-validate explicit interactive ADMIN activity refresh, final-five-minute
-  countdown behavior, and stale-cookie cleanup after expiry.
+- Decide whether to publish/merge this target-accepted slice or begin the next
+  v2.7.0 implementation slice; no remote mutation is authorized yet.
 - Review remote service controls without changing LAN-only HTTPS 443,
   read-only NUT 3493, refused 8080, or ADMIN/CSRF boundaries.
 - Standalone three-second Wi-Fi-only recovery validation in the later physical
@@ -1529,17 +1536,10 @@ pending explicit authorization.
 
 ## Exact next action
 
-The CPU-free hardware-diagnostics slice is target-validated on `.173`. The
-next action is a Chrome upload of the uniquely named corrected candidate
-`nut-esp32s3-admin-session-activity-v2.6.0-30-g24f66a8f7.bin` from the handoff
-output folder; verify SHA-256
-`93a4f34451e9ac80b4dbbdc1712284211e4576ae47c5510b56662a3a1eed43db` before
-installing. After reboot, verify firmware `v2.6.0-30-g24f66a8f7`, the
-authenticated `session` fields, reset after tab/click/focus/typing/form
-activity, no reset from scrolling or runtime-log polling, expiry
-redirect/sign-in behavior without manual cookie deletion, and the preserved
-HTTPS/NUT/Wi-Fi/hardware/log behavior. Keep `.87` untouched. Do not push,
-merge, tag, publish, or release this branch without explicit authorization.
+The corrected ADMIN session-activity slice is target-accepted on `.173`; no
+additional device action is required. The next decision is whether to push,
+merge, tag, or release it, or to begin the next v2.7.0 slice. Keep `.87`
+untouched and do not mutate remote state without explicit authorization.
 
 ## Operational procedures
 
