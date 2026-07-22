@@ -3,18 +3,24 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #include "api_tokens.h"
+#include "driver/temperature_sensor.h"
 #include "drivers/dstate.h"
 #include "esp_app_desc.h"
+#include "esp_chip_info.h"
 #include "esp_check.h"
 #include "esp_err.h"
+#include "esp_flash.h"
+#include "esp_heap_caps.h"
 #include "esp_https_server.h"
 #include "esp_log.h"
+#include "esp_log_write.h"
 #include "esp_mac.h"
 #include "esp_netif.h"
 #include "esp_ota_ops.h"
@@ -30,6 +36,7 @@
 #include "nvs.h"
 #include "ota.h"
 #include "psa/crypto.h"
+#include "sdkconfig.h"
 #include "time_config.h"
 #include "wifi-provisioning.h"
 
@@ -54,17 +61,60 @@
 #define MANAGEMENT_PASSWORD_MAX_ITERATIONS 1000000U
 #define MANAGEMENT_SESSION_BYTES 32
 #define MANAGEMENT_SESSION_HEX_LENGTH (MANAGEMENT_SESSION_BYTES * 2)
-#define MANAGEMENT_SESSION_IDLE_US (15LL * 60LL * 1000000LL)
+#define MANAGEMENT_SESSION_IDLE_SECONDS (15U * 60U)
+#define MANAGEMENT_SESSION_WARNING_SECONDS (5U * 60U)
+#define MANAGEMENT_SESSION_IDLE_US ((int64_t)MANAGEMENT_SESSION_IDLE_SECONDS * 1000000LL)
 #define MANAGEMENT_FORM_BODY_LIMIT 640
-#define MANAGEMENT_ADMIN_PAGE_SIZE 28000
-#define MANAGEMENT_STATUS_RESPONSE_SIZE 5000
+#define MANAGEMENT_ADMIN_PAGE_SIZE 36000
+#define MANAGEMENT_STATUS_RESPONSE_SIZE 7000
 #define MANAGEMENT_WIFI_SCAN_RESPONSE_SIZE 4200
 #define MANAGEMENT_NUT_VALUE_LENGTH 96
-#define MANAGEMENT_HTTPS_ROUTE_CAPACITY 16
+#define MANAGEMENT_HTTPS_ROUTE_CAPACITY 17
+#define MANAGEMENT_LOG_ENTRY_CAPACITY 24
+#define MANAGEMENT_LOG_MESSAGE_LENGTH 192
+#define MANAGEMENT_LOG_CHUNK_LENGTH 256
+#define MANAGEMENT_LOG_RESPONSE_LIMIT 6
+#define MANAGEMENT_LOG_VALID_EPOCH 1704067200LL
 #define MANAGEMENT_CERTIFICATE_BUFFER_SIZE 2048
 #define MANAGEMENT_PRIVATE_KEY_BUFFER_SIZE 1024
 #define MANAGEMENT_LOGIN_MAX_FAILURES 5
 #define MANAGEMENT_LOGIN_COOLDOWN_US (60LL * 1000000LL)
+#define MANAGEMENT_BOARD_PROFILE "YD-ESP32-23"
+#define MANAGEMENT_MODULE_PROFILE "ESP32-S3-WROOM-1-N16R8"
+
+#if CONFIG_ESPTOOLPY_FLASHSIZE_1MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (1U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_2MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (2U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_4MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (4U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_8MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (8U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_16MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (16U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_32MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (32U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_64MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (64U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_128MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (128U * 1024U * 1024U)
+#else
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES 0U
+#endif
+
+#if CONFIG_SPIRAM_MODE_OCT
+#define MANAGEMENT_PSRAM_MODE "octal"
+#elif CONFIG_SPIRAM_MODE_QUAD
+#define MANAGEMENT_PSRAM_MODE "quad"
+#else
+#define MANAGEMENT_PSRAM_MODE "unavailable"
+#endif
+
+#if CONFIG_SPIRAM
+#define MANAGEMENT_PSRAM_SPEED_MHZ CONFIG_SPIRAM_SPEED
+#else
+#define MANAGEMENT_PSRAM_SPEED_MHZ 0
+#endif
 
 _Static_assert(sizeof(MANAGEMENT_NAMESPACE) <= NVS_NS_NAME_MAX_SIZE,
                "Management NVS namespace exceeds the ESP-IDF limit");
@@ -97,6 +147,14 @@ typedef struct
     uint8_t hash[MANAGEMENT_PASSWORD_HASH_BYTES];
 } ManagementAdminCredential;
 
+typedef struct
+{
+    uint64_t uptime_ms;
+    time_t epoch_seconds;
+    char level;
+    char message[MANAGEMENT_LOG_MESSAGE_LENGTH];
+} ManagementLogEntry;
+
 static httpd_handle_t management_https_server;
 static uint8_t *management_certificate;
 static size_t management_certificate_length;
@@ -105,10 +163,230 @@ static size_t management_private_key_length;
 static ManagementSession management_session;
 static portMUX_TYPE management_session_lock = portMUX_INITIALIZER_UNLOCKED;
 static portMUX_TYPE management_login_lock = portMUX_INITIALIZER_UNLOCKED;
+static portMUX_TYPE management_log_lock = portMUX_INITIALIZER_UNLOCKED;
 static unsigned int management_login_failures;
 static int64_t management_login_cooldown_until_us;
+static ManagementLogEntry management_log_entries[MANAGEMENT_LOG_ENTRY_CAPACITY];
+static char management_log_pending[MANAGEMENT_LOG_CHUNK_LENGTH];
+static size_t management_log_pending_length;
+static size_t management_log_next;
+static size_t management_log_count;
+static vprintf_like_t management_previous_log_vprintf;
+static bool management_log_capture_started;
 
 extern const char *upsname;
+
+static char management_log_level_from_line(const char *line)
+{
+    if (line != NULL && line[1] == ' ')
+    {
+        switch (line[0])
+        {
+        case 'E':
+        case 'W':
+        case 'I':
+        case 'D':
+        case 'V':
+            return line[0];
+        default:
+            break;
+        }
+    }
+    return 'I';
+}
+
+static const char *management_log_message_from_line(const char *line)
+{
+    if (line == NULL)
+    {
+        return "";
+    }
+
+    const char *tag_separator = strchr(line, ':');
+    if (tag_separator != NULL && tag_separator[1] == ' ')
+    {
+        return tag_separator + 2;
+    }
+    if (line[0] != '\0' && line[1] == ' ')
+    {
+        return line + 2;
+    }
+    return line;
+}
+
+static const char *management_log_level_name(char level)
+{
+    switch (level)
+    {
+    case 'E':
+        return "error";
+    case 'W':
+        return "warning";
+    case 'D':
+    case 'V':
+        return "debug";
+    default:
+        return "info";
+    }
+}
+
+static time_t management_log_current_epoch(void)
+{
+    const time_t now = time(NULL);
+    return now >= MANAGEMENT_LOG_VALID_EPOCH ? now : (time_t)0;
+}
+
+static void management_log_store_locked(char level, const char *message,
+                                        uint64_t uptime_ms, time_t epoch_seconds)
+{
+    if (message == NULL || message[0] == '\0')
+    {
+        return;
+    }
+
+    ManagementLogEntry *entry = &management_log_entries[management_log_next];
+    entry->uptime_ms = uptime_ms;
+    entry->epoch_seconds = epoch_seconds;
+    entry->level = level;
+    snprintf(entry->message, sizeof(entry->message), "%s", message);
+    management_log_next = (management_log_next + 1U) % MANAGEMENT_LOG_ENTRY_CAPACITY;
+    if (management_log_count < MANAGEMENT_LOG_ENTRY_CAPACITY)
+    {
+        management_log_count++;
+    }
+}
+
+static void management_log_commit_pending_locked(uint64_t uptime_ms,
+                                                 time_t epoch_seconds)
+{
+    if (management_log_pending_length == 0)
+    {
+        return;
+    }
+
+    management_log_pending[management_log_pending_length] = '\0';
+    management_log_store_locked(
+        management_log_level_from_line(management_log_pending),
+        management_log_message_from_line(management_log_pending),
+        uptime_ms, epoch_seconds);
+    management_log_pending_length = 0;
+    management_log_pending[0] = '\0';
+}
+
+static void management_log_capture_chunk(const char *chunk)
+{
+    if (chunk == NULL)
+    {
+        return;
+    }
+
+    const uint64_t uptime_ms = (uint64_t)(esp_timer_get_time() / 1000LL);
+    const time_t epoch_seconds = management_log_current_epoch();
+    taskENTER_CRITICAL(&management_log_lock);
+    for (const char *cursor = chunk; *cursor != '\0'; cursor++)
+    {
+        if (*cursor == '\n')
+        {
+            management_log_commit_pending_locked(uptime_ms, epoch_seconds);
+        }
+        else if (*cursor != '\r')
+        {
+            if (management_log_pending_length < sizeof(management_log_pending) - 1U)
+            {
+                management_log_pending[management_log_pending_length++] = *cursor;
+                management_log_pending[management_log_pending_length] = '\0';
+            }
+            else
+            {
+                management_log_pending[sizeof(management_log_pending) - 4U] = '.';
+                management_log_pending[sizeof(management_log_pending) - 3U] = '.';
+                management_log_pending[sizeof(management_log_pending) - 2U] = '.';
+            }
+        }
+    }
+    taskEXIT_CRITICAL(&management_log_lock);
+}
+
+static int management_log_vprintf(const char *format, va_list arguments)
+{
+    int output_result = 0;
+    if (management_previous_log_vprintf != NULL)
+    {
+        va_list output_arguments;
+        va_copy(output_arguments, arguments);
+        output_result = management_previous_log_vprintf(format, output_arguments);
+        va_end(output_arguments);
+    }
+
+    char chunk[MANAGEMENT_LOG_CHUNK_LENGTH];
+    va_list capture_arguments;
+    va_copy(capture_arguments, arguments);
+    const int written = vsnprintf(chunk, sizeof(chunk), format, capture_arguments);
+    va_end(capture_arguments);
+    if (written >= 0)
+    {
+        chunk[sizeof(chunk) - 1U] = '\0';
+        management_log_capture_chunk(chunk);
+        if (written >= (int)sizeof(chunk) - 1)
+        {
+            management_log_capture_chunk("\n");
+        }
+    }
+    return output_result;
+}
+
+void management_log_capture_start(void)
+{
+    if (management_log_capture_started)
+    {
+        return;
+    }
+    management_previous_log_vprintf = esp_log_set_vprintf(management_log_vprintf);
+    management_log_capture_started = true;
+}
+
+void management_log_capture_syslog(int priority, const char *format,
+                                   va_list arguments)
+{
+    if (format == NULL)
+    {
+        return;
+    }
+
+    char message[MANAGEMENT_LOG_MESSAGE_LENGTH];
+    va_list capture_arguments;
+    va_copy(capture_arguments, arguments);
+    const int written = vsnprintf(message, sizeof(message), format, capture_arguments);
+    va_end(capture_arguments);
+    if (written < 0)
+    {
+        return;
+    }
+    message[sizeof(message) - 1U] = '\0';
+
+    char line[MANAGEMENT_LOG_MESSAGE_LENGTH];
+    snprintf(line, sizeof(line), "NUT: %.*s",
+             (int)(sizeof(line) - sizeof("NUT: ")), message);
+    char level = 'D';
+    if (priority <= 3)
+    {
+        level = 'E';
+    }
+    else if (priority == 4)
+    {
+        level = 'W';
+    }
+    else if (priority <= 5)
+    {
+        level = 'I';
+    }
+
+    const uint64_t uptime_ms = (uint64_t)(esp_timer_get_time() / 1000LL);
+    const time_t epoch_seconds = management_log_current_epoch();
+    taskENTER_CRITICAL(&management_log_lock);
+    management_log_store_locked(level, line, uptime_ms, epoch_seconds);
+    taskEXIT_CRITICAL(&management_log_lock);
+}
 
 static void management_set_response_headers(httpd_req_t *request)
 {
@@ -283,6 +561,100 @@ static bool management_json_append_string(char *destination, size_t destination_
     return management_json_append(destination, destination_size, used, "\"");
 }
 
+static void management_log_flush_pending(void)
+{
+    const uint64_t uptime_ms = (uint64_t)(esp_timer_get_time() / 1000LL);
+    const time_t epoch_seconds = management_log_current_epoch();
+    taskENTER_CRITICAL(&management_log_lock);
+    management_log_commit_pending_locked(uptime_ms, epoch_seconds);
+    taskEXIT_CRITICAL(&management_log_lock);
+}
+
+static bool management_log_format_timestamps(time_t epoch_seconds,
+                                             char *utc, size_t utc_size,
+                                             char *local, size_t local_size)
+{
+    if (epoch_seconds == 0 || utc == NULL || local == NULL ||
+        utc_size == 0 || local_size == 0)
+    {
+        return false;
+    }
+
+    struct tm utc_time;
+    struct tm local_time;
+    if (gmtime_r(&epoch_seconds, &utc_time) == NULL ||
+        localtime_r(&epoch_seconds, &local_time) == NULL ||
+        strftime(utc, utc_size, "%Y-%m-%dT%H:%M:%SZ", &utc_time) == 0 ||
+        strftime(local, local_size, "%Y-%m-%dT%H:%M:%S%z", &local_time) == 0)
+    {
+        utc[0] = '\0';
+        local[0] = '\0';
+        return false;
+    }
+    return true;
+}
+
+static bool management_append_log_snapshot(char *destination, size_t destination_size,
+                                           size_t *used)
+{
+    ManagementLogEntry entries[MANAGEMENT_LOG_RESPONSE_LIMIT];
+    management_log_flush_pending();
+
+    taskENTER_CRITICAL(&management_log_lock);
+    const size_t entry_count = management_log_count < MANAGEMENT_LOG_RESPONSE_LIMIT
+                                   ? management_log_count
+                                   : MANAGEMENT_LOG_RESPONSE_LIMIT;
+    const size_t first_entry =
+        (management_log_next + MANAGEMENT_LOG_ENTRY_CAPACITY - entry_count) %
+        MANAGEMENT_LOG_ENTRY_CAPACITY;
+    for (size_t index = 0; index < entry_count; index++)
+    {
+        entries[index] = management_log_entries[
+            (first_entry + index) % MANAGEMENT_LOG_ENTRY_CAPACITY];
+    }
+    taskEXIT_CRITICAL(&management_log_lock);
+
+    if (!management_json_append(destination, destination_size, used, ",\"logs\":["))
+    {
+        return false;
+    }
+    for (size_t index = 0; index < entry_count; index++)
+    {
+        if (index > 0 &&
+            !management_json_append(destination, destination_size, used, ","))
+        {
+            return false;
+        }
+
+        char utc[40] = {0};
+        char local[40] = {0};
+        const bool timestamps_available = management_log_format_timestamps(
+            entries[index].epoch_seconds, utc, sizeof(utc), local, sizeof(local));
+        if (!management_json_append(destination, destination_size, used,
+                                    "{\"uptime_ms\":%llu,\"timestamp_utc\":",
+                                    (unsigned long long)entries[index].uptime_ms) ||
+            (timestamps_available
+                 ? !management_json_append_string(destination, destination_size, used, utc)
+                 : !management_json_append(destination, destination_size, used, "null")) ||
+            !management_json_append(destination, destination_size, used,
+                                    ",\"timestamp_local\":") ||
+            (timestamps_available
+                 ? !management_json_append_string(destination, destination_size, used, local)
+                 : !management_json_append(destination, destination_size, used, "null")) ||
+            !management_json_append(destination, destination_size, used, ",\"level\":") ||
+            !management_json_append_string(destination, destination_size, used,
+                                           management_log_level_name(entries[index].level)) ||
+            !management_json_append(destination, destination_size, used, ",\"message\":") ||
+            !management_json_append_string(destination, destination_size, used,
+                                           entries[index].message) ||
+            !management_json_append(destination, destination_size, used, "}"))
+        {
+            return false;
+        }
+    }
+    return management_json_append(destination, destination_size, used, "]");
+}
+
 typedef struct
 {
     bool available;
@@ -373,6 +745,123 @@ static void management_collect_nut_snapshot(ManagementNutSnapshot *snapshot)
                               sizeof(snapshot->ups_realpower));
     management_copy_nut_value("ups.firmware", snapshot->ups_firmware,
                               sizeof(snapshot->ups_firmware));
+}
+
+typedef struct
+{
+    esp_chip_info_t chip;
+    uint32_t flash_size_bytes;
+    size_t psram_size_bytes;
+    size_t free_internal_heap_bytes;
+    size_t free_psram_bytes;
+    uint32_t minimum_free_heap_bytes;
+    bool chip_temperature_available;
+    float chip_temperature_celsius;
+} ManagementHardwareSnapshot;
+
+static bool management_hardware_initialized;
+static uint32_t management_flash_size_bytes;
+static temperature_sensor_handle_t management_temperature_sensor;
+
+static const char *management_chip_model_name(esp_chip_model_t model)
+{
+    switch (model)
+    {
+    case CHIP_ESP32:
+        return "ESP32";
+    case CHIP_ESP32S2:
+        return "ESP32-S2";
+    case CHIP_ESP32S3:
+        return "ESP32-S3";
+    case CHIP_ESP32C2:
+        return "ESP32-C2";
+    case CHIP_ESP32C3:
+        return "ESP32-C3";
+    case CHIP_ESP32C5:
+        return "ESP32-C5";
+    case CHIP_ESP32C6:
+        return "ESP32-C6";
+    case CHIP_ESP32H2:
+        return "ESP32-H2";
+    case CHIP_ESP32P4:
+        return "ESP32-P4";
+    case CHIP_ESP32C61:
+        return "ESP32-C61";
+    case CHIP_ESP32H21:
+        return "ESP32-H21";
+    case CHIP_ESP32H4:
+        return "ESP32-H4";
+    default:
+        return "unknown";
+    }
+}
+
+static void management_initialize_hardware_diagnostics(void)
+{
+    if (management_hardware_initialized)
+    {
+        return;
+    }
+    management_hardware_initialized = true;
+
+    uint32_t detected_flash_size = 0;
+    if (esp_flash_get_physical_size(NULL, &detected_flash_size) == ESP_OK)
+    {
+        management_flash_size_bytes = detected_flash_size;
+    }
+    else
+    {
+        management_flash_size_bytes = MANAGEMENT_COMPILED_FLASH_SIZE_BYTES;
+        ESP_LOGW(TAG, "Unable to detect physical flash size; using configured size");
+    }
+
+    const temperature_sensor_config_t temperature_configuration =
+        TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
+    esp_err_t result = temperature_sensor_install(&temperature_configuration,
+                                                  &management_temperature_sensor);
+    if (result != ESP_OK)
+    {
+        management_temperature_sensor = NULL;
+        ESP_LOGW(TAG, "Internal chip temperature is unavailable: %s",
+                 esp_err_to_name(result));
+        return;
+    }
+
+    result = temperature_sensor_enable(management_temperature_sensor);
+    if (result != ESP_OK)
+    {
+        ESP_LOGW(TAG, "Unable to enable internal chip temperature: %s",
+                 esp_err_to_name(result));
+        temperature_sensor_uninstall(management_temperature_sensor);
+        management_temperature_sensor = NULL;
+    }
+}
+
+static void management_collect_hardware_snapshot(ManagementHardwareSnapshot *snapshot)
+{
+    memset(snapshot, 0, sizeof(*snapshot));
+    esp_chip_info(&snapshot->chip);
+    snapshot->flash_size_bytes = management_flash_size_bytes != 0
+                                     ? management_flash_size_bytes
+                                     : MANAGEMENT_COMPILED_FLASH_SIZE_BYTES;
+    snapshot->psram_size_bytes = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
+    snapshot->free_internal_heap_bytes =
+        heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    snapshot->free_psram_bytes =
+        heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    snapshot->minimum_free_heap_bytes = esp_get_minimum_free_heap_size();
+
+    if (management_temperature_sensor != NULL)
+    {
+        float temperature_celsius = 0.0f;
+        if (temperature_sensor_get_celsius(management_temperature_sensor,
+                                            &temperature_celsius) == ESP_OK &&
+            isfinite(temperature_celsius))
+        {
+            snapshot->chip_temperature_available = true;
+            snapshot->chip_temperature_celsius = temperature_celsius;
+        }
+    }
 }
 
 static esp_err_t management_open_nvs(nvs_open_mode_t mode, nvs_handle_t *handle)
@@ -1009,6 +1498,12 @@ static void management_set_session_cookie(httpd_req_t *request, char *session_he
     httpd_resp_set_hdr(request, "Set-Cookie", session_header);
 }
 
+static void management_expire_session_cookie(httpd_req_t *request)
+{
+    httpd_resp_set_hdr(request, "Set-Cookie",
+                       "ESP32NUT_SESSION=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict");
+}
+
 static void management_start_setup_session(httpd_req_t *request, char *csrf,
                                            size_t csrf_size, char *setup_header,
                                            size_t setup_header_size)
@@ -1090,7 +1585,27 @@ static void management_clear_session(void)
     taskEXIT_CRITICAL(&management_session_lock);
 }
 
-static bool management_cookie_is_authorized(httpd_req_t *request)
+static uint32_t management_session_remaining_seconds(void)
+{
+    uint32_t remaining_seconds = 0;
+    taskENTER_CRITICAL(&management_session_lock);
+    if (management_session.active)
+    {
+        const int64_t elapsed_us =
+            esp_timer_get_time() - management_session.last_activity_us;
+        if (elapsed_us < MANAGEMENT_SESSION_IDLE_US)
+        {
+            const int64_t remaining_us = MANAGEMENT_SESSION_IDLE_US - elapsed_us;
+            remaining_seconds = remaining_us > 0
+                                    ? (uint32_t)(remaining_us / 1000000LL)
+                                    : 0;
+        }
+    }
+    taskEXIT_CRITICAL(&management_session_lock);
+    return remaining_seconds;
+}
+
+static bool management_cookie_is_authorized(httpd_req_t *request, bool refresh_activity)
 {
     char value[MANAGEMENT_SESSION_HEX_LENGTH + 1];
     if (!management_cookie_value(request, "ESP32NUT_SESSION", value, sizeof(value)) ||
@@ -1108,7 +1623,10 @@ static bool management_cookie_is_authorized(httpd_req_t *request)
                                        (const uint8_t *)management_session.cookie,
                                        MANAGEMENT_SESSION_HEX_LENGTH))
     {
-        management_session.last_activity_us = now;
+        if (refresh_activity)
+        {
+            management_session.last_activity_us = now;
+        }
         authorized = true;
     }
     else if (management_session.active && now - management_session.last_activity_us > MANAGEMENT_SESSION_IDLE_US)
@@ -1122,7 +1640,7 @@ static bool management_cookie_is_authorized(httpd_req_t *request)
 
 static bool management_csrf_is_valid(httpd_req_t *request)
 {
-    if (!management_cookie_is_authorized(request))
+    if (!management_cookie_is_authorized(request, true))
     {
         return false;
     }
@@ -1146,7 +1664,18 @@ static bool management_csrf_is_valid(httpd_req_t *request)
 
 static bool management_require_session(httpd_req_t *request)
 {
-    if (management_cookie_is_authorized(request))
+    if (management_cookie_is_authorized(request, true))
+    {
+        return true;
+    }
+    management_send_json(request, "401 Unauthorized",
+                         "{\"error\":\"ADMIN authentication is required.\"}");
+    return false;
+}
+
+static bool management_require_session_without_activity(httpd_req_t *request)
+{
+    if (management_cookie_is_authorized(request, false))
     {
         return true;
     }
@@ -1224,8 +1753,9 @@ static esp_err_t management_root_handler(httpd_req_t *request)
         mbedtls_platform_zeroize(csrf, sizeof(csrf));
         return management_send_html(request, page);
     }
-    if (!management_cookie_is_authorized(request))
+    if (!management_cookie_is_authorized(request, true))
     {
+        management_expire_session_cookie(request);
         const int retry_after = management_login_retry_after_seconds(esp_timer_get_time());
         if (retry_after > 0)
         {
@@ -1249,7 +1779,7 @@ static esp_err_t management_root_handler(httpd_req_t *request)
     }
     const int page_length = snprintf(page, MANAGEMENT_ADMIN_PAGE_SIZE,
              "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
-             "<title>ESP32-NUT administration</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem auto;max-width:60rem;padding:0 1rem;color:#17212b}pre{background:#f0f3f5;padding:1rem;overflow:auto}input,button,select{font:inherit;padding:.7rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem}.secondary{background:#52606d}.danger{background:#a12622}.check{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}.check input{width:auto;margin:0}.result{min-height:1.5rem}.hint{color:#52606d}.token-once{border:2px solid #b7791f;background:#fffaf0;padding:1rem;margin:1rem 0}.token-once code{display:block;overflow-wrap:anywhere;margin:.75rem 0;font-size:.95rem}.token-row{border-top:1px solid #cbd5e1;padding:.8rem 0}.token-row button{margin:.6rem 0 0}.actions{display:flex;gap:.75rem}.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.75rem}.card{border:1px solid #cbd5e1;border-radius:.5rem;padding:1rem;background:#fff}.card h3{margin:.1rem 0 .75rem;font-size:1.05rem}.metric{margin:.45rem 0}.metric strong{display:block;font-size:.95rem}.metric span{display:block;margin-top:.15rem;overflow-wrap:anywhere}.tabs{display:flex;flex-wrap:wrap;gap:.35rem;margin:1.25rem 0;border-bottom:1px solid #cbd5e1;padding-bottom:.75rem}.tab{width:auto;margin:0;padding:.55rem .8rem;background:#52606d;white-space:nowrap}.tab[aria-selected=true]{background:#267747;font-weight:600}.panel[hidden]{display:none}.panel{padding:.25rem 0 1rem}.network-list{display:grid;gap:.5rem;margin:1rem 0}.network-list[hidden]{display:none}.network-option{display:flex;align-items:center;justify-content:space-between;gap:1rem;text-align:left;background:#f0f3f5;color:#17212b;border:1px solid #cbd5e1}.network-option:hover,.network-option[aria-pressed=true]{background:#dbeafe;border-color:#267747}.network-name{font-weight:600;overflow-wrap:anywhere}.network-details{color:#52606d;font-size:.9rem;white-space:nowrap}dialog{max-width:32rem;border:0;border-radius:.5rem;padding:1.25rem;box-shadow:0 1rem 3rem #0006}dialog::backdrop{background:#0008}</style>"
+             "<title>ESP32-NUT administration</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem auto;max-width:60rem;padding:0 1rem;color:#17212b}pre{background:#f0f3f5;padding:1rem;overflow:auto}input,button,select{font:inherit;padding:.7rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem}.secondary{background:#52606d}.danger{background:#a12622}.check{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}.check input{width:auto;margin:0}.result{min-height:1.5rem}.hint{color:#52606d}.token-once{border:2px solid #b7791f;background:#fffaf0;padding:1rem;margin:1rem 0}.token-once code{display:block;overflow-wrap:anywhere;margin:.75rem 0;font-size:.95rem}.token-row{border-top:1px solid #cbd5e1;padding:.8rem 0}.token-row button{margin:.6rem 0 0}.actions{display:flex;gap:.75rem}.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.75rem}.card{border:1px solid #cbd5e1;border-radius:.5rem;padding:1rem;background:#fff}.card h3{margin:.1rem 0 .75rem;font-size:1.05rem}.metric{margin:.45rem 0}.metric strong{display:block;font-size:.95rem}.metric span{display:block;margin-top:.15rem;overflow-wrap:anywhere}.log-card{grid-column:1/-1}.log-card pre{margin:0;max-height:14rem;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.85rem}.tabs{display:flex;flex-wrap:wrap;gap:.35rem;margin:1.25rem 0;border-bottom:1px solid #cbd5e1;padding-bottom:.75rem}.tab{width:auto;margin:0;padding:.55rem .8rem;background:#52606d;white-space:nowrap}.tab[aria-selected=true]{background:#267747;font-weight:600}.panel[hidden]{display:none}.panel{padding:.25rem 0 1rem}.network-list{display:grid;gap:.5rem;margin:1rem 0}.network-list[hidden]{display:none}.network-option{display:flex;align-items:center;justify-content:space-between;gap:1rem;text-align:left;background:#f0f3f5;color:#17212b;border:1px solid #cbd5e1}.network-option:hover,.network-option[aria-pressed=true]{background:#dbeafe;border-color:#267747}.network-name{font-weight:600;overflow-wrap:anywhere}.network-details{color:#52606d;font-size:.9rem;white-space:nowrap}dialog{max-width:32rem;border:0;border-radius:.5rem;padding:1.25rem;box-shadow:0 1rem 3rem #0006}dialog::backdrop{background:#0008}</style>"
              "<style>.button{display:inline-block;font:inherit;padding:.7rem;box-sizing:border-box;border-radius:.4rem;text-align:center;text-decoration:none;color:white}.actions>*{flex:1;margin:0}</style>"
              "<h1>ESP32-NUT administration</h1><p>HTTPS is active with this device's self-signed certificate."
              " The administration API is LAN-only.</p><nav class=tabs aria-label='Administration sections'>"
@@ -1259,7 +1789,8 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<button class=tab type=button data-panel=wifi aria-selected=false>Wi-Fi Configuration</button>"
              "<button class=tab type=button data-panel=password aria-selected=false>ADMIN Password</button>"
              "<button class=tab type=button data-panel=tokens aria-selected=false>API Tokens</button>"
-             "<button class=tab type=button data-panel=ota aria-selected=false>Update Firmware</button></nav><main>"
+             "<button class=tab type=button data-panel=ota aria-selected=false>Update Firmware</button></nav>"
+             "<p id=sessionNotice role=status hidden style='background:#fff3cd;border:1px solid #b7791f;border-radius:.4rem;padding:.6rem .8rem'></p><main>"
              "<section id=panel-dashboard class=panel><h2>Dashboard</h2><section class=dashboard-grid>"
              "<article class=card><h3>Device</h3><p class=metric><strong>Firmware</strong><span id=dashboardFirmware>Loading…</span></p>"
              "<p class=metric><strong>Uptime</strong><span id=dashboardUptime>Loading…</span></p>"
@@ -1278,7 +1809,15 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<p class=metric><strong>Load</strong><span id=dashboardLoad>Loading…</span></p></article>"
              "<article class=card><h3>Power</h3><p class=metric><strong>Battery voltage</strong><span id=dashboardBatteryVoltage>Loading…</span></p>"
              "<p class=metric><strong>Input voltage</strong><span id=dashboardInputVoltage>Loading…</span></p>"
-             "<p class=metric><strong>Output voltage</strong><span id=dashboardOutputVoltage>Loading…</span></p></article></section></section>"
+             "<p class=metric><strong>Output voltage</strong><span id=dashboardOutputVoltage>Loading…</span></p></article>"
+             "<article class=card><h3>Hardware diagnostics</h3><p class=metric><strong>Chip</strong><span id=dashboardChip>Loading…</span></p>"
+             "<p class=metric><strong>Board</strong><span id=dashboardBoard>Loading…</span></p>"
+             "<p class=metric><strong>Flash</strong><span id=dashboardFlash>Loading…</span></p>"
+             "<p class=metric><strong>PSRAM</strong><span id=dashboardPsram>Loading…</span></p>"
+             "<p class=metric><strong>Free memory</strong><span id=dashboardMemory>Loading…</span></p>"
+             "<p class=metric><strong>Chip temperature</strong><span id=dashboardChipTemperature>Loading…</span></p>"
+             "</article>"
+             "<article class='card log-card'><h3>Runtime logs</h3><pre id=dashboardLogs>Loading…</pre></article></section></section>"
              "<section id=panel-status class=panel hidden><h2>Device Status</h2><details><summary>Raw status JSON</summary><pre id=status>Loading…</pre></details></section>"
              "<section id=panel-time class=panel hidden><h2>Date and Time</h2><p id=timeSummary>Loading time status…</p>"
              "<form id=timeConfigForm><label class=check><input id=ntpEnabled type=checkbox> Synchronize automatically with NTP</label>"
@@ -1319,14 +1858,20 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<button onclick=logout()>Sign out</button><script>"
              "const csrf='%s',status=document.getElementById('status'),timeSummary=document.getElementById('timeSummary'),timeConfigForm=document.getElementById('timeConfigForm'),ntpEnabled=document.getElementById('ntpEnabled'),ntpServer=document.getElementById('ntpServer'),timeZone=document.getElementById('timeZone'),syncNow=document.getElementById('syncNow'),manualTimeForm=document.getElementById('manualTimeForm'),manualDateTime=document.getElementById('manualDateTime'),timeResult=document.getElementById('timeResult'),wifiCurrent=document.getElementById('wifiCurrent'),wifiScanButton=document.getElementById('wifiScanButton'),wifiScanResult=document.getElementById('wifiScanResult'),wifiForm=document.getElementById('wifiForm'),wifiSsid=document.getElementById('wifiSsid'),wifiNetworkList=document.getElementById('wifiNetworkList'),wifiPassword=document.getElementById('wifiPassword'),wifiShowPassword=document.getElementById('wifiShowPassword'),wifiConfigureButton=document.getElementById('wifiConfigureButton'),wifiResult=document.getElementById('wifiResult'),currentPassword=document.getElementById('currentPassword'),newPassword=document.getElementById('newPassword'),confirmPassword=document.getElementById('confirmPassword'),passwordForm=document.getElementById('passwordForm'),passwordResult=document.getElementById('passwordResult'),tokenForm=document.getElementById('tokenForm'),tokenOnce=document.getElementById('tokenOnce'),tokenValue=document.getElementById('tokenValue'),tokenMetadata=document.getElementById('tokenMetadata'),tokenList=document.getElementById('tokenList'),tokenResult=document.getElementById('tokenResult'),deleteTokenDialog=document.getElementById('deleteTokenDialog'),deleteTokenName=document.getElementById('deleteTokenName'),deleteTokenAck=document.getElementById('deleteTokenAck'),deleteTokenConfirm=document.getElementById('deleteTokenConfirm'),otaForm=document.getElementById('otaForm'),otaFile=document.getElementById('otaFile'),otaButton=document.getElementById('otaButton'),otaResult=document.getElementById('otaResult');let pendingTokenId='';"
              "const otaCheckButton=document.getElementById('otaCheckButton');"
+             "const sessionNotice=document.getElementById('sessionNotice');let sessionRemainingSeconds=null,sessionActivityInFlight=false,sessionActivitySentAt=0;"
              "const tabs=document.querySelectorAll('.tab'),panels={dashboard:document.getElementById('panel-dashboard'),status:document.getElementById('panel-status'),time:document.getElementById('panel-time'),wifi:document.getElementById('panel-wifi'),password:document.getElementById('panel-password'),tokens:document.getElementById('panel-tokens'),ota:document.getElementById('panel-ota')};"
-             "const dashboardFirmware=document.getElementById('dashboardFirmware'),dashboardUptime=document.getElementById('dashboardUptime'),dashboardUpdate=document.getElementById('dashboardUpdate'),dashboardWifi=document.getElementById('dashboardWifi'),dashboardSignal=document.getElementById('dashboardSignal'),dashboardNut=document.getElementById('dashboardNut'),dashboardUpsStatus=document.getElementById('dashboardUpsStatus'),dashboardUps=document.getElementById('dashboardUps'),dashboardSerial=document.getElementById('dashboardSerial'),dashboardBatteryType=document.getElementById('dashboardBatteryType'),dashboardBatteryMfrDate=document.getElementById('dashboardBatteryMfrDate'),dashboardUpsTemperature=document.getElementById('dashboardUpsTemperature'),dashboardBattery=document.getElementById('dashboardBattery'),dashboardRuntime=document.getElementById('dashboardRuntime'),dashboardLoad=document.getElementById('dashboardLoad'),dashboardBatteryVoltage=document.getElementById('dashboardBatteryVoltage'),dashboardInputVoltage=document.getElementById('dashboardInputVoltage'),dashboardOutputVoltage=document.getElementById('dashboardOutputVoltage');"
-             "function displayValue(value){return value===undefined||value===null||value===''||value==='unavailable'?'Not available':String(value)}function formatUptime(seconds){if(typeof seconds!=='number')return displayValue(seconds);const days=Math.floor(seconds/86400),hours=Math.floor(seconds%%86400/3600),minutes=Math.floor(seconds%%3600/60),remaining=Math.floor(seconds%%60);return (days?days+'d ':'')+(hours?hours+'h ':'')+(minutes?minutes+'m ':'')+remaining+'s'}"
+             "const dashboardFirmware=document.getElementById('dashboardFirmware'),dashboardUptime=document.getElementById('dashboardUptime'),dashboardUpdate=document.getElementById('dashboardUpdate'),dashboardWifi=document.getElementById('dashboardWifi'),dashboardSignal=document.getElementById('dashboardSignal'),dashboardNut=document.getElementById('dashboardNut'),dashboardUpsStatus=document.getElementById('dashboardUpsStatus'),dashboardUps=document.getElementById('dashboardUps'),dashboardSerial=document.getElementById('dashboardSerial'),dashboardBatteryType=document.getElementById('dashboardBatteryType'),dashboardBatteryMfrDate=document.getElementById('dashboardBatteryMfrDate'),dashboardUpsTemperature=document.getElementById('dashboardUpsTemperature'),dashboardBattery=document.getElementById('dashboardBattery'),dashboardRuntime=document.getElementById('dashboardRuntime'),dashboardLoad=document.getElementById('dashboardLoad'),dashboardBatteryVoltage=document.getElementById('dashboardBatteryVoltage'),dashboardInputVoltage=document.getElementById('dashboardInputVoltage'),dashboardOutputVoltage=document.getElementById('dashboardOutputVoltage'),dashboardChip=document.getElementById('dashboardChip'),dashboardBoard=document.getElementById('dashboardBoard'),dashboardFlash=document.getElementById('dashboardFlash'),dashboardPsram=document.getElementById('dashboardPsram'),dashboardMemory=document.getElementById('dashboardMemory'),dashboardChipTemperature=document.getElementById('dashboardChipTemperature'),dashboardLogs=document.getElementById('dashboardLogs');"
+             "function displayValue(value){return value===undefined||value===null||value===''||value==='unavailable'?'Not available':String(value)}function formatUptime(seconds){if(typeof seconds!=='number')return displayValue(seconds);const days=Math.floor(seconds/86400),hours=Math.floor(seconds%%86400/3600),minutes=Math.floor(seconds%%3600/60),remaining=Math.floor(seconds%%60);return (days?days+'d ':'')+(hours?hours+'h ':'')+(minutes?minutes+'m ':'')+remaining+'s'}function formatBytes(value){if(typeof value!=='number'||value<0)return displayValue(value);if(value<1024)return value+' B';const units=['KB','MB','GB'];let scaled=value,unit='B';for(const next of units){if(scaled<1024)break;scaled/=1024;unit=next}return scaled.toFixed(scaled>=10?0:1)+' '+unit}"
              "function selectPanel(name){for(const tab of tabs)tab.setAttribute('aria-selected',tab.dataset.panel===name?'true':'false');for(const panelName in panels)panels[panelName].hidden=panelName!==name}"
              "tabs.forEach(tab=>tab.onclick=()=>selectPanel(tab.dataset.panel));"
-             "function renderDashboard(x){const wifi=x.wifi||{},nut=x.nut||{},ups=x.ups||{},update=x.update||{};dashboardFirmware.textContent=displayValue(x.firmware);dashboardUptime.textContent=formatUptime(x.uptime_seconds);dashboardUpdate.textContent=displayValue(update.last_result);dashboardWifi.textContent=displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected');dashboardSignal.textContent=displayValue(wifi.rssi_dbm)+' dBm';dashboardNut.textContent=displayValue(nut.health)+' — TCP '+displayValue(nut.port)+(nut.data_stale?' — data stale':'');dashboardUpsStatus.textContent=displayValue(ups.status);dashboardUps.textContent=displayValue(nut.ups_name)+' — '+displayValue(ups.manufacturer)+' '+displayValue(ups.model);dashboardSerial.textContent=displayValue(ups.serial);dashboardBatteryType.textContent=displayValue(ups.battery_type);dashboardBatteryMfrDate.textContent=displayValue(ups.battery_mfr_date);dashboardUpsTemperature.textContent=displayValue(ups.temperature);dashboardBattery.textContent=displayValue(ups.battery_charge)+' %%';dashboardRuntime.textContent=displayValue(ups.battery_runtime)+' s';dashboardLoad.textContent=displayValue(ups.load)+' %%';dashboardBatteryVoltage.textContent=displayValue(ups.battery_voltage)+' V';dashboardInputVoltage.textContent=displayValue(ups.input_voltage)+' V';dashboardOutputVoltage.textContent=displayValue(ups.output_voltage)+' V'}"
+             "function renderDashboard(x){const wifi=x.wifi||{},nut=x.nut||{},ups=x.ups||{},update=x.update||{},hardware=x.hardware||{},chip=hardware.chip||{},board=hardware.board||{},flash=hardware.flash||{},psram=hardware.psram||{},memory=hardware.memory||{},temperature=hardware.chip_temperature||{},logs=x.logs||{};dashboardFirmware.textContent=displayValue(x.firmware);dashboardUptime.textContent=formatUptime(x.uptime_seconds);dashboardUpdate.textContent=displayValue(update.last_result);dashboardWifi.textContent=displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected');dashboardSignal.textContent=displayValue(wifi.rssi_dbm)+' dBm';dashboardNut.textContent=displayValue(nut.health)+' — TCP '+displayValue(nut.port)+(nut.data_stale?' — data stale':'');dashboardUpsStatus.textContent=displayValue(ups.status);dashboardUps.textContent=displayValue(nut.ups_name)+' — '+displayValue(ups.manufacturer)+' '+displayValue(ups.model);dashboardSerial.textContent=displayValue(ups.serial);dashboardBatteryType.textContent=displayValue(ups.battery_type);dashboardBatteryMfrDate.textContent=displayValue(ups.battery_mfr_date);dashboardUpsTemperature.textContent=displayValue(ups.temperature);dashboardBattery.textContent=displayValue(ups.battery_charge)+' %%';dashboardRuntime.textContent=displayValue(ups.battery_runtime)+' s';dashboardLoad.textContent=displayValue(ups.load)+' %%';dashboardBatteryVoltage.textContent=displayValue(ups.battery_voltage)+' V';dashboardInputVoltage.textContent=displayValue(ups.input_voltage)+' V';dashboardOutputVoltage.textContent=displayValue(ups.output_voltage)+' V';dashboardChip.textContent=displayValue(chip.model)+' rev '+displayValue(chip.revision)+' — '+displayValue(chip.cores)+' cores';dashboardBoard.textContent=displayValue(board.profile)+' — '+displayValue(board.module);dashboardFlash.textContent=flash.size_bytes?formatBytes(flash.size_bytes)+' — '+displayValue(flash.mode)+' '+displayValue(flash.frequency):'Not available';dashboardPsram.textContent=psram.available?formatBytes(psram.size_bytes)+' — '+displayValue(psram.mode)+' '+displayValue(psram.frequency_mhz)+' MHz':'Not available';dashboardMemory.textContent='Internal '+formatBytes(memory.free_internal_bytes)+' — PSRAM '+formatBytes(memory.free_psram_bytes)+' — min '+formatBytes(memory.minimum_free_bytes);dashboardChipTemperature.textContent=temperature.available?displayValue(temperature.celsius)+' °C':'Not available';dashboardLogs.textContent=Array.isArray(logs)?(logs.length?logs.map(log=>(log.timestamp_local||log.timestamp_utc||('+'+(Number(log.uptime_ms||0)/1000).toFixed(3)+'s'))+' '+displayValue(log.level).toUpperCase()+' '+displayValue(log.message)).join('\\n'):'No runtime logs yet.'):'Not available'}"
+             "function updateSessionNotice(){if(sessionRemainingSeconds===null||sessionRemainingSeconds>300){sessionNotice.hidden=true;return}if(sessionRemainingSeconds<=0){sessionNotice.textContent='ADMIN session expired. Returning to sign-in…';sessionNotice.hidden=false;location='/';return}const minutes=Math.floor(sessionRemainingSeconds/60),seconds=sessionRemainingSeconds%%60;sessionNotice.textContent='ADMIN session expires in '+minutes+':'+String(seconds).padStart(2,'0')+' due to inactivity. Normal activity resets the deadline.';sessionNotice.hidden=false}"
+             "function renderSession(session){if(sessionActivityInFlight||sessionActivitySentAt&&Date.now()-sessionActivitySentAt<1500)return;const remaining=Number(session&&session.remaining_seconds);sessionRemainingSeconds=Number.isFinite(remaining)?Math.max(0,Math.floor(remaining)):null;updateSessionNotice()}"
+             "async function recordSessionActivity(){const now=Date.now();if(sessionActivityInFlight||now-sessionActivitySentAt<1000)return;sessionActivitySentAt=now;sessionActivityInFlight=true;try{const r=await fetch('/api/v1/admin/session/activity',{method:'POST',headers:{'X-ESP32-NUT-CSRF':csrf},cache:'no-store'});if(r.status===401||r.status===403){location='/';return}if(!r.ok)return;const x=await r.json(),remaining=Number(x.remaining_seconds);if(Number.isFinite(remaining)){sessionRemainingSeconds=Math.max(0,Math.floor(remaining));updateSessionNotice()}}catch(error){}finally{sessionActivityInFlight=false}}"
+             "['click','focusin','input','change','submit','keydown'].forEach(eventName=>document.addEventListener(eventName,recordSessionActivity,true));"
+             "const renderDashboardBase=renderDashboard;renderDashboard=function(x){renderDashboardBase(x);renderSession(x.session||{})};setInterval(()=>{if(sessionRemainingSeconds!==null&&sessionRemainingSeconds>0){sessionRemainingSeconds--;updateSessionNotice()}},1000);"
              "function renderWifi(x){const wifi=x.wifi||{};wifiCurrent.textContent='Current network: '+displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected')+' — '+displayValue(wifi.rssi_dbm)+' dBm';if(!wifiSsid.value&&wifi.ssid)wifiSsid.value=wifi.ssid}"
-             "async function loadStatus(){try{const r=await fetch('/api/v1/status',{cache:'no-store'}),x=await r.json();status.textContent=JSON.stringify(x,null,2);renderDashboard(x);renderWifi(x);if(x.time){ntpEnabled.checked=x.time.ntp_enabled;ntpServer.value=x.time.ntp_server;timeZone.value=x.time.timezone;syncNow.disabled=!x.time.ntp_enabled;if(x.time.available){timeSummary.textContent=x.time.local+' ('+x.time.timezone+'), UTC '+x.time.utc+', source '+x.time.source+(x.time.synchronization_pending?' — synchronization pending':'');manualDateTime.value=x.time.local.slice(0,16)}else{timeSummary.textContent=x.time.synchronization_pending?'Time is not set; waiting for NTP.':'Time is not set.'}}}catch(error){status.textContent='Unable to load device status.';wifiCurrent.textContent='Unable to load current Wi-Fi status.'}}"
+             "async function loadStatus(){try{const r=await fetch('/api/v1/status',{cache:'no-store'});if(r.status===401||r.status===403){location='/';return}const x=await r.json();status.textContent=JSON.stringify(x,null,2);renderDashboard(x);renderWifi(x);if(x.time){ntpEnabled.checked=x.time.ntp_enabled;ntpServer.value=x.time.ntp_server;timeZone.value=x.time.timezone;syncNow.disabled=!x.time.ntp_enabled;if(x.time.available){timeSummary.textContent=x.time.local+' ('+x.time.timezone+'), UTC '+x.time.utc+', source '+x.time.source+(x.time.synchronization_pending?' — synchronization pending':'');manualDateTime.value=x.time.local.slice(0,16)}else{timeSummary.textContent=x.time.synchronization_pending?'Time is not set; waiting for NTP.':'Time is not set.'}}}catch(error){status.textContent='Unable to load device status.';wifiCurrent.textContent='Unable to load current Wi-Fi status.'}}"
              "wifiShowPassword.onchange=()=>wifiPassword.type=wifiShowPassword.checked?'text':'password';"
              "wifiScanButton.onclick=async()=>{wifiScanButton.disabled=true;wifiScanResult.textContent='Scanning supported 2.4 GHz networks…';try{const r=await fetch('/api/v1/admin/wifi/scan',{cache:'no-store'}),x=await r.json();if(!r.ok)throw new Error(x.error||'Wi-Fi scan failed.');const networks=x.networks||[];wifiNetworkList.replaceChildren();wifiNetworkList.hidden=networks.length===0;for(const network of networks){const option=document.createElement('button'),name=document.createElement('span'),details=document.createElement('span');option.type='button';option.className='network-option';option.setAttribute('aria-pressed',network.ssid===wifiSsid.value?'true':'false');name.className='network-name';name.textContent=network.ssid;details.className='network-details';details.textContent=network.rssi_dbm+' dBm — '+network.security;option.append(name,details);option.onclick=()=>{wifiSsid.value=network.ssid;for(const other of wifiNetworkList.querySelectorAll('.network-option'))other.setAttribute('aria-pressed','false');option.setAttribute('aria-pressed','true');wifiNetworkList.hidden=true;wifiPassword.focus()};wifiNetworkList.append(option)}wifiScanResult.textContent=networks.length+' network(s) found.'}catch(error){wifiNetworkList.replaceChildren();wifiNetworkList.hidden=true;wifiScanResult.textContent=error.message||'Unable to scan Wi-Fi networks.'}finally{wifiScanButton.disabled=false}};"
              "wifiForm.onsubmit=async e=>{e.preventDefault();if(!wifiSsid.value.trim())return;if(!window.confirm('Save these Wi-Fi credentials and restart ESP32-NUT to test the connection?'))return;wifiConfigureButton.disabled=true;wifiResult.textContent='Staging Wi-Fi credentials…';const body=new URLSearchParams({ssid:wifiSsid.value,password:wifiPassword.value,acknowledge:'true'});try{const r=await fetch('/api/v1/admin/wifi',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body}),x=await r.json();wifiResult.textContent=x.message||x.error||'Wi-Fi configuration failed.';if(r.ok)setTimeout(reconnect,5000);else wifiConfigureButton.disabled=false}catch(error){wifiResult.textContent='Connection closed. The device may be restarting…';setTimeout(reconnect,3000)}};"
@@ -1343,7 +1888,7 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "deleteTokenConfirm.onclick=async()=>{if(!pendingTokenId||!deleteTokenAck.checked)return;const id=pendingTokenId;deleteTokenConfirm.disabled=true;tokenResult.textContent='Deleting API token…';try{const body=new URLSearchParams({id,acknowledge:'true'}),r=await fetch('/api/v1/admin/tokens',{method:'DELETE',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body}),x=await r.json();tokenResult.textContent=x.message||x.error||'Token deletion failed.';if(r.ok){deleteTokenDialog.close();loadTokens()}else{deleteTokenConfirm.disabled=false}}catch(error){tokenResult.textContent='Unable to reach the API-token service.';deleteTokenConfirm.disabled=false}};"
              "otaCheckButton.onclick=async()=>{const file=otaFile.files[0];if(!file){otaResult.textContent='Choose a firmware .bin file first.';return}otaCheckButton.disabled=true;otaButton.disabled=true;otaResult.textContent='Checking firmware image…';try{const r=await fetch('/api/v1/ota/check',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||x.error||('Firmware check failed (HTTP '+r.status+').')}catch(error){otaResult.textContent='Unable to reach the firmware check service.'}finally{otaCheckButton.disabled=false;otaButton.disabled=false}};"
              "otaForm.onsubmit=async e=>{e.preventDefault();const file=otaFile.files[0];if(!file||!window.confirm('Install '+file.name+' and restart ESP32-NUT?'))return;otaButton.disabled=true;otaCheckButton.disabled=true;otaResult.textContent='Uploading and verifying firmware…';try{const r=await fetch('/api/v1/ota/install',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||x.error||('Firmware installation failed (HTTP '+r.status+').');if(r.ok){setTimeout(reconnect,5000)}else{otaButton.disabled=false;otaCheckButton.disabled=false}}catch(error){otaResult.textContent='Connection closed. The device may be restarting…';setTimeout(reconnect,3000)}};"
-             "function reconnect(){fetch('/',{cache:'no-store'}).then(()=>location='/').catch(()=>setTimeout(reconnect,2000))}function logout(){fetch('/logout',{method:'POST',headers:{'X-ESP32-NUT-CSRF':csrf}}).then(()=>location='/')}loadStatus();loadTokens();</script>",
+             "function reconnect(){fetch('/',{cache:'no-store'}).then(()=>location='/').catch(()=>setTimeout(reconnect,2000))}function logout(){fetch('/logout',{method:'POST',headers:{'X-ESP32-NUT-CSRF':csrf}}).then(()=>location='/')}loadStatus();loadTokens();setInterval(loadStatus,5000);</script>",
              csrf);
     mbedtls_platform_zeroize(csrf, sizeof(csrf));
     if (page_length < 0 || page_length >= MANAGEMENT_ADMIN_PAGE_SIZE)
@@ -1548,8 +2093,7 @@ static esp_err_t management_logout_handler(httpd_req_t *request)
         return management_send_json(request, "403 Forbidden", "{\"error\":\"Invalid session or CSRF token.\"}");
     }
     management_clear_session();
-    httpd_resp_set_hdr(request, "Set-Cookie",
-                       "ESP32NUT_SESSION=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict");
+    management_expire_session_cookie(request);
     return management_send_redirect(request, "/");
 }
 
@@ -1719,7 +2263,7 @@ static esp_err_t management_wifi_configure_handler(httpd_req_t *request)
 
 static esp_err_t management_status_handler(httpd_req_t *request)
 {
-    if (!management_require_session(request))
+    if (!management_require_session_without_activity(request))
     {
         return ESP_OK;
     }
@@ -1737,8 +2281,14 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     const esp_partition_t *next_partition = esp_ota_get_next_update_partition(NULL);
     TimeConfigStatus time_status;
     time_config_get_status(&time_status);
+    const uint32_t session_remaining_seconds = management_session_remaining_seconds();
+    const bool session_warning = session_remaining_seconds > 0 &&
+                                 session_remaining_seconds <= MANAGEMENT_SESSION_WARNING_SECONDS;
     ManagementNutSnapshot nut_snapshot;
     management_collect_nut_snapshot(&nut_snapshot);
+    management_initialize_hardware_diagnostics();
+    ManagementHardwareSnapshot hardware_snapshot;
+    management_collect_hardware_snapshot(&hardware_snapshot);
     char last_update_result[32] = {0};
     if (ota_get_last_result(last_update_result, sizeof(last_update_result)) != ESP_OK)
     {
@@ -1803,7 +2353,61 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     MANAGEMENT_JSON_STRING(next_partition != NULL ? next_partition->label : "unavailable");
     MANAGEMENT_JSON_APPEND("},\"update\":{\"last_result\":");
     MANAGEMENT_JSON_STRING(last_update_result);
-    MANAGEMENT_JSON_APPEND("},\"nut\":{\"port\":3493,\"mode\":\"read-only\","
+    MANAGEMENT_JSON_APPEND("},\"session\":{\"idle_timeout_seconds\":%u,"
+                           "\"remaining_seconds\":%u,\"warning\":%s},"
+                           "\"hardware\":{\"chip\":{\"model\":",
+                           MANAGEMENT_SESSION_IDLE_SECONDS,
+                           session_remaining_seconds,
+                           session_warning ? "true" : "false");
+    MANAGEMENT_JSON_STRING(management_chip_model_name(hardware_snapshot.chip.model));
+    MANAGEMENT_JSON_APPEND(",\"revision\":%u,\"cores\":%u,\"features\":{",
+                           (unsigned int)hardware_snapshot.chip.revision,
+                           (unsigned int)hardware_snapshot.chip.cores);
+    MANAGEMENT_JSON_APPEND("\"embedded_flash\":%s,\"wifi_bgn\":%s,",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_EMB_FLASH) != 0 ? "true" : "false",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_WIFI_BGN) != 0 ? "true" : "false");
+    MANAGEMENT_JSON_APPEND("\"bluetooth_classic\":%s,\"bluetooth_le\":%s,",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_BT) != 0 ? "true" : "false",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_BLE) != 0 ? "true" : "false");
+    MANAGEMENT_JSON_APPEND("\"ieee802154\":%s,\"embedded_psram\":%s}},",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_IEEE802154) != 0 ? "true" : "false",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_EMB_PSRAM) != 0 ? "true" : "false");
+    MANAGEMENT_JSON_APPEND("\"board\":{\"profile\":");
+    MANAGEMENT_JSON_STRING(MANAGEMENT_BOARD_PROFILE);
+    MANAGEMENT_JSON_APPEND(",\"module\":");
+    MANAGEMENT_JSON_STRING(MANAGEMENT_MODULE_PROFILE);
+    MANAGEMENT_JSON_APPEND("},\"flash\":{\"size_bytes\":%lu,\"mode\":",
+                           (unsigned long)hardware_snapshot.flash_size_bytes);
+    MANAGEMENT_JSON_STRING(CONFIG_ESPTOOLPY_FLASHMODE);
+    MANAGEMENT_JSON_APPEND(",\"frequency\":");
+    MANAGEMENT_JSON_STRING(CONFIG_ESPTOOLPY_FLASHFREQ);
+    MANAGEMENT_JSON_APPEND("},\"psram\":{\"available\":%s,\"size_bytes\":%lu,\"mode\":",
+                           hardware_snapshot.psram_size_bytes > 0 ? "true" : "false",
+                           (unsigned long)hardware_snapshot.psram_size_bytes);
+    MANAGEMENT_JSON_STRING(MANAGEMENT_PSRAM_MODE);
+    MANAGEMENT_JSON_APPEND(",\"frequency_mhz\":%d},\"memory\":{"
+                           "\"free_internal_bytes\":%lu,\"free_psram_bytes\":%lu,"
+                           "\"minimum_free_bytes\":%lu},\"chip_temperature\":{"
+                           "\"available\":%s,\"celsius\":",
+                           MANAGEMENT_PSRAM_SPEED_MHZ,
+                           (unsigned long)hardware_snapshot.free_internal_heap_bytes,
+                           (unsigned long)hardware_snapshot.free_psram_bytes,
+                           (unsigned long)hardware_snapshot.minimum_free_heap_bytes,
+                           hardware_snapshot.chip_temperature_available ? "true" : "false");
+    if (hardware_snapshot.chip_temperature_available)
+    {
+        MANAGEMENT_JSON_APPEND("%.1f", (double)hardware_snapshot.chip_temperature_celsius);
+    }
+    else
+    {
+        MANAGEMENT_JSON_APPEND("null");
+    }
+    MANAGEMENT_JSON_APPEND("}}");
+    if (!management_append_log_snapshot(response, sizeof(response), &used))
+    {
+        response_valid = false;
+    }
+    MANAGEMENT_JSON_APPEND(",\"nut\":{\"port\":3493,\"mode\":\"read-only\","
                            "\"available\":%s,\"data_stale\":%s,\"health\":",
                            nut_snapshot.available ? "true" : "false",
                            nut_snapshot.stale ? "true" : "false");
@@ -1857,6 +2461,27 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     const esp_err_t send_result = management_send_json(request, "200 OK", response);
     mbedtls_platform_zeroize(response, sizeof(response));
     return send_result;
+}
+
+static esp_err_t management_session_activity_handler(httpd_req_t *request)
+{
+    if (!management_csrf_is_valid(request))
+    {
+        return management_send_json(
+            request, "403 Forbidden",
+            "{\"error\":\"Invalid session or CSRF token.\"}");
+    }
+
+    char response[96];
+    const uint32_t remaining_seconds = management_session_remaining_seconds();
+    snprintf(response, sizeof(response),
+             "{\"remaining_seconds\":%u,\"warning\":%s}",
+             (unsigned int)remaining_seconds,
+             remaining_seconds > 0 &&
+                     remaining_seconds <= MANAGEMENT_SESSION_WARNING_SECONDS
+                 ? "true"
+                 : "false");
+    return management_send_json(request, "200 OK", response);
 }
 
 static esp_err_t management_token_list_handler(httpd_req_t *request)
@@ -2258,6 +2883,8 @@ esp_err_t management_server_start(void)
         return ESP_OK;
     }
 
+    management_initialize_hardware_diagnostics();
+
     ESP_RETURN_ON_ERROR(management_load_or_create_certificate(), TAG,
                         "Unable to prepare HTTPS certificate");
 
@@ -2287,6 +2914,7 @@ esp_err_t management_server_start(void)
     const httpd_uri_t password = {.uri = "/api/v1/admin/password", .method = HTTP_POST, .handler = management_password_change_handler};
     const httpd_uri_t logout = {.uri = "/logout", .method = HTTP_POST, .handler = management_logout_handler};
     const httpd_uri_t status = {.uri = "/api/v1/status", .method = HTTP_GET, .handler = management_status_handler};
+    const httpd_uri_t session_activity = {.uri = "/api/v1/admin/session/activity", .method = HTTP_POST, .handler = management_session_activity_handler};
     const httpd_uri_t time_configuration = {.uri = "/api/v1/admin/time", .method = HTTP_POST, .handler = management_time_config_handler};
     const httpd_uri_t ota_check = {.uri = "/api/v1/ota/check", .method = HTTP_POST, .handler = management_ota_check_handler};
     const httpd_uri_t ota = {.uri = "/api/v1/ota/install", .method = HTTP_POST, .handler = management_ota_install_handler};
@@ -2298,7 +2926,7 @@ esp_err_t management_server_start(void)
     const httpd_uri_t agent_ota = {.uri = "/api/v1/agent/ota/install", .method = HTTP_POST, .handler = management_agent_ota_install_handler};
     const httpd_uri_t *routes[] = {
         &root, &setup, &login_page, &login, &password, &logout, &status,
-        &time_configuration, &ota_check, &ota, &token_list, &token_create, &token_delete,
+        &session_activity, &time_configuration, &ota_check, &ota, &token_list, &token_create, &token_delete,
         &wifi_scan, &wifi_configuration, &agent_ota};
     _Static_assert(sizeof(routes) / sizeof(routes[0]) <=
                        MANAGEMENT_HTTPS_ROUTE_CAPACITY,

@@ -126,7 +126,16 @@ This milestone is the `v2.x` release family.
   confirmation to delete.
 - Dashboard/device diagnostics: firmware version, uptime, Wi-Fi SSID/IP/signal,
   UPS identity and serial number, `ups.status`, battery/load/runtime,
-  input/output voltage, NUT service status, and last update result.
+  input/output voltage, NUT service status, and last update result. Expand the
+  read-only NUT snapshot with `battery.type` (battery chemistry),
+  `battery.mfr.date` (battery manufacturing date), and `ups.temperature` when
+  the driver and UPS provide them; show `Not available` rather than inventing
+  values when the UPS does not populate a field. Also expose the ESP32 chip
+  model/revision/core/features, the YD-ESP32-23 board profile, flash/PSRAM
+  profile, internal/PSRAM free heap, minimum-free heap, and chip temperature.
+  CPU load is a bounded, explicitly sampled diagnostic with its sampling
+  interval shown; it must not introduce high-frequency polling, frequent flash
+  writes, or a measurable service-performance regression.
 - Wi-Fi scan and configuration with a visible selectable list of only 2.4
   GHz-capable results, including SSID, signal strength, and security mode;
   manual entry for hidden or unlisted networks; no stored-password display; a
@@ -158,7 +167,7 @@ proportional build and target-hardware validation.
 | 5 | `v2.4.0` | `feature/management-dashboard` | Expose and render the required firmware, Wi-Fi, NUT, UPS, voltage, battery, load, runtime, update, and time diagnostics. |
 | 6 | `v2.5.0` | `feature/wifi-management` | Add the client-side ADMIN tab bar and Wi-Fi Configuration panel; scan supported networks, show signal strength, provide an off-by-default local `Show password` toggle, confirm credential changes, reconnect safely, and never reveal the stored password. |
 | 7 | `v2.6.0` | `feature/local-ota-management` | Complete. PR #24 merged local Check/Install controls, corrupt-image rejection, release-link guidance, and rollback/persistence validation at `1d2e18acc`; annotated tag `v2.6.0` and the final GitHub release are published. |
-| 8 | `v2.7.0` | `feature/live-diagnostics` | Add bounded timestamped live browser logs and reviewed remote service controls without high-frequency flash writes. |
+| 8 | `v2.7.0` | `feature/live-diagnostics-nut-fields` (first slice); `feature/development-build-identity` (second slice) | Add the read-only NUT battery chemistry, battery manufacturing date, and UPS temperature fields with `Not available` rendering, then make development images identify their Git branch/dirty state without changing release provenance. Follow with separate ESP32 diagnostics, session/cookie, bounded-log, CPU-sampler, and reviewed-service-control slices; do not add high-frequency flash writes or background polling that extends an idle session. |
 | 9 | `v2.8.0` | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
 | 10 | `v2.9.0` | `feature/operational-management-acceptance` | Integrate and validate the definition of done from iPhone and MacBook Air, close documentation gaps, and publish the final `v2.x` acceptance release. |
 
@@ -169,6 +178,67 @@ not add a service, alter authentication boundaries, or require additional
 release slices. If implementation risk grows beyond that boundary, split the
 tab shell before merging rather than expanding the Wi-Fi-management branch
 silently.
+
+The Project Maintainer expanded the `v2.7.0` live-diagnostics scope on
+2026-07-22. The slice must add the standard NUT battery chemistry,
+battery-manufacturing-date, and UPS-temperature fields when available and
+report runtime ESP32 chip, board-profile, memory, and chip-temperature
+information. CPU-utilization monitoring was evaluated and removed after target
+validation showed unacceptable service impact.
+
+The same slice adds a toolbar warning during the final five minutes of the
+existing fifteen-minute idle ADMIN session. The deadline is server
+authoritative, background diagnostics must not refresh an idle session, normal
+administrator activity may refresh it, and reaching zero reloads the page so
+the server presents the sign-in screen. A `401` or `403` from an authenticated
+request must also cause the browser to reload to sign-in.
+
+**Observed on 2026-07-22 00:48 PDT:** the first v2.7.0 slice was created as
+`feature/live-diagnostics-nut-fields` from `main` at `748d0c77a`. It changes
+only `src/management.c`, where the existing NUT dstate snapshot now reads
+`battery.type`, `battery.mfr.date`, and `ups.temperature`, serializes them as
+`ups.battery_type`, `ups.battery_mfr_date`, and `ups.temperature`, and
+renders absent values as `Not available`. The ESP-IDF v6.0.2 build passed at
+1,307,696 bytes with SHA-256
+`89f21ed093d8dbad4dadc1abdf62f742c50e4643abf7d38f6a031eb71bd651f3`.
+Target behavior was validated from the user-provided authenticated status JSON
+and Chrome screenshot: `.173` reports healthy read-only NUT with all three
+optional values unavailable, and the dashboard renders `Not available`. The
+firmware identity still reports `v2.6.0` because the root `version.txt` is
+hard-coded to that release; a separate development-build-identity slice must
+resolve this provenance gap before the next diagnostics slice. The screenshot
+does not independently expose the FQDN address bar.
+
+**Observed on 2026-07-22 01:11 PDT:** the second v2.7.0 slice was created as
+`feature/development-build-identity` from the dirty first-slice state at
+`748d0c77a`. The root `CMakeLists.txt` now derives `PROJECT_VER` from Git's
+tag/commit/dirty description during configure or reconfigure, without changing
+tracked `version.txt`. The ESP-IDF v6.0.2 build reports and embeds
+`v2.6.0-6-g748d0c77a-dirty`; it passed `git diff --check`, produced a
+1,307,696-byte image, and left 61% of the smallest application partition free.
+The local image SHA-256 is
+`6be41c121a192ab976238d61e899a8e95d581a9392e25ecc9c1c5e5e411f686b`.
+No device, release, or GitHub state changed.
+
+The build identity is evaluated at CMake configure time. A branch or dirty
+state change therefore requires a reconfigure before the identity changes; a
+Git-unavailable build falls back to the unchanged tracked `version.txt` through
+ESP-IDF's existing project-version resolution.
+
+**Observed target acceptance on 2026-07-22 01:29 PDT:** authenticated Chrome at
+the required FQDN displayed `v2.6.0-6-g748d0c77a-dirty`; the protected Device Status
+raw JSON parsed successfully and matched the handoff payload exactly. It
+reported the expected ADMIN/HTTPS boundary, `app1`/`app0` OTA slots, healthy
+read-only NUT, and unavailable optional UPS fields. Read-only `.173` network
+checks succeeded on TCP 443 and 3493, with direct HTTPS HTTP 200. No request
+was sent to `.87`, and no serial monitor was opened. The local `upsc` client
+was unavailable, so a separate direct NUT client query was not tested.
+
+**Not tested:** clean tagged-build behavior, Git-unavailable fallback, and
+identity refresh after a later branch/dirty-state change were not tested in
+this slice. During any long target test, the operator should manually refresh
+Chrome at least every ten minutes; this is not a background diagnostic
+keepalive.
 
 The Project Maintainer approved moving time configuration ahead of API tokens
 on 2026-07-19 so tokens, dashboards, OTA results, and diagnostics share one

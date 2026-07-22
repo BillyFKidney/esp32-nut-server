@@ -19,23 +19,25 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 23:43 PDT, America/Los_Angeles |
+| Updated | 2026-07-22 13:15 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; live diagnostics `v2.7.0` follows it |
-| Repository branch | Local `main` and `origin/main` are synchronized; PR #25 merged the layout-only commit `23d6aee42` at merge commit `24f1b36da` |
-| Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc` |
-| Remote state | PR #24 and PR #25 are merged, annotated tag `v2.6.0` is public, and the final GitHub release contains the firmware and checksum assets; local `main` and `origin/main` include the post-merge status synchronization |
-| Source worktree | `main` contains the published v2.6.0 implementation and the merged repository-layout cleanup; generated ESP-IDF outputs remain ignored |
+| Latest source change | **Observed on 2026-07-22 09:57 PDT:** browser activity-refresh and stale-session-cookie cleanup are committed locally at `24f66a8f7`; the branch remains unpublished and `.87` remains untouched |
+| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, and the CPU-free read-only hardware-diagnostics, bounded runtime-log, server-authoritative countdown, and explicit session-activity implementations are target-validated on `.173`; a v2.7.0 release-candidate image is built locally from this accepted source state; the branch remains unpublished |
+| Repository branch | **Observed on 2026-07-22 09:57 PDT:** `feature/admin-session-countdown` contains source commit `24f66a8f7` for explicit authenticated user-activity refresh and stale ADMIN-cookie cleanup; no push, merge, tag, or release has been made for this branch, and `.87` remains untouched |
+| Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc`; PR #26 merged optional NUT diagnostic fields at `24e7ee23`; PR #27 merged Git-derived development build identity at `a5089c34` |
+| Remote state | PR #24, PR #25, PR #26, and PR #27 are merged; annotated tag `v2.6.0` remains the latest public release, with no v2.7.0 tag or release; local `main` and `origin/main` are synchronized |
+| Source worktree | The current branch contains the merged `src/management.c` NUT-field change, root `CMakeLists.txt` build-identity change, v2.7 scope/acceptance documentation, the target-validated read-only chip/board/flash/PSRAM/memory/temperature diagnostics implementation, the target-validated runtime-only bounded log ring, the server-authoritative ADMIN countdown, and the local explicit user-activity refresh/stale-cookie cleanup; CPU-utilization monitoring source, hooks, status fields, and dashboard rendering have been removed; generated ESP-IDF outputs remain ignored, and only the authorized development target was updated through Chrome |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | **Observed:** the merged repository-layout commit built successfully with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `ff5220693d20f3ba6656dbbd3b84a1618cfac727051f4b31aa6ec7f9084d0b0e`, valid ESP32-S3 checksum/validation hash, and 61% of the smallest application partition free; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
+| Latest local build | **Observed on 2026-07-22 13:13 PDT from accepted source commit `500b93a4e`:** the v2.7.0 release-candidate rebuilt successfully in an isolated temporary clone with a local-only `v2.7.0` tag, using ESP-IDF v6.0.2, as `v2.7.0`; 1,321,472 bytes, SHA-256 `eda1ac1a22c7409d70503eb89ff14f58bb0204ff5ee368b2a5c5bd1da79a7026`, and 60% of the smallest application partition free. The image header independently verifies ESP32-S3, 16 MB DIO/80 MHz, valid checksum and validation hash. The upload copy and `.sha256` sidecar have the same verified digest. The local-only tag was not created in this repository; no v2.7.0 push, merge, tag, or release has occurred. The published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
 | Latest published release | Final `v2.6.0`, tagged at PR #24 merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2` and published with standard firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0) |
-| Installed firmware | **Observed:** development target `192.168.40.173` is running v2.6.0 with `running_slot = app0`, `next_slot = app1`, and `last_result = installed`; the independent `.87` board remains reserved for Device Operator testing |
-| Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward; no v2.6.0 image was flashed in this layout-only slice |
+| Installed firmware | **Reported by the Project Maintainer on 2026-07-22 13:02 PDT:** development target `192.168.40.173` is running the corrected `v2.6.0-30-g24f66a8f7` candidate and all requested countdown, interactive-activity, non-activity, expiry, and baseline service tests passed; `.87` remains reserved and untouched |
+| Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward; no v2.7.0 image has been uploaded or flashed in this handoff slice |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | **Observed:** `192.168.40.87` (MAC `30:30:f9:16:8c:08`) and `192.168.40.173` (MAC `30:30:f9:16:89:a4`) both accepted HTTPS 443 and NUT 3493, returned HTTPS 200, and refused retired TCP 8080; the new board at `.87` returned read-only NUT `ups.status = OL` |
-| Trusted reverse-proxy endpoint | **Observed:** `https://esp32nut-3dprinter.28670avenidacondesa.com/` resolved to Synology `192.168.40.10`; curl validation without certificate bypass returned HTTP/2 200 for the console and 401 for unauthenticated `/api/v1/status`. Chrome's FQDN tab returned `Header fields are too long` while fresh requests and Safari worked; this is isolated to Chrome's hostname-specific browser state, and browser validation remains on the direct `.173` session |
-| Last observed development USB path | **Observed:** `/dev/cu.usbmodem54E20396741` with no listed owner; no serial monitor was opened. Earlier `/dev/cu.usbmodem1101` flash evidence remains historical |
+| Trusted reverse-proxy endpoint | **Observed:** `https://esp32nut-3dprinter.28670avenidacondesa.com/` resolved to Synology `192.168.40.10`; curl validation without certificate bypass returned HTTP/2 200 for the console and 401 for unauthenticated `/api/v1/status`. Chrome's FQDN tab returned `Header fields are too long` while fresh requests and Safari worked. The user clarified that `.173` is the MacMini COM-port target and that Chrome validation must use the FQDN; direct `.173` remains the current NUT wire-validation target, while the FQDN TCP 3493 path returned raw NUT `ACCESS-DENIED` |
+| Browser validation procedure | **Accepted on 2026-07-22:** Chrome/FQDN validation passed for the corrected v30 candidate, including interactive session refresh, no refresh from scrolling or runtime-log polling, expiry/sign-in recovery without manual cookie deletion, and preserved HTTPS/NUT/Wi-Fi behavior. |
+| Last observed development USB path | **Observed:** `/dev/cu.usbmodem54E20396741` with no listed owner; a temporary no-reset serial monitor was used only to capture the OTA rollback panic. Earlier `/dev/cu.usbmodem1101` flash evidence remains historical |
 | Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
 ## Current objective
@@ -52,11 +54,242 @@ preserve LAN-only HTTPS, read-only NUT, and the existing ADMIN and Agent
 authorization boundaries. UPS access remains read-only.
 
 The merged repository-layout cleanup is a source and documentation change only.
-It does not alter firmware source, the HTTPS/NUT service
-boundaries, authorization behavior, partition contents, or release assets.
+It does not alter the HTTPS/NUT service boundaries, authorization behavior,
+partition contents, or release assets. The CPU-free hardware-diagnostics and
+bounded runtime-log slices add read-only runtime observation only; they do not
+add NVS or flash writes, service controls, or a new management route. The
+bounded runtime-log slice keeps its 24-entry capture in RAM, exposes only the
+newest six entries through the existing authenticated status response, and does
+not capture passwords, tokens, cookies, or Authorization headers. The current
+local branch adds the server-authoritative ADMIN session countdown without
+changing the existing fifteen-minute idle policy or making status polling
+refresh the deadline.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
+
+**Observed on 2026-07-22 02:22 PDT:** PR #26 and PR #27 were reviewed for
+scope, had no reported CI checks or review threads, and merged in dependency
+order. The new `feature/esp32-hardware-diagnostics` branch starts from updated
+`main` at `a5089c34d`; source commit `4f65001a3` adds read-only chip identity,
+board profile, flash/PSRAM profile, heap, and internal chip-temperature fields
+to the authenticated status JSON and renders them in a bounded dashboard card.
+The committed candidate builds successfully; at this timestamp it had not yet
+been installed or target-validated. No tag or release was created, and `.87`
+remained untouched.
+
+**Observed on 2026-07-22 02:31 PDT:** the Project Maintainer initiated the
+Chrome OTA workflow on the authenticated FQDN panel for the development target
+at `192.168.40.173`. After the reboot window, Chrome reported
+`v2.6.0-14-g4f65001a3`, `last update = installed`, `running_slot = app0`,
+`next_slot = app1`, healthy Wi-Fi, read-only NUT health `ok`, and UPS status
+`OL`. The dashboard rendered the new hardware card with ESP32-S3 rev 2,
+YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM, free
+memory, and chip temperature 36.4 °C.
+
+The expanded authenticated Device Status JSON parsed visibly in Chrome and
+matched the new fields: `hardware.chip`, `hardware.board`, `hardware.flash`,
+`hardware.psram`, `hardware.memory`, and `hardware.chip_temperature`. The
+existing ADMIN/CSRF, HTTPS, read-only NUT, and `.87`-untouched boundaries
+remained intact. No serial monitor was opened.
+
+**Observed on 2026-07-22 02:54 PDT:** source commit `ee80d1660` adds the next
+bounded v2.7.0 slice: a runtime-only 24-entry log ring, ESP-IDF and embedded
+NUT log capture, timestamp fields that remain null until valid time is
+available, the newest six entries in authenticated status JSON, and a
+dashboard log card refreshed every five seconds. Status polling does not
+refresh the fifteen-minute ADMIN idle deadline, and expired authentication
+reloads the sign-in page. The clean ESP-IDF v6.0.2 candidate is
+`v2.6.0-17-gee80d1660`, 1,318,880 bytes, SHA-256
+`b17eeff4a0fe48d1811c4bccf2f87efd546cda63b519b43258bddfcb40f673d2`, with
+61% of the smallest application partition free. It has not been uploaded or
+target-validated; the installed development target remains
+`v2.6.0-14-g4f65001a3`, and `.87` remains untouched.
+
+**Observed on 2026-07-22 02:58 PDT (Project Maintainer-provided authenticated
+status JSON and Chrome screenshot):** the candidate was installed on the
+development target at `192.168.40.173` and reports
+`v2.6.0-17-gee80d1660`, `running_slot = app1`, `next_slot = app0`, and
+`last_result = installed`. The protected response contains six bounded log
+entries with `uptime_ms`, synchronized UTC/local timestamps, normalized levels,
+and both NUT debug messages and an ESP-IDF informational message. The same
+response reports healthy Wi-Fi, HTTPS ADMIN transport, ESP32-S3 hardware
+diagnostics, read-only NUT health `ok`, and UPS status `OL`. The supplied
+Chrome view renders the installed firmware, existing diagnostics cards, and
+preserved service state without page-level overflow in the captured viewport.
+No request or evidence involved `.87`.
+
+**Inferred:** the runtime-log status/dashboard path is target-validated for
+authenticated operation with valid NTP time and active NUT traffic. The
+provided evidence does not test the pre-NTP null-timestamp path, ring rollover,
+or idle-session expiration while the five-second status polling is active.
+
+**Observed on 2026-07-22 03:12 PDT:** source commit `92837e857` adds the next
+bounded v2.7.0 CPU slice in `src/cpu_diagnostics.c` and
+`include/cpu_diagnostics.h`. It samples aggregate per-core idle-tick slack
+every ten seconds in a low-priority task, caches the rounded utilization
+percentage, and reports `available`, `utilization_percent`, `sample_age_ms`,
+`sample_interval_ms`, and `method = idle-tick` in the existing authenticated
+status JSON. The dashboard renders the utilization and sample age/interval.
+FreeRTOS task-runtime statistics, task tables, flash writes, NUT controls, and
+HTTP-path sampling were not added. The clean ESP-IDF v6.0.2 candidate is
+`v2.6.0-20-g92837e857`, 1,321,168 bytes, SHA-256
+`bde861ed948a22a50dc4172b67b280ee7c711bb0148fd377f11b021850e1c1fb`, with
+60% of the smallest application partition free. It has not been uploaded;
+the installed target remains `v2.6.0-17-gee80d1660` and `.87` remains
+untouched.
+
+**Observed on 2026-07-22 03:21 PDT:** the current clean branch `HEAD`
+`65424b254` was reconfigured and rebuilt with ESP-IDF v6.0.2; CMake reported
+firmware identity `v2.6.0-21-g65424b254`. The resulting
+`build/nut-esp32s3.bin` is 1,321,168 bytes with SHA-256
+`6ce922fe8a75cd6457da5d25b3f48f779b8345ec10f6ee9279aa5abe7eb64616`. A
+uniquely named copy,
+`build/nut-esp32s3-cpu-diagnostics-v2.6.0-21-g65424b254.bin`, was created
+for Chrome upload and has the identical SHA-256. It has not been uploaded;
+the target still reports `v2.6.0-17-gee80d1660`, and `.87` remains untouched.
+
+**Observed on 2026-07-22 03:26–03:50 PDT:** the Project Maintainer uploaded
+the `v2.6.0-21-g65424b254` candidate through Chrome twice. The target received
+the 1,321,168-byte image into `app0`, verified it, selected it for the next
+boot, and restarted; during the flash/NVS operation the CPU-diagnostics idle
+and tick hooks caused an ESP32-S3 `Cache error` panic because the callbacks
+were still executing from flash. The bootloader rolled back to `app1`, leaving
+the authenticated status JSON at `v2.6.0-17-gee80d1660`, `running_slot = app1`,
+`next_slot = app0`, and `last_result = pending`. The callbacks are now marked
+`IRAM_ATTR` in source commit `d88210ab4`. A clean ESP-IDF v6.0.2 rebuild
+produced `v2.6.0-23-gd88210ab4`, 1,321,168 bytes, SHA-256
+`18f50aa298450cfd469cca735f933d21a3346d3db15b5389dad8261c627c2450`; the
+image header and validation hash are valid, and both hook symbols link in
+IRAM. The corrected candidate has not been uploaded; `.87` remains untouched.
+
+**Observed on 2026-07-22 after the `v2.6.0-23-gd88210ab4` upload:** the
+Project Maintainer reports that the installed image leaves the Chrome
+dashboard in its initial `Loading…` state and the UI is effectively frozen.
+CPU-utilization monitoring is therefore removed from the firmware, authenticated
+status JSON, dashboard, headers, and v2.7.0 acceptance scope. The source
+implementation and its hook registration are being deleted; the remaining
+read-only hardware diagnostics and bounded runtime logs are retained. For
+recovery, the UPS is disconnected, the MacMini USB path is attached, and the
+BOOT-RESET-BOOT sequence has completed. No USB flash has been performed yet;
+`.87` remains untouched.
+
+**Observed on 2026-07-22 08:21 PDT (Project Maintainer-provided Chrome
+screenshot):** after the USB recovery flash and UPS reconnection, the CPU-free
+candidate remained responsive for 15 minutes 19 seconds and rendered the
+target-validated dashboard. Wi-Fi was connected to `ClubHouse_IoT` at
+`192.168.40.173` with `-38 dBm`; NUT reported `ok — TCP 3493`, UPS status `OL`,
+CyberPower `CST150UC2`, battery charge `100`, runtime `25650 s`, load `0`,
+battery voltage `26.3 V`, and input/output voltage `119.0 V`. The hardware
+diagnostics card continued to report ESP32-S3 rev 2, YD-ESP32-23,
+ESP32-S3-WROOM-1-N16R8, 16 MB DIO flash, and 8 MB octal PSRAM. No CPU
+monitoring UI or status field was present. `.87` remains untouched.
+
+**Observed on 2026-07-22 08:33 PDT:** local branch
+`feature/admin-session-countdown` adds a server-authoritative `session` object
+to the authenticated status JSON with `idle_timeout_seconds`,
+`remaining_seconds`, and `warning`. The existing status route continues to use
+the non-activity-refreshing session check, so five-second background polling does
+not extend the idle deadline. The dashboard shows a toolbar warning during the
+final five minutes, counts down locally between server samples, and redirects
+to sign-in when the local countdown reaches zero. This behavior is source-
+verified but not yet target-validated. The clean ESP-IDF v6.0.2 build from
+source commit `e1b710506` is `v2.6.0-28-ge1b710506`, 1,320,384 bytes, SHA-256
+`8e106de3bfe3627acf5ddb2d92e234621765209485a896b3dd1a0f4b27c7525a`; the
+image header, checksum, and validation hash are valid. It has not been
+uploaded; the installed development target remains `v2.6.0-25-g9d4a410f6`,
+and `.87` remains untouched.
+
+**Observed on 2026-07-22 09:58 PDT (Project Maintainer-provided Chrome test
+results):** the installed `v2.6.0-28-ge1b710506` countdown reached zero and
+reloaded to the sign-in page. The first sign-in attempt returned Chrome's
+`Header fields are too long` error; deleting the stale cookie restored a
+successful sign-in. The countdown did not visibly reset for tab changes, the
+Wi-Fi scan button, field focus, raw-status expansion, firmware check/install
+buttons, API-token actions, or clicking the countdown notice. Typing and a
+browser refresh reset it; scrolling and system-generated runtime-log updates
+did not, as required. File selection, scan-result display, firmware
+verification, and client-side password visibility were acceptable because
+their visible state changes were user-initiated or browser-managed. The
+corrected source now adds an explicit authenticated activity request for
+meaningful clicks, focus, typing, changes, and form submission, and clears the
+expired session cookie when serving the sign-in page. It has not been uploaded;
+`.87` remains untouched.
+
+**Accepted on 2026-07-22 13:02 PDT (Project Maintainer report):** all
+requested v30 countdown, interactive-activity, non-activity, expiry, cookie,
+and preserved-service tests passed on the authorized development target at
+`192.168.40.173`. The explicit ADMIN session-activity refresh and stale-cookie
+cleanup slice is target-accepted. No push, merge, tag, publication, or release
+has been performed, and `.87` remains untouched.
+
+## v2.7.0 scope recorded
+
+**Observed on 2026-07-22:** the Project Maintainer expanded the planned
+`feature/live-diagnostics` slice before implementation. The v2.7.0 scope now
+includes:
+
+- Read-only NUT `battery.type`, `battery.mfr.date`, and `ups.temperature`
+  fields, displayed when populated by the driver/UPS and otherwise shown as
+  `Not available`.
+- ESP32-S3 chip model, revision, cores, feature flags, board profile,
+  flash/PSRAM profile, free internal/PSRAM heap, minimum-free heap, and
+  internal chip temperature.
+- A server-authoritative toolbar countdown during the final five minutes of
+  the existing fifteen-minute idle ADMIN session. Background diagnostics must
+  not refresh the idle deadline; expiration or an authenticated `401`/`403`
+  reloads the page to the sign-in screen.
+
+**Observed on 2026-07-22 00:48 PDT:** the first v2.7.0 implementation slice was
+created as `feature/live-diagnostics-nut-fields` from `main` at `748d0c77a`.
+The source-only change reads the existing NUT dstate variables
+`battery.type`, `battery.mfr.date`, and `ups.temperature`, adds them to the
+protected status response as `ups.battery_type`, `ups.battery_mfr_date`, and
+`ups.temperature`, and renders missing values as `Not available` in a new
+UPS-details dashboard card. No driver, route, authorization, NUT-control,
+flash, NVS, or device behavior was changed.
+
+**Observed on 2026-07-22:** the candidate built with ESP-IDF v6.0.2 and
+`git diff --check` passed. The local image is 1,307,696 bytes with SHA-256
+`89f21ed093d8dbad4dadc1abdf62f742c50e4643abf7d38f6a031eb71bd651f3`.
+
+**Observed from the user-provided authenticated status JSON and Chrome
+screenshot on 2026-07-22:** `.173` is running the uploaded candidate behavior;
+the protected status response reports Wi-Fi `192.168.40.173`, NUT health `ok`,
+read-only `ups.status = OL`, and `unavailable` for all three optional fields.
+The Chrome dashboard displays the new UPS-details card and renders all three
+values as `Not available`. The screenshot shows no page-level horizontal
+overflow at the captured viewport. The `.87` device remains untouched.
+
+**Observed for the first-slice upload:** the firmware identity reported
+`v2.6.0`. This was expected from the root `version.txt`, which remains hard-coded
+to the release value; the exact installed binary hash remains inferred from the
+uploaded local candidate because the device does not expose an independent
+running-image digest.
+
+**Observed on 2026-07-22 01:11 PDT:** the separate
+`feature/development-build-identity` slice adds configure-time Git provenance to
+the ESP-IDF build. The root `CMakeLists.txt` now sets `PROJECT_VER` from
+`git describe --tags --dirty --always` when Git metadata is available, while
+leaving tracked `version.txt` unchanged as the release/fallback source. The
+ESP-IDF v6.0.2 build reports and embeds `v2.6.0-6-g748d0c77a-dirty`; the local
+image is 1,307,696 bytes with SHA-256
+`6be41c121a192ab976238d61e899a8e95d581a9392e25ecc9c1c5e5e411f686b`, and
+`git diff --check` passed. No firmware was flashed or installed by Codex.
+
+**Observed on 2026-07-22 01:29 PDT:** authenticated Chrome at the required
+FQDN displayed `v2.6.0-6-g748d0c77a-dirty` on the dashboard. The protected
+Device Status view exposed raw JSON that parsed successfully and matched the
+handoff payload exactly, including `role = ADMIN`, HTTPS, read-only NUT health,
+the `app1`/`app0` OTA slots, and the three unavailable optional UPS fields.
+Read-only network checks to `.173` succeeded on TCP 443 and 3493, and direct
+HTTPS returned HTTP 200. No request was sent to `.87`, and no serial monitor
+was opened. The local `upsc` client was unavailable, so a separate direct NUT
+client query was not tested.
+
+**Not tested:** clean tagged-build behavior, Git-unavailable fallback, and
+identity refresh after a later branch/dirty-state reconfigure were not tested
+in this slice. Safari was not used for this validation.
 
 ## v2.6.0 local OTA management audit and implementation
 
@@ -1288,21 +1521,29 @@ pending explicit authorization.
   factory reset; the fifteen-second ADMIN recovery path passed end to end
 - Read-only NUT service on TCP port 3493
 - USB HID polling for the validated CyberPower UPS
+- Bounded timestamped runtime logs in authenticated status JSON and the
+  dashboard, target-validated on the development target
 
 ### Remaining Operational Management work
 
-- Begin the v2.7.0 live-diagnostics slice after its own preflight and scope
-  review.
-- Remote service controls and live browser diagnostics
+- Upload the local v2.7.0 release-candidate to `.173` through Chrome and perform
+  the requested dashboard and authenticated-status spot checks; then decide
+  whether to push, merge, tag, or release it. No remote mutation is authorized
+  yet.
+- Review remote service controls without changing LAN-only HTTPS 443,
+  read-only NUT 3493, refused 8080, or ADMIN/CSRF boundaries.
 - Standalone three-second Wi-Fi-only recovery validation in the later physical
   recovery slice
 - iPhone and MacBook Air acceptance testing
 
 ## Exact next action
 
-Prepare the v2.7.0 live-diagnostics preflight from synchronized `main`. Do not
-modify the independently reserved `.87` board unless the Project Maintainer
-explicitly changes that scope.
+Upload `nut-esp32s3-v2.7.0-release-candidate.bin` from the local task output
+through Chrome to the authorized development target `.173`. Verify that the
+dashboard and authenticated status JSON report `v2.7.0`, then perform the
+planned spot checks. After acceptance, decide whether to push, merge, tag, or
+publish v2.7.0. Keep `.87` untouched and do not mutate remote state without
+explicit authorization.
 
 ## Operational procedures
 

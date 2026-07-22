@@ -1,5 +1,7 @@
 #include "syslog.h"
 
+#include "management.h"
+
 void closelog (void) {}
 
 void openlog (const char *ident, int option, int facility)
@@ -17,13 +19,13 @@ int setlogmask (int mask)
 
 void syslog (int priority, const char *format, ...)
 {
-	(void)priority;
-	(void)format;
+	va_list arguments;
+	va_start(arguments, format);
+	management_log_capture_syslog(priority, format, arguments);
+	va_end(arguments);
 }
 
 void vsyslog (int priority, const char *format, va_list arguments)
 {
-	(void)priority;
-	(void)format;
-	(void)arguments;
+	management_log_capture_syslog(priority, format, arguments);
 }
