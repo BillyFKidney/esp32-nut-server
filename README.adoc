@@ -113,7 +113,7 @@ Use the ESP-IDF version validated by this repository:
 
 [source,bash]
 ----
-. /Users/billyfkidney/.espressif/v6.0.2/esp-idf/export.sh
+. /.espressif/v6.0.2/esp-idf/export.sh
 idf.py set-target esp32s3
 idf.py build
 idf.py -p <USB-port> flash
