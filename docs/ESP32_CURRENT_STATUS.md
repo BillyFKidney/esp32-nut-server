@@ -17,17 +17,17 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 22:53 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 23:12 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | Local OTA management `v2.6.0` is validated and awaiting publication; API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` remain final and published |
-| Repository branch | `feature/local-ota-management` was created directly from synchronized `main` at `09e5e2cb88714104c84bbba6e0bc8bebaea47844`; no v2.6 changes are published |
-| Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; the v2.6 working tree adds local image checking |
-| Remote state | PR #22 is merged, tag `v2.5.0` is public, the GitHub release is final with firmware and checksum assets, and no v2.6 branch, tag, PR, or release exists |
-| Source worktree | v2.6 source changes are local commits on `feature/local-ota-management`; generated ESP-IDF outputs remain ignored |
+| Active slice target | Local OTA management `v2.6.0` is final, target-validated, merged, tagged, and published; live diagnostics `v2.7.0` is the next planned slice |
+| Repository branch | Local `main` and `origin/main` are synchronized at merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2`; v2.6.0 was merged by PR #24 |
+| Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc` |
+| Remote state | PR #24 is merged, annotated tag `v2.6.0` is public, and the final GitHub release contains the firmware and checksum assets |
+| Source worktree | `main` contains the published v2.6.0 implementation and documentation; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | **Observed:** v2.6.0 local-OTA candidate built successfully with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869`, and 61% of the smallest application partition free; it is restored on development target `.173` and is not published |
-| Latest published release | Final `v2.5.0`, tagged at PR #22 merge commit `36fb7886a90172520c2a34af8785cf8238619806` and published with the firmware and checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.5.0) |
-| Installed firmware | **Observed:** development target `192.168.40.173` is running restored v2.6.0 with `last_result = installed`; the independent `.87` board remains reserved for Device Operator testing |
+| Latest local build | **Observed:** exact-tag v2.6.0 build succeeded with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869`, valid ESP32-S3 checksum/validation hash, and 61% of the smallest application partition free |
+| Latest published release | Final `v2.6.0`, tagged at PR #24 merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2` and published with standard firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0) |
+| Installed firmware | **Observed:** development target `192.168.40.173` is running v2.6.0 with `running_slot = app0`, `next_slot = app1`, and `last_result = installed`; the independent `.87` board remains reserved for Device Operator testing |
 | Last USB flash | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
@@ -141,6 +141,14 @@ voltage fields. Independent network checks then returned HTTPS 200,
 unauthenticated status 401, TCP 443 and 3493 open, TCP 8080 refused, and
 read-only NUT `ups.status = OL` / `device.model = CST150UC2`. Serial remained
 closed.
+
+**Observed on 2026-07-21 23:10-23:12 PDT:** PR #24 merged the validated
+v2.6.0 implementation into `main` at `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2`.
+Annotated tag `v2.6.0` was pushed, and the final non-draft, non-prerelease
+GitHub release was published with `nut-esp32s3.bin` and
+`nut-esp32s3.bin.sha256`. Downloaded release verification returned `OK` for
+the exact SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869`.
+The release audit passes; `.87` was not modified.
 
 ## Last completed work
 
@@ -1253,8 +1261,8 @@ pending explicit authorization.
 
 ### Remaining Operational Management work
 
-- Publish the validated `v2.6.0` local OTA-management slice and complete the
-  post-publication release audit.
+- Begin the v2.7.0 live-diagnostics slice after its own preflight and scope
+  review.
 - Remote service controls and live browser diagnostics
 - Standalone three-second Wi-Fi-only recovery validation in the later physical
   recovery slice
@@ -1262,12 +1270,9 @@ pending explicit authorization.
 
 ## Exact next action
 
-Publish the validated v2.6.0 slice: push the reviewed branch, open and merge
-its pull request, tag the implementation merge, create the final GitHub
-release with the exact firmware and checksum assets, and synchronize this
-status document with the resulting refs. The Project Maintainer authorized
-those actions after the `.173` rollback/persistence gate passed. Do not modify
-the independently reserved `.87` board.
+Prepare the v2.7.0 live-diagnostics preflight from synchronized `main`. Do not
+modify the independently reserved `.87` board unless the Project Maintainer
+explicitly changes that scope.
 
 ## Operational procedures
 

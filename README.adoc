@@ -48,11 +48,11 @@ the current application.
 
 == Current operating model
 
-The published operational baseline is `v2.5.0`. The validated `v2.6.0` local
-OTA-management slice is being prepared for publication. It adds an
+The published operational baseline is `v2.6.0`. This release adds an
 ADMIN-session and CSRF-protected local image check before install, preserves
 the authenticated install and scoped Agent OTA paths, rejects invalid images,
-and retains ESP32-S3 bootloader rollback behavior. See
+and retains ESP32-S3 bootloader rollback behavior. It passed target
+rollback/persistence validation on `.173`. See
 link:docs/ESP32_CURRENT_STATUS.md[ESP32_CURRENT_STATUS.md] for the current
 branch, installed firmware, device observations, and next action.
 
@@ -127,10 +127,8 @@ Do not record private credentials, tokens, cookies, private keys, or
 For a published release, obtain the firmware and matching checksum sidecar
 from the project's
 link:https://github.com/BillyFKidney/esp32-nut-server/releases[GitHub
-releases] and verify the checksum before installation. The v2.6.0 candidate
-has passed local image checking, invalid-image rejection, and rollback/
-persistence validation on the development target; use the published artifact
-after its release audit is complete.
+releases] and verify the checksum before installation. The published v2.6.0
+artifact includes the matching `nut-esp32s3.bin.sha256` sidecar.
 
 === First Wi-Fi connection
 
