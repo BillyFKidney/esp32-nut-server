@@ -104,7 +104,7 @@ static void ota_reboot_task(void *parameter)
     esp_restart();
 }
 
-esp_err_t ota_install_from_request(httpd_req_t *request)
+static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
 {
     if (ota_update_in_progress)
     {
@@ -115,14 +115,20 @@ esp_err_t ota_install_from_request(httpd_req_t *request)
     const esp_partition_t *update_partition = esp_ota_get_next_update_partition(NULL);
     if (update_partition == NULL)
     {
-        ota_record_result("failed");
+        if (install)
+        {
+            ota_record_result("failed");
+        }
         return ota_send_error(request, "500 Internal Server Error",
                               "{\"status\":\"error\",\"message\":\"No inactive OTA partition is available.\"}");
     }
 
     if (request->content_len <= 0 || (size_t)request->content_len > update_partition->size)
     {
-        ota_record_result("rejected");
+        if (install)
+        {
+            ota_record_result("rejected");
+        }
         return ota_send_error(request, "413 Payload Too Large",
                               "{\"status\":\"error\",\"message\":\"The uploaded image does not fit in the inactive OTA partition.\"}");
     }
@@ -136,7 +142,10 @@ esp_err_t ota_install_from_request(httpd_req_t *request)
     if (result != ESP_OK)
     {
         ota_update_in_progress = false;
-        ota_record_result("failed");
+        if (install)
+        {
+            ota_record_result("failed");
+        }
         ESP_LOGE(TAG, "Unable to begin OTA update: %s", esp_err_to_name(result));
         return ota_send_error(request, "500 Internal Server Error",
                               "{\"status\":\"error\",\"message\":\"Unable to begin OTA update.\"}");
@@ -190,7 +199,7 @@ esp_err_t ota_install_from_request(httpd_req_t *request)
         esp_ota_abort(update_handle);
     }
 
-    if (result == ESP_OK)
+    if (result == ESP_OK && install)
     {
         result = esp_ota_set_boot_partition(update_partition);
         if (result != ESP_OK)
@@ -202,9 +211,19 @@ esp_err_t ota_install_from_request(httpd_req_t *request)
     ota_update_in_progress = false;
     if (result != ESP_OK)
     {
-        ota_record_result("failed");
+        if (install)
+        {
+            ota_record_result("failed");
+        }
         return ota_send_error(request, "422 Unprocessable Content",
                               "{\"status\":\"error\",\"message\":\"The uploaded file is not a valid ESP32-NUT firmware image.\"}");
+    }
+
+    if (!install)
+    {
+        ota_set_response_headers(request);
+        return httpd_resp_sendstr(
+            request, "{\"status\":\"checked\",\"message\":\"Firmware image verified. It is ready to install.\"}");
     }
 
     ota_record_result("pending");
@@ -218,6 +237,16 @@ esp_err_t ota_install_from_request(httpd_req_t *request)
         ESP_LOGE(TAG, "Unable to schedule OTA reboot");
     }
     return response_result;
+}
+
+esp_err_t ota_install_from_request(httpd_req_t *request)
+{
+    return ota_process_from_request(request, true);
+}
+
+esp_err_t ota_check_from_request(httpd_req_t *request)
+{
+    return ota_process_from_request(request, false);
 }
 
 void ota_mark_running_image_valid(void)

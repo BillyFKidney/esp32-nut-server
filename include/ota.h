@@ -12,6 +12,12 @@
 esp_err_t ota_install_from_request(httpd_req_t *request);
 
 /**
+ * Verify an authenticated HTTP(S) request containing a complete ESP-IDF
+ * application image without selecting it for the next boot.
+ */
+esp_err_t ota_check_from_request(httpd_req_t *request);
+
+/**
  * Copy the most recent non-secret OTA result into the caller's buffer.
  * The default is "not_available" when no update has been attempted.
  */

@@ -17,22 +17,22 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 20:59 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 21:40 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` are final and published; select the next slice through a new preflight |
-| Repository branch | `main` contains the merged v2.5.0 implementation and publication-status documentation; local `main` is synchronized with `origin/main` |
-| Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806` |
-| Remote state | PR #22 is merged, tag `v2.5.0` is public, the GitHub release is final with firmware and checksum assets, and the status-doc update is synchronized |
-| Source worktree | v2.5.0 source and documentation are merged; generated ESP-IDF outputs remain ignored |
+| Active slice target | Local OTA management `v2.6.0` is in progress; API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` remain final and published |
+| Repository branch | `feature/local-ota-management` was created directly from synchronized `main` at `09e5e2cb88714104c84bbba6e0bc8bebaea47844`; no v2.6 changes are published |
+| Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; the v2.6 working tree adds local image checking |
+| Remote state | PR #22 is merged, tag `v2.5.0` is public, the GitHub release is final with firmware and checksum assets, and no v2.6 branch, tag, PR, or release exists |
+| Source worktree | v2.6 source changes are local and uncommitted; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | `v2.5.0` Wi-Fi-management image built successfully with ESP-IDF v6.0.2; 1,304,736 bytes, SHA-256 `a28055a80f7c926c229044d1f3cc4243f26165fec65c6a5929d9ac720172ca32`, and 61% of the smallest application partition free; the same image and checksum are attached to the v2.5.0 release |
+| Latest local build | **Observed:** v2.6.0 local-OTA candidate built successfully with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869`, and 61% of the smallest application partition free; it is not installed or published |
 | Latest published release | Final `v2.5.0`, tagged at PR #22 merge commit `36fb7886a90172520c2a34af8785cf8238619806` and published with the firmware and checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.5.0) |
-| Installed firmware | **Observed:** the Device Operator reports the target running `v2.5.0` with Wi-Fi management validation complete; the exact installed-image hash was not independently checked after publication |
+| Installed firmware | **Observed:** network-first checks currently reach two ESP32-NUT instances at `192.168.40.87` and `192.168.40.173`; authenticated firmware versions were not independently read during this preflight |
 | Last USB flash | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
-| Last verified IPv4 address | `192.168.40.173`; post-reset MAC rediscovery, ping, protected HTTPS 200, NUT/UPS `OL`, and retired-port checks passed; the installed `v2.4.0` candidate then completed a ten-minute network-first soak |
-| Last observed development USB path | New board rediscovered as `/dev/cu.usbmodem1101` with no listed owner; no serial monitor was opened. The previously observed `/dev/cu.usbmodem54E20396741` path belongs to the earlier board and is historical |
+| Last verified IPv4 address | **Observed:** `192.168.40.87` (MAC `30:30:f9:16:8c:08`) and `192.168.40.173` (MAC `30:30:f9:16:89:a4`) both accepted HTTPS 443 and NUT 3493, returned HTTPS 200, and refused retired TCP 8080; the new board at `.87` returned read-only NUT `ups.status = OL` |
+| Last observed development USB path | **Observed:** `/dev/cu.usbmodem54E20396741` with no listed owner; no serial monitor was opened. Earlier `/dev/cu.usbmodem1101` flash evidence remains historical |
 | Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
 ## Current objective
@@ -48,6 +48,40 @@ authorization boundaries. UPS access remains read-only.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
+
+## v2.6.0 local OTA management audit and implementation
+
+**Observed on 2026-07-21:** the required network-first preflight found a clean
+and synchronized `main` at `09e5e2cb88714104c84bbba6e0bc8bebaea47844`, then
+created `feature/local-ota-management` from that commit. The new branch builds
+with ESP-IDF v6.0.2. The target network checks found HTTPS 443 and read-only NUT
+3493 available on both rediscovered devices, retired TCP 8080 refused, and
+`ups.status = OL` on the new board at `192.168.40.87`. No serial port was opened.
+
+**Observed from prior releases:** authenticated local firmware selection,
+confirmation, image verification, install, restart, slot transition, and
+reconnect already passed with a known-good image. The existing implementation
+rejects corrupt images with HTTP 422, but a deliberately corrupt image was not
+target-tested. No check control/route or browser download control existed, and
+no automatic or remote firmware fetcher exists; those are the v2.6 and later
+gaps respectively.
+
+**Observed in the v2.6 working tree:** the ADMIN+CSRF-only
+`POST /api/v1/ota/check` route verifies a complete local image without selecting
+it for boot. The existing ADMIN+CSRF install route remains the only local route
+that selects the inactive partition and schedules a restart. The Update
+Firmware panel now exposes Check, Install, and a browser release-download link;
+the device does not fetch remote firmware. HTTPS route registration is now at
+the configured limit of 16 handlers.
+
+**Inferred:** the previously delivered known-good install and the absence of
+automatic updates satisfy those portions of the v2.6 policy. Target evidence
+for corrupt-image rejection and browser exercise of the new Check/Download
+controls remain required before the slice can be called complete.
+
+**Not yet tested:** authenticated v2.6 UI behavior, corrupt-image check on the
+target, candidate installation, rollback/persistence after reboot, and browser
+release-link behavior.
 
 ## Last completed work
 
@@ -1170,10 +1204,11 @@ pending explicit authorization.
 
 ## Exact next action
 
-After explicit target-install authorization, repeat network-first preflight and
-install the local `v2.5.0` candidate. Do not push, merge, tag, or publish until
-browser, negative-authentication, Wi-Fi rollback, network, persistence, and
-target-hardware validation are complete.
+After the v2.6 candidate is reviewed, obtain explicit target-install
+authorization and use the network-first preflight to exercise the authenticated
+Check, corrupt-image rejection, and Install controls on one rediscovered board.
+Do not push, merge, tag, or publish until browser, negative-authentication,
+network, persistence, rollback, and target-hardware validation are complete.
 
 ## Operational procedures
 

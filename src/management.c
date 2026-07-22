@@ -56,7 +56,7 @@
 #define MANAGEMENT_SESSION_HEX_LENGTH (MANAGEMENT_SESSION_BYTES * 2)
 #define MANAGEMENT_SESSION_IDLE_US (15LL * 60LL * 1000000LL)
 #define MANAGEMENT_FORM_BODY_LIMIT 640
-#define MANAGEMENT_ADMIN_PAGE_SIZE 24000
+#define MANAGEMENT_ADMIN_PAGE_SIZE 28000
 #define MANAGEMENT_STATUS_RESPONSE_SIZE 5000
 #define MANAGEMENT_WIFI_SCAN_RESPONSE_SIZE 4200
 #define MANAGEMENT_NUT_VALUE_LENGTH 96
@@ -1241,6 +1241,7 @@ static esp_err_t management_root_handler(httpd_req_t *request)
     const int page_length = snprintf(page, MANAGEMENT_ADMIN_PAGE_SIZE,
              "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
              "<title>ESP32-NUT administration</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem auto;max-width:60rem;padding:0 1rem;color:#17212b}pre{background:#f0f3f5;padding:1rem;overflow:auto}input,button,select{font:inherit;padding:.7rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem}.secondary{background:#52606d}.danger{background:#a12622}.check{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}.check input{width:auto;margin:0}.result{min-height:1.5rem}.hint{color:#52606d}.token-once{border:2px solid #b7791f;background:#fffaf0;padding:1rem;margin:1rem 0}.token-once code{display:block;overflow-wrap:anywhere;margin:.75rem 0;font-size:.95rem}.token-row{border-top:1px solid #cbd5e1;padding:.8rem 0}.token-row button{margin:.6rem 0 0}.actions{display:flex;gap:.75rem}.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.75rem}.card{border:1px solid #cbd5e1;border-radius:.5rem;padding:1rem;background:#fff}.card h3{margin:.1rem 0 .75rem;font-size:1.05rem}.metric{margin:.45rem 0}.metric strong{display:block;font-size:.95rem}.metric span{display:block;margin-top:.15rem;overflow-wrap:anywhere}.tabs{display:flex;flex-wrap:wrap;gap:.35rem;margin:1.25rem 0;border-bottom:1px solid #cbd5e1;padding-bottom:.75rem}.tab{width:auto;margin:0;padding:.55rem .8rem;background:#52606d;white-space:nowrap}.tab[aria-selected=true]{background:#267747;font-weight:600}.panel[hidden]{display:none}.panel{padding:.25rem 0 1rem}.network-list{display:grid;gap:.5rem;margin:1rem 0}.network-list[hidden]{display:none}.network-option{display:flex;align-items:center;justify-content:space-between;gap:1rem;text-align:left;background:#f0f3f5;color:#17212b;border:1px solid #cbd5e1}.network-option:hover,.network-option[aria-pressed=true]{background:#dbeafe;border-color:#267747}.network-name{font-weight:600;overflow-wrap:anywhere}.network-details{color:#52606d;font-size:.9rem;white-space:nowrap}dialog{max-width:32rem;border:0;border-radius:.5rem;padding:1.25rem;box-shadow:0 1rem 3rem #0006}dialog::backdrop{background:#0008}</style>"
+             "<style>.button{display:inline-block;font:inherit;padding:.7rem;box-sizing:border-box;border-radius:.4rem;text-align:center;text-decoration:none;color:white}.actions>*{flex:1;margin:0}</style>"
              "<h1>ESP32-NUT administration</h1><p>HTTPS is active with this device's self-signed certificate."
              " The administration API is LAN-only.</p><nav class=tabs aria-label='Administration sections'>"
              "<button class=tab type=button data-panel=dashboard aria-selected=true>Dashboard</button>"
@@ -1299,11 +1300,13 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<dialog id=deleteTokenDialog><h3>Delete API token</h3><p>Delete <strong id=deleteTokenName></strong>? Requests using it will be rejected immediately.</p>"
              "<label class=check><input id=deleteTokenAck type=checkbox> I acknowledge that this token will be permanently revoked.</label>"
              "<div class=actions><button id=deleteTokenCancel class=secondary type=button>Cancel</button><button id=deleteTokenConfirm class=danger type=button disabled>Delete token</button></div></dialog></section>"
-             "<section id=panel-ota class=panel hidden><h2>Update Firmware</h2><p>Select a local ESP32-NUT application image. The device verifies the image before restarting into the inactive OTA slot.</p>"
-             "<form id=otaForm><label>Firmware .bin file<input id=otaFile type=file accept='.bin,application/octet-stream' required></label><button id=otaButton type=submit>Install firmware</button></form><p id=otaResult class=result role=status></p></section></main>"
+             "<section id=panel-ota class=panel hidden><h2>Update Firmware</h2><p>Select a local ESP32-NUT application image. Check it before choosing whether to install it into the inactive OTA slot.</p>"
+             "<p class=hint>Download release images and their checksums in your browser from the <a class='button secondary' href='https://github.com/BillyFKidney/esp32-nut-server/releases/latest' target=_blank rel='noopener noreferrer'>ESP32-NUT release page</a>. The device never fetches firmware from a remote source.</p>"
+             "<form id=otaForm><label>Firmware .bin file<input id=otaFile type=file accept='.bin,application/octet-stream' required></label><div class=actions><button id=otaCheckButton class=secondary type=button>Check firmware</button><button id=otaButton type=submit>Install firmware</button></div></form><p id=otaResult class=result role=status></p></section></main>"
              "<p class=hint>All management actions remain protected by the ADMIN browser session.</p>"
              "<button onclick=logout()>Sign out</button><script>"
              "const csrf='%s',status=document.getElementById('status'),timeSummary=document.getElementById('timeSummary'),timeConfigForm=document.getElementById('timeConfigForm'),ntpEnabled=document.getElementById('ntpEnabled'),ntpServer=document.getElementById('ntpServer'),timeZone=document.getElementById('timeZone'),syncNow=document.getElementById('syncNow'),manualTimeForm=document.getElementById('manualTimeForm'),manualDateTime=document.getElementById('manualDateTime'),timeResult=document.getElementById('timeResult'),wifiCurrent=document.getElementById('wifiCurrent'),wifiScanButton=document.getElementById('wifiScanButton'),wifiScanResult=document.getElementById('wifiScanResult'),wifiForm=document.getElementById('wifiForm'),wifiSsid=document.getElementById('wifiSsid'),wifiNetworkList=document.getElementById('wifiNetworkList'),wifiPassword=document.getElementById('wifiPassword'),wifiShowPassword=document.getElementById('wifiShowPassword'),wifiConfigureButton=document.getElementById('wifiConfigureButton'),wifiResult=document.getElementById('wifiResult'),currentPassword=document.getElementById('currentPassword'),newPassword=document.getElementById('newPassword'),confirmPassword=document.getElementById('confirmPassword'),passwordForm=document.getElementById('passwordForm'),passwordResult=document.getElementById('passwordResult'),tokenForm=document.getElementById('tokenForm'),tokenOnce=document.getElementById('tokenOnce'),tokenValue=document.getElementById('tokenValue'),tokenMetadata=document.getElementById('tokenMetadata'),tokenList=document.getElementById('tokenList'),tokenResult=document.getElementById('tokenResult'),deleteTokenDialog=document.getElementById('deleteTokenDialog'),deleteTokenName=document.getElementById('deleteTokenName'),deleteTokenAck=document.getElementById('deleteTokenAck'),deleteTokenConfirm=document.getElementById('deleteTokenConfirm'),otaForm=document.getElementById('otaForm'),otaFile=document.getElementById('otaFile'),otaButton=document.getElementById('otaButton'),otaResult=document.getElementById('otaResult');let pendingTokenId='';"
+             "const otaCheckButton=document.getElementById('otaCheckButton');"
              "const tabs=document.querySelectorAll('.tab'),panels={dashboard:document.getElementById('panel-dashboard'),status:document.getElementById('panel-status'),time:document.getElementById('panel-time'),wifi:document.getElementById('panel-wifi'),password:document.getElementById('panel-password'),tokens:document.getElementById('panel-tokens'),ota:document.getElementById('panel-ota')};"
              "const dashboardFirmware=document.getElementById('dashboardFirmware'),dashboardUptime=document.getElementById('dashboardUptime'),dashboardUpdate=document.getElementById('dashboardUpdate'),dashboardWifi=document.getElementById('dashboardWifi'),dashboardSignal=document.getElementById('dashboardSignal'),dashboardNut=document.getElementById('dashboardNut'),dashboardUpsStatus=document.getElementById('dashboardUpsStatus'),dashboardUps=document.getElementById('dashboardUps'),dashboardSerial=document.getElementById('dashboardSerial'),dashboardBattery=document.getElementById('dashboardBattery'),dashboardRuntime=document.getElementById('dashboardRuntime'),dashboardLoad=document.getElementById('dashboardLoad'),dashboardBatteryVoltage=document.getElementById('dashboardBatteryVoltage'),dashboardInputVoltage=document.getElementById('dashboardInputVoltage'),dashboardOutputVoltage=document.getElementById('dashboardOutputVoltage');"
              "function displayValue(value){return value===undefined||value===null||value===''?'Not available':String(value)}function formatUptime(seconds){if(typeof seconds!=='number')return displayValue(seconds);const days=Math.floor(seconds/86400),hours=Math.floor(seconds%%86400/3600),minutes=Math.floor(seconds%%3600/60),remaining=Math.floor(seconds%%60);return (days?days+'d ':'')+(hours?hours+'h ':'')+(minutes?minutes+'m ':'')+remaining+'s'}"
@@ -1326,7 +1329,8 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "function openTokenDelete(token){pendingTokenId=token.id;deleteTokenName.textContent=token.name+' (final four '+token.final_four+')';deleteTokenAck.checked=false;deleteTokenConfirm.disabled=true;deleteTokenDialog.showModal()}"
              "deleteTokenAck.onchange=()=>deleteTokenConfirm.disabled=!deleteTokenAck.checked;document.getElementById('deleteTokenCancel').onclick=()=>deleteTokenDialog.close();deleteTokenDialog.addEventListener('close',()=>{pendingTokenId='';deleteTokenAck.checked=false;deleteTokenConfirm.disabled=true});"
              "deleteTokenConfirm.onclick=async()=>{if(!pendingTokenId||!deleteTokenAck.checked)return;const id=pendingTokenId;deleteTokenConfirm.disabled=true;tokenResult.textContent='Deleting API token…';try{const body=new URLSearchParams({id,acknowledge:'true'}),r=await fetch('/api/v1/admin/tokens',{method:'DELETE',headers:{'Content-Type':'application/x-www-form-urlencoded','X-ESP32-NUT-CSRF':csrf},body}),x=await r.json();tokenResult.textContent=x.message||x.error||'Token deletion failed.';if(r.ok){deleteTokenDialog.close();loadTokens()}else{deleteTokenConfirm.disabled=false}}catch(error){tokenResult.textContent='Unable to reach the API-token service.';deleteTokenConfirm.disabled=false}};"
-             "otaForm.onsubmit=async e=>{e.preventDefault();const file=otaFile.files[0];if(!file||!window.confirm('Install '+file.name+' and restart ESP32-NUT?'))return;otaButton.disabled=true;otaResult.textContent='Uploading and verifying firmware…';try{const r=await fetch('/api/v1/ota/install',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||x.error||('Firmware installation failed (HTTP '+r.status+').');if(r.ok){setTimeout(reconnect,5000)}else{otaButton.disabled=false}}catch(error){otaResult.textContent='Connection closed. The device may be restarting…';setTimeout(reconnect,3000)}};"
+             "otaCheckButton.onclick=async()=>{const file=otaFile.files[0];if(!file){otaResult.textContent='Choose a firmware .bin file first.';return}otaCheckButton.disabled=true;otaButton.disabled=true;otaResult.textContent='Checking firmware image…';try{const r=await fetch('/api/v1/ota/check',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||x.error||('Firmware check failed (HTTP '+r.status+').')}catch(error){otaResult.textContent='Unable to reach the firmware check service.'}finally{otaCheckButton.disabled=false;otaButton.disabled=false}};"
+             "otaForm.onsubmit=async e=>{e.preventDefault();const file=otaFile.files[0];if(!file||!window.confirm('Install '+file.name+' and restart ESP32-NUT?'))return;otaButton.disabled=true;otaCheckButton.disabled=true;otaResult.textContent='Uploading and verifying firmware…';try{const r=await fetch('/api/v1/ota/install',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||x.error||('Firmware installation failed (HTTP '+r.status+').');if(r.ok){setTimeout(reconnect,5000)}else{otaButton.disabled=false;otaCheckButton.disabled=false}}catch(error){otaResult.textContent='Connection closed. The device may be restarting…';setTimeout(reconnect,3000)}};"
              "function reconnect(){fetch('/',{cache:'no-store'}).then(()=>location='/').catch(()=>setTimeout(reconnect,2000))}function logout(){fetch('/logout',{method:'POST',headers:{'X-ESP32-NUT-CSRF':csrf}}).then(()=>location='/')}loadStatus();loadTokens();</script>",
              csrf);
     mbedtls_platform_zeroize(csrf, sizeof(csrf));
@@ -2165,6 +2169,28 @@ static esp_err_t management_ota_install_handler(httpd_req_t *request)
     return ota_install_from_request(request);
 }
 
+static esp_err_t management_ota_check_handler(httpd_req_t *request)
+{
+    if (!management_csrf_is_valid(request))
+    {
+        return management_send_json(request, "403 Forbidden", "{\"error\":\"Invalid session or CSRF token.\"}");
+    }
+
+    static const char expected_content_type[] = "application/octet-stream";
+    char content_type[sizeof(expected_content_type)] = {0};
+    if (httpd_req_get_hdr_value_len(request, "Content-Type") !=
+            sizeof(expected_content_type) - 1U ||
+        httpd_req_get_hdr_value_str(request, "Content-Type", content_type,
+                                    sizeof(content_type)) != ESP_OK ||
+        strcmp(content_type, expected_content_type) != 0)
+    {
+        return management_send_json(
+            request, "415 Unsupported Media Type",
+            "{\"error\":\"Firmware check requires an application/octet-stream image body.\"}");
+    }
+    return ota_check_from_request(request);
+}
+
 static esp_err_t management_agent_ota_install_handler(httpd_req_t *request)
 {
     if (!management_bearer_is_authorized(request,
@@ -2244,6 +2270,7 @@ esp_err_t management_server_start(void)
     const httpd_uri_t logout = {.uri = "/logout", .method = HTTP_POST, .handler = management_logout_handler};
     const httpd_uri_t status = {.uri = "/api/v1/status", .method = HTTP_GET, .handler = management_status_handler};
     const httpd_uri_t time_configuration = {.uri = "/api/v1/admin/time", .method = HTTP_POST, .handler = management_time_config_handler};
+    const httpd_uri_t ota_check = {.uri = "/api/v1/ota/check", .method = HTTP_POST, .handler = management_ota_check_handler};
     const httpd_uri_t ota = {.uri = "/api/v1/ota/install", .method = HTTP_POST, .handler = management_ota_install_handler};
     const httpd_uri_t token_list = {.uri = "/api/v1/admin/tokens", .method = HTTP_GET, .handler = management_token_list_handler};
     const httpd_uri_t token_create = {.uri = "/api/v1/admin/tokens", .method = HTTP_POST, .handler = management_token_create_handler};
@@ -2253,7 +2280,7 @@ esp_err_t management_server_start(void)
     const httpd_uri_t agent_ota = {.uri = "/api/v1/agent/ota/install", .method = HTTP_POST, .handler = management_agent_ota_install_handler};
     const httpd_uri_t *routes[] = {
         &root, &setup, &login_page, &login, &password, &logout, &status,
-        &time_configuration, &ota, &token_list, &token_create, &token_delete,
+        &time_configuration, &ota_check, &ota, &token_list, &token_create, &token_delete,
         &wifi_scan, &wifi_configuration, &agent_ota};
     _Static_assert(sizeof(routes) / sizeof(routes[0]) <=
                        MANAGEMENT_HTTPS_ROUTE_CAPACITY,
