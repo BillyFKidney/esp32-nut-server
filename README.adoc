@@ -83,7 +83,7 @@ The validated downstream target is:
 * Direct USB Serial/JTAG development connection
 * Native USB host connection to the UPS
 
-The inherited `nut_fat_8MB.csv` partition table is intentionally retained for
+The inherited `boards/partitions/nut_fat_8MB.csv` partition table is intentionally retained for
 the initial ESP-IDF 6.0.2 build-and-boot baseline. It uses only the lower 8 MB
 of flash; expanding the layout is a separate change because dual-OTA capacity
 and recovery must remain bootable.
@@ -286,6 +286,8 @@ Start with the documents that match the task:
 
 * link:docs/ESP32_CURRENT_STATUS.md[Current status] — factual branch,
   hardware, installation, and next-action snapshot
+* link:docs/ESP32_REPOSITORY_LAYOUT.md[Repository layout] — root file
+  ownership and directory policy
 * link:docs/ESP32_PREFLIGHT.md[Preflight] — network-first checks before device
   work
 * link:docs/ESP32_MANAGEMENT_PROXY.md[Management proxy procedure] — AdGuard

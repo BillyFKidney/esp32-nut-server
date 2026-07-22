@@ -4,7 +4,9 @@
 > document keeps detailed downstream port notes; current device facts belong in
 > [ESP32_CURRENT_STATUS.md](ESP32_CURRENT_STATUS.md), and the current
 > Synology/AdGuard browser path is documented in
-> [ESP32_MANAGEMENT_PROXY.md](ESP32_MANAGEMENT_PROXY.md).
+> [ESP32_MANAGEMENT_PROXY.md](ESP32_MANAGEMENT_PROXY.md). Repository root-file
+> ownership is documented in
+> [ESP32_REPOSITORY_LAYOUT.md](ESP32_REPOSITORY_LAYOUT.md).
 
 ## Overview
 
@@ -49,7 +51,7 @@ The downstream ESP32-NUT build currently targets:
 - Direct USB Serial/JTAG development connection
 - Native USB host connection to a USB HID UPS
 
-The inherited `nut_fat_8MB.csv` partition table is intentionally retained for
+The inherited `boards/partitions/nut_fat_8MB.csv` partition table is intentionally retained for
 the first ESP-IDF 6.0.2 build-and-boot milestone. It uses only the lower 8 MB
 of the available flash; expanding the storage layout is a separate change.
 

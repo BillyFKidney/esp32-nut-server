@@ -163,8 +163,8 @@ if ( command -v dos2unix ) 2>/dev/null >/dev/null ; then
 fi >&2
 
 # Required by autoconf for non-"foreign" projects;
-# is tracked as a NEWS.adoc for us however.
-[ -f NEWS ] || { echo "Please see NEWS.adoc for actual contents" > NEWS; }
+# is tracked as docs/upstream/NEWS.adoc for us however.
+[ -f NEWS ] || { echo "Please see docs/upstream/NEWS.adoc for actual contents" > NEWS; }
 [ -f README ] || { echo "Please see README.adoc for actual contents" > README; }
 
 # Try to serve a fresh one at least when we remake from scratch like this

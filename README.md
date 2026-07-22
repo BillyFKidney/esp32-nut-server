@@ -70,13 +70,15 @@ Before hardware work, read:
 
 1. [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) for current
    repository and device facts
-2. [docs/ESP32_PREFLIGHT.md](docs/ESP32_PREFLIGHT.md) for the network-first
+2. [docs/ESP32_REPOSITORY_LAYOUT.md](docs/ESP32_REPOSITORY_LAYOUT.md) for root
+   file ownership and directory policy
+3. [docs/ESP32_PREFLIGHT.md](docs/ESP32_PREFLIGHT.md) for the network-first
    session checklist
-3. [docs/ESP32_DEVELOPMENT_ROLES.md](docs/ESP32_DEVELOPMENT_ROLES.md) for
+4. [docs/ESP32_DEVELOPMENT_ROLES.md](docs/ESP32_DEVELOPMENT_ROLES.md) for
    authority and responsibilities
-4. [docs/ESP32_MANAGEMENT_PROXY.md](docs/ESP32_MANAGEMENT_PROXY.md) when using
+5. [docs/ESP32_MANAGEMENT_PROXY.md](docs/ESP32_MANAGEMENT_PROXY.md) when using
    the Synology/AdGuard browser path
-5. [docs/ESP32_DEVELOPMENT_PLAN.md](docs/ESP32_DEVELOPMENT_PLAN.md) for the
+6. [docs/ESP32_DEVELOPMENT_PLAN.md](docs/ESP32_DEVELOPMENT_PLAN.md) for the
    roadmap and implementation slices
 
 Use current network discovery for every session. Recorded IP addresses and USB
@@ -116,6 +118,7 @@ private keys, or Authorization headers in the repository or chat.
 | Need | Start here |
 | --- | --- |
 | Current facts and next action | [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) |
+| Repository layout policy | [ESP32_REPOSITORY_LAYOUT.md](docs/ESP32_REPOSITORY_LAYOUT.md) |
 | Hardware/session preflight | [ESP32_PREFLIGHT.md](docs/ESP32_PREFLIGHT.md) |
 | Synology/AdGuard HTTPS access | [ESP32_MANAGEMENT_PROXY.md](docs/ESP32_MANAGEMENT_PROXY.md) |
 | Security and authorization boundaries | [ESP32_SECURITY.md](docs/ESP32_SECURITY.md) |

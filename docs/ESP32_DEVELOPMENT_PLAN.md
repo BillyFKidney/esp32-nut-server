@@ -33,8 +33,11 @@ for that unstable API.
 
 - Keep the existing NUT daemon and driver architecture. Do not create a
   separate NUT protocol server or standalone USB-enumeration implementation.
-- Preserve upstream structure and make downstream changes small, documented,
-  and easy to rebase or compare with `banoz/nut`.
+- Preserve the required upstream source and build structure while keeping
+  application procedures and retained upstream narrative documents in the
+  directories defined by [ESP32_REPOSITORY_LAYOUT.md](ESP32_REPOSITORY_LAYOUT.md).
+  Make downstream changes small, documented, and easy to rebase or compare
+  with `banoz/nut`.
 - Keep UPS control disabled until it has a separately reviewed safety model.
   Current NUT access is read-only.
 - Do not track generated ESP-IDF build output, managed components, dependency

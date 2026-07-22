@@ -5,11 +5,10 @@ These instructions apply to the whole repository.
 ## Repository identity
 
 This is a downstream ESP32-S3 port built on the upstream Network UPS Tools
-(NUT) repository. The large root, `docs/`, `scripts/`, `src/`, `tests/`, and
-`tools/` layouts are intentional upstream structure, not miscellaneous project
-clutter. Preserve that structure so builds, documentation generation, Git
-history, and comparisons with `banoz/nut` and `networkupstools/nut` remain
-valid.
+(NUT) repository. The root retains project entry points, build inputs, legal
+metadata, repository-wide tooling, and compatibility files; application
+procedures and retained upstream narrative documents live under `docs/`.
+See `docs/ESP32_REPOSITORY_LAYOUT.md` before moving tracked files.
 
 Do not relocate tracked upstream files merely to reduce the number of entries
 shown in an editor. Before moving any tracked file, identify all build and
@@ -19,8 +18,9 @@ documentation references and obtain Project Maintainer approval.
 
 The application-facing landing pages are the root `README.md` and
 `README.adoc`; the former is Markdown and the latter is the AsciiDoc
-companion. For the current Synology/AdGuard management path, use
-`docs/ESP32_MANAGEMENT_PROXY.md`.
+companion. The repository layout policy is in
+`docs/ESP32_REPOSITORY_LAYOUT.md`. For the current Synology/AdGuard management
+path, use `docs/ESP32_MANAGEMENT_PROXY.md`.
 
 Before hardware or implementation work, read:
 
