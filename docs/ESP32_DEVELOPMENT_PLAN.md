@@ -167,7 +167,7 @@ proportional build and target-hardware validation.
 | 5 | `v2.4.0` | `feature/management-dashboard` | Expose and render the required firmware, Wi-Fi, NUT, UPS, voltage, battery, load, runtime, update, and time diagnostics. |
 | 6 | `v2.5.0` | `feature/wifi-management` | Add the client-side ADMIN tab bar and Wi-Fi Configuration panel; scan supported networks, show signal strength, provide an off-by-default local `Show password` toggle, confirm credential changes, reconnect safely, and never reveal the stored password. |
 | 7 | `v2.6.0` | `feature/local-ota-management` | Complete. PR #24 merged local Check/Install controls, corrupt-image rejection, release-link guidance, and rollback/persistence validation at `1d2e18acc`; annotated tag `v2.6.0` and the final GitHub release are published. |
-| 8 | `v2.7.0` | `feature/live-diagnostics-nut-fields` (first slice); `feature/development-build-identity` (second slice) | Add the read-only NUT battery chemistry, battery manufacturing date, and UPS temperature fields with `Not available` rendering, then make development images identify their Git branch/dirty state without changing release provenance. Follow with separate ESP32 diagnostics, session/cookie, bounded-log, CPU-sampler, and reviewed-service-control slices; do not add high-frequency flash writes or background polling that extends an idle session. |
+| 8 | `v2.7.0` | `feature/live-diagnostics-nut-fields` (first slice); `feature/development-build-identity` (second slice) | Complete and publish the accepted CPU-free hardware diagnostics, bounded runtime logs, server-authoritative ADMIN countdown, explicit activity refresh, and stale-cookie cleanup. Follow-up compatibility and state-invalidation fixes are tracked separately as `v2.7.1` through `v2.7.6`. |
 | 9 | `v2.8.0` | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
 | 10 | `v2.9.0` | `feature/operational-management-acceptance` | Integrate and validate the definition of done from iPhone and MacBook Air, close documentation gaps, and publish the final `v2.x` acceptance release. |
 
@@ -239,6 +239,39 @@ identity refresh after a later branch/dirty-state change were not tested in
 this slice. During any long target test, the operator should manually refresh
 Chrome at least every ten minutes; this is not a background diagnostic
 keepalive.
+
+### v2.7.1-v2.7.6 UPS state and compatibility fixes
+
+**Reported by the Project Maintainer on 2026-07-22 after v2.7.0 acceptance:**
+the following defects are immediately prioritized. These observations are
+recorded as evidence; the underlying NVS/runtime-state and USB/NUT failure
+causes remain to be confirmed during implementation.
+
+- Disconnecting the CyberPower UPS leaves the last UPS identity and values
+  visible while NUT reports `STALE`/data stale. The values are not invalidated.
+- A 15-second-plus factory reset with the UPS disconnected does not clear the
+  displayed UPS identity or values. It is not yet proven whether these values
+  are persisted in NVS or retained in a runtime cache across the reset path.
+- Connecting an APC Back-UPS RS 1500G (`BR1500G`) after healthy communication
+  through the MacMini causes the ESP32 to freeze and reboot repeatedly. This
+  is a confirmed compatibility/recovery symptom, not yet a confirmed parser,
+  driver, resource, or USB-host root cause. Reference:
+  [APC BR1500G product page](https://www.se.com/us/en/product/BR1500G/apc-backups-pro-1500va-865w-tower-120v-10x-nema-515r-outlets-avr-lcd-user-replaceable-battery/).
+
+Each patch release below is one reviewable branch and acceptance boundary:
+
+| Release | Prospective branch | Required outcome |
+| --- | --- | --- |
+| `v2.7.1` | `feature/factory-reset-clears-state` | A 15-second-plus factory reset erases all defined saved user values, including UPS identity/cache state, while preserving the firmware and documented recovery boundary. |
+| `v2.7.2` | `feature/nut-disconnect-invalidation` | Loss of the UPS connection immediately updates the status JSON and dashboard; stale data is never presented as current UPS information. |
+| `v2.7.3` | `feature/nut-stale-timeout` | After five minutes without a connection, all UPS information is cleared while NUT remains explicitly stale/unavailable. The timer resets only after a confirmed connection. |
+| `v2.7.4` | `feature/apc-br1500g-support` | From factory-reset state, the APC Back-UPS RS 1500G communicates without freeze/reboot and reports a validated NUT identity, status, and available measurements. |
+| `v2.7.5` | `feature/nut-compatibility-hardening` | Expand compatibility handling for NUT-compatible UPS devices with graceful unsupported-device behavior, bounded resources, and a documented validation matrix; do not claim universal support without evidence. |
+| `v2.7.6` | `feature/ups-change-without-wait` | A connected UPS can be replaced and reprobed immediately without waiting for the five-minute timeout; old identity and values cannot leak into the new device state. |
+
+The first implementation slice is `v2.7.1`; reproduce the disconnected-UPS
+factory-reset case and define the persistent-state boundary before touching
+APC-specific compatibility work.
 
 The Project Maintainer approved moving time configuration ahead of API tokens
 on 2026-07-19 so tokens, dashboards, OTA results, and diagnostics share one

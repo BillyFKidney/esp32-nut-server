@@ -22,7 +22,7 @@ private keys, or Wi-Fi credentials here.
 | Updated | 2026-07-22 13:22 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Latest source change | **Observed on 2026-07-22 09:57 PDT:** browser activity-refresh and stale-session-cookie cleanup are included in the published v2.7.0 release at `24f66a8f7`; `.87` remains untouched |
-| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; v2.7.0 is now merged, tagged, and published with the accepted CPU-free diagnostics, bounded runtime logs, and ADMIN session-activity slice; `.87` remains untouched |
+| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; v2.7.0 is merged, tagged, published, installed, and accepted; six v2.7.x UPS state/compatibility fixes are now documented as the next implementation slices; `.87` remains untouched |
 | Repository branch | **Observed on 2026-07-22 13:22 PDT:** `main` and `origin/main` contain merged release commit `7782239d2`; tag `v2.7.0` and its GitHub release are published; `.87` remains untouched |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc`; PR #26 merged optional NUT diagnostic fields at `24e7ee23`; PR #27 merged Git-derived development build identity at `a5089c34` |
 | Remote state | PR #24, PR #25, PR #26, PR #27, and PR #28 are merged; annotated tag `v2.7.0` is the latest public release; local `main` and `origin/main` are synchronized |
@@ -1535,11 +1535,43 @@ pending explicit authorization.
   recovery slice
 - iPhone and MacBook Air acceptance testing
 
+## v2.7.1-v2.7.6 bug register
+
+**Reported by the Project Maintainer on 2026-07-22 after v2.7.0 acceptance:**
+
+- With the CyberPower UPS disconnected, NUT correctly reports `STALE`/data
+  stale, but the dashboard and status JSON retain the previous UPS identity
+  and measurements instead of invalidating them.
+- A 15-second-plus factory reset with the UPS disconnected leaves the UPS
+  information visible. Whether this is persisted NVS state or a runtime cache
+  surviving the reset path is not yet determined.
+- An APC Back-UPS RS 1500G (`BR1500G`) previously communicating successfully
+  through the MacMini causes the ESP32 to freeze and reboot repeatedly when
+  attached to the ESP32 USB host. The symptom is confirmed; the parser,
+  driver, resource, and USB-host root cause is not yet confirmed. See the
+  [APC BR1500G product page](https://www.se.com/us/en/product/BR1500G/apc-backups-pro-1500va-865w-tower-120v-10x-nema-515r-outlets-avr-lcd-user-replaceable-battery/).
+
+The requested follow-up slices are documented in the development plan:
+
+| Release | Scope |
+| --- | --- |
+| `v2.7.1` | 15-second-plus factory reset erases all defined saved values, including UPS state. |
+| `v2.7.2` | UPS values update immediately on connection loss and never remain presented as current. |
+| `v2.7.3` | Clear all UPS information after five minutes without a connection. |
+| `v2.7.4` | Support APC Back-UPS RS 1500G from factory-reset state without freeze/reboot. |
+| `v2.7.5` | Harden behavior across NUT-compatible UPS devices with evidence-based compatibility coverage. |
+| `v2.7.6` | Allow a UPS replacement to be reprobed without waiting for the stale timeout. |
+
+The next slice is `v2.7.1`; no firmware change has been made in response to
+this report yet. Preserve `.87`.
+
 ## Exact next action
 
 No additional release action is pending. The published v2.7.0 firmware is
-installed and accepted on `.173`; preserve `.87` and resume from this clean,
-synchronized state when capacity is available.
+installed and accepted on `.173`. The next implementation slice is v2.7.1,
+which must address factory-reset clearing of saved UPS/runtime state before
+APC compatibility work begins. Preserve `.87` and keep the current release
+unchanged until that slice is authorized.
 
 ## Operational procedures
 
