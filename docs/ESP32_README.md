@@ -1,5 +1,11 @@
 # ESP32 Port of NUT (Network UPS Tools)
 
+> The application landing page is the root [README.md](../README.md). This
+> document keeps detailed downstream port notes; current device facts belong in
+> [ESP32_CURRENT_STATUS.md](ESP32_CURRENT_STATUS.md), and the current
+> Synology/AdGuard browser path is documented in
+> [ESP32_MANAGEMENT_PROXY.md](ESP32_MANAGEMENT_PROXY.md).
+
 ## Overview
 
 This is an ESP32 port of the Network UPS Tools (NUT). The current downstream
@@ -18,12 +24,12 @@ are defined in [ESP32_DEVELOPMENT_ROLES.md](ESP32_DEVELOPMENT_ROLES.md).
 
 - USB HID UPS support via ESP32 USB Host
 - Wi-Fi provisioning with station mode and a fallback captive portal
-- Development OTA firmware uploads over the connected Wi-Fi network
+- Authenticated local firmware checking and installation over HTTPS
 - NUT `usbhid-ups` driver running on ESP32
 - Read-only NUT `upsd` server on TCP port 3493
 - CyberPower HID subdriver support
-- Web-based monitoring (when configured)
-- Persistent configuration storage using FAT filesystem
+- Authenticated HTTPS administration and dashboard diagnostics
+- Persistent Wi-Fi and management configuration in device storage
 
 ## Hardware Requirements
 
@@ -81,7 +87,7 @@ pio device monitor
 
 ```bash
 # Set up ESP-IDF environment
-. $HOME/esp/esp-idf/export.sh
+. /Users/billyfkidney/.espressif/v6.0.2/esp-idf/export.sh
 
 # Configure project
 idf.py set-target esp32s3
@@ -116,14 +122,14 @@ saved credentials cannot connect, ESP32-NUT starts an open setup access point
 named `ESP32-NUT-<MAC suffix>` at `192.168.4.1`. Connect to it and use the
 captive portal to select or enter a Wi-Fi network and its password.
 
-The portal saves submitted credentials as *pending*, then restarts the device
-to test them in station-only mode. A valid DHCP address promotes them to the
-saved configuration. If association or DHCP fails, the pending credentials are
-retained for automatic retries after future restarts and the setup access point
-returns. Submitting new credentials replaces the pending values; holding
-**BOOT** for three seconds during startup erases all saved Wi-Fi credentials.
-This avoids testing a new network while the captive AP is active on the same
-radio.
+The portal stages submitted credentials, then restarts the device to test them
+in station-only mode. A valid DHCP address promotes them to the saved
+configuration. If association or DHCP fails, the previously active
+credentials remain in place, the failed pending state is cleared, and the setup
+access point returns. Submitting new credentials replaces the pending values;
+holding **BOOT** for three seconds during startup erases all saved Wi-Fi
+credentials. This avoids testing a new network while the captive AP is active
+on the same radio.
 
 ### DHCP compatibility
 
@@ -146,11 +152,14 @@ firmware and OTA recovery slot remain bootable.
 
 ### Operational Management HTTPS transition
 
-The `feature/operational-management` branch replaces the development HTTP OTA
-listener with a LAN-only HTTPS administration service on TCP port `443`. On its
-first Wi-Fi connection, the ESP32 creates and stores a unique self-signed
-certificate and private key. The browser will require the owner to explicitly
-accept or trust that certificate during this milestone.
+The `feature/operational-management` branch replaced the development HTTP OTA
+listener with a LAN-only HTTPS administration service on TCP port `443`. The
+ESP32 creates and stores a unique self-signed certificate and private key. When
+the board is accessed directly by IP, the browser will show a certificate
+warning. The current local deployment normally reaches the board through the
+Synology reverse proxy, which presents the trusted wildcard certificate to the
+browser and uses HTTPS to the ESP32 backend. See
+[ESP32_MANAGEMENT_PROXY.md](ESP32_MANAGEMENT_PROXY.md).
 
 The first administration page requires the owner to create the per-device
 ADMIN password twice. Passwords are stored only as salted PBKDF2-HMAC-SHA-256
@@ -181,13 +190,13 @@ place. Firmware upload uses the authenticated HTTPS management API and the
 scoped Agent OTA route described above; do not rely on the former
 unauthenticated TCP port `8080` service.
 
-The planned `v2.5.0` administration update keeps this same authenticated page
+The `v2.5.0` administration update keeps this same authenticated page
 but organizes it with a responsive tab bar: **Dashboard**, **Device Status**,
 **Date and Time**, **Wi-Fi Configuration**, **ADMIN Password**, **API Tokens**,
 and **Update Firmware**. The tabs are presentation-only and do not change
 route authorization or transport security.
 
-The planned Wi-Fi Configuration panel will provide supported-network scanning
+The Wi-Fi Configuration panel provides supported-network scanning
 through a visible selectable list containing each SSID, signal strength, and
 security mode. Manual SSID entry remains available for hidden or unlisted
 networks. The panel also provides safe credential staging and reconnect, plus
@@ -341,7 +350,7 @@ For a complete list of supported devices, see the [NUT Hardware Compatibility Li
    - User/group management (setuid, setgid, etc.)
    - Signal handling (sigaction, signal)
    - File permissions (fchmod, fchown)
-   
+
 2. **Resource Constraints**:
    - Limited RAM (~520KB)
    - Limited number of concurrent connections (4 max)
