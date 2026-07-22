@@ -17,7 +17,7 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 22:09 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 22:16 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | Local OTA management `v2.6.0` is in progress; API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` remain final and published |
 | Repository branch | `feature/local-ota-management` was created directly from synchronized `main` at `09e5e2cb88714104c84bbba6e0bc8bebaea47844`; no v2.6 changes are published |
@@ -32,6 +32,7 @@ private keys, or Wi-Fi credentials here.
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | **Observed:** `192.168.40.87` (MAC `30:30:f9:16:8c:08`) and `192.168.40.173` (MAC `30:30:f9:16:89:a4`) both accepted HTTPS 443 and NUT 3493, returned HTTPS 200, and refused retired TCP 8080; the new board at `.87` returned read-only NUT `ups.status = OL` |
+| Trusted reverse-proxy endpoint | **Observed:** `https://esp32nut-3dprinter.28670avenidacondesa.com/` resolved to Synology `192.168.40.10`; curl validation without certificate bypass returned HTTP/2 200 for the console and 401 for unauthenticated `/api/v1/status`. The existing Chrome tab for that hostname returned `Header fields are too long`, while a fresh tab reached the ADMIN sign-in page; browser validation remains on the established direct `.173` session |
 | Last observed development USB path | **Observed:** `/dev/cu.usbmodem54E20396741` with no listed owner; no serial monitor was opened. Earlier `/dev/cu.usbmodem1101` flash evidence remains historical |
 | Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
