@@ -26,9 +26,13 @@ access remains read-only.
 
 ## Current operating model
 
-The published operational baseline is `v2.5.0`. The current development slice,
-branch, installed firmware, target observations, and exact next action are
-maintained in [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md).
+The published operational baseline is `v2.5.0`; the validated `v2.6.0` local
+OTA-management slice is being prepared for publication. It adds an
+ADMIN-session and CSRF-protected local image check before install, preserves
+the authenticated install and scoped Agent OTA paths, rejects invalid images,
+and retains ESP32-S3 bootloader rollback behavior. The branch, installed
+firmware, target observations, and exact next action are maintained in
+[docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md).
 
 The normal browser path uses Synology as a LAN reverse proxy:
 

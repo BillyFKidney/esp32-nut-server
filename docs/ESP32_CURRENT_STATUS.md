@@ -17,22 +17,23 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 20:59 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 22:53 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` are final and published; select the next slice through a new preflight |
-| Repository branch | `main` contains the merged v2.5.0 implementation and publication-status documentation; local `main` is synchronized with `origin/main` |
-| Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806` |
-| Remote state | PR #22 is merged, tag `v2.5.0` is public, the GitHub release is final with firmware and checksum assets, and the status-doc update is synchronized |
-| Source worktree | v2.5.0 source and documentation are merged; generated ESP-IDF outputs remain ignored |
+| Active slice target | Local OTA management `v2.6.0` is validated and awaiting publication; API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` remain final and published |
+| Repository branch | `feature/local-ota-management` was created directly from synchronized `main` at `09e5e2cb88714104c84bbba6e0bc8bebaea47844`; no v2.6 changes are published |
+| Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; the v2.6 working tree adds local image checking |
+| Remote state | PR #22 is merged, tag `v2.5.0` is public, the GitHub release is final with firmware and checksum assets, and no v2.6 branch, tag, PR, or release exists |
+| Source worktree | v2.6 source changes are local commits on `feature/local-ota-management`; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | `v2.5.0` Wi-Fi-management image built successfully with ESP-IDF v6.0.2; 1,304,736 bytes, SHA-256 `a28055a80f7c926c229044d1f3cc4243f26165fec65c6a5929d9ac720172ca32`, and 61% of the smallest application partition free; the same image and checksum are attached to the v2.5.0 release |
+| Latest local build | **Observed:** v2.6.0 local-OTA candidate built successfully with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869`, and 61% of the smallest application partition free; it is restored on development target `.173` and is not published |
 | Latest published release | Final `v2.5.0`, tagged at PR #22 merge commit `36fb7886a90172520c2a34af8785cf8238619806` and published with the firmware and checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.5.0) |
-| Installed firmware | **Observed:** the Device Operator reports the target running `v2.5.0` with Wi-Fi management validation complete; the exact installed-image hash was not independently checked after publication |
+| Installed firmware | **Observed:** development target `192.168.40.173` is running restored v2.6.0 with `last_result = installed`; the independent `.87` board remains reserved for Device Operator testing |
 | Last USB flash | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
-| Last verified IPv4 address | `192.168.40.173`; post-reset MAC rediscovery, ping, protected HTTPS 200, NUT/UPS `OL`, and retired-port checks passed; the installed `v2.4.0` candidate then completed a ten-minute network-first soak |
-| Last observed development USB path | New board rediscovered as `/dev/cu.usbmodem1101` with no listed owner; no serial monitor was opened. The previously observed `/dev/cu.usbmodem54E20396741` path belongs to the earlier board and is historical |
+| Last verified IPv4 address | **Observed:** `192.168.40.87` (MAC `30:30:f9:16:8c:08`) and `192.168.40.173` (MAC `30:30:f9:16:89:a4`) both accepted HTTPS 443 and NUT 3493, returned HTTPS 200, and refused retired TCP 8080; the new board at `.87` returned read-only NUT `ups.status = OL` |
+| Trusted reverse-proxy endpoint | **Observed:** `https://esp32nut-3dprinter.28670avenidacondesa.com/` resolved to Synology `192.168.40.10`; curl validation without certificate bypass returned HTTP/2 200 for the console and 401 for unauthenticated `/api/v1/status`. Chrome's FQDN tab returned `Header fields are too long` while fresh requests and Safari worked; this is isolated to Chrome's hostname-specific browser state, and browser validation remains on the direct `.173` session |
+| Last observed development USB path | **Observed:** `/dev/cu.usbmodem54E20396741` with no listed owner; no serial monitor was opened. Earlier `/dev/cu.usbmodem1101` flash evidence remains historical |
 | Physical intervention required | None; normal Mac COM and UPS native-USB cabling is restored and no RESET is required |
 
 ## Current objective
@@ -48,6 +49,98 @@ authorization boundaries. UPS access remains read-only.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
+
+## v2.6.0 local OTA management audit and implementation
+
+**Observed on 2026-07-21:** the required network-first preflight found a clean
+and synchronized `main` at `09e5e2cb88714104c84bbba6e0bc8bebaea47844`, then
+created `feature/local-ota-management` from that commit. The new branch builds
+with ESP-IDF v6.0.2. The target network checks found HTTPS 443 and read-only NUT
+3493 available on both rediscovered devices, retired TCP 8080 refused, and
+`ups.status = OL` on the new board at `192.168.40.87`. No serial port was opened.
+
+**Observed from prior releases:** authenticated local firmware selection,
+confirmation, image verification, install, restart, slot transition, and
+reconnect already passed with a known-good image. The existing implementation
+rejects corrupt images with HTTP 422, but a deliberately corrupt image was not
+target-tested. No check control/route or browser download control existed, and
+no automatic or remote firmware fetcher exists; those are the v2.6 and later
+gaps respectively.
+
+**Observed in the v2.6 working tree:** the ADMIN+CSRF-only
+`POST /api/v1/ota/check` route verifies a complete local image without selecting
+it for boot. The existing ADMIN+CSRF install route remains the only local route
+that selects the inactive partition and schedules a restart. The Update
+Firmware panel now exposes Check, Install, and a browser release-download link;
+the device does not fetch remote firmware. HTTPS route registration is now at
+the configured limit of 16 handlers.
+
+**Observed on 2026-07-21 22:06 PDT:** Chrome reached the authenticated Update
+Firmware panel on `.173`; the release-page link, local image picker, Check, and
+Install controls were visible. Selecting the v2.6.0 candidate and choosing
+Check returned `Firmware image verified. It is ready to install.` The dashboard
+continued to report v2.6.0, uptime 39 seconds, and `last update installed`; the
+protected status JSON continued to report `running_slot = app1` and
+`next_slot = app0`. This is evidence that checking did not reboot or change the
+active slot. A deliberately invalid fixture was then selected, but the browser
+ADMIN session had expired; the request returned `Invalid session or CSRF token.`
+before image verification, so no device state changed.
+
+**Observed on 2026-07-21 22:09 PDT:** after the ADMIN session was renewed, the
+same panel rejected the deliberately invalid fixture with `The uploaded file is
+not a valid ESP32-NUT firmware image.` Protected status afterward reported
+v2.6.0, uptime 747 seconds, `running_slot = app1`, `next_slot = app0`, and
+`last_result = installed`; NUT remained healthy with UPS status `OL`.
+
+**Observed on 2026-07-21 22:23 PDT:** selecting the Update Firmware release link
+opened a new browser tab at the current latest GitHub release,
+`https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.5.0`. The
+page displayed the v2.5.0 release heading and its firmware and checksum assets.
+The link behavior therefore passes; the device still does not fetch firmware
+from a remote source.
+
+**Inferred:** the previously delivered known-good install, the valid-image
+Check result, no-reboot/slot-stability observation, the verified release link,
+and the absence of automatic updates satisfy those portions of the v2.6 policy.
+
+**Observed on 2026-07-21 22:45 PDT:** a dedicated 173,008-byte rollback probe
+(SHA-256 `cf3407714e98d89641860a29ca534365abe9bdbf9eaca1d765d9d8350fb2017a`)
+passed the v2.6 Check route and the authenticated Install flow. The device
+rebooted and returned to `app1` with `app0` next, firmware `v2.6.0`, a reset
+uptime, and `update.last_result = pending`; this is the expected bootloader
+rollback evidence because the probe intentionally reset before the application
+could mark itself valid. Wi-Fi, synchronized NTP settings, ADMIN access,
+device identity, API-token metadata, HTTPS, read-only NUT, and `ups.status = OL`
+remained available after the rollback. No serial port was opened.
+
+**Observed on 2026-07-21 22:52-22:53 PDT:** the normal 1,306,576-byte candidate
+(SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869`)
+was checked and installed to restore the operational image. After reboot, the
+authenticated status reported firmware `v2.6.0`, `running_slot = app0`,
+`next_slot = app1`, uptime 72 seconds, and `update.last_result = installed`.
+Wi-Fi remained connected at `.173`, NUT health was `ok`, and the UPS remained
+`OL` with the expected CyberPower identity. The rollback/persistence gate
+therefore passes. The Project Maintainer waived a second browser-panel install
+and independent `.87` testing for this slice; `.87` was not modified.
+
+**Operational assignment observed on 2026-07-21:** the Project Maintainer
+designated `192.168.40.173` as the Codex development target and reserved the
+board at `192.168.40.87` (MAC ending `8c:08`) for independent Device Operator
+testing. The `.87` board has not been modified by this slice.
+
+**Scope decisions on 2026-07-21 22:23 PDT:** the Project Maintainer waived a
+second browser-panel install and waived independent `.87` acceptance for v2.6.
+The release-link check passed. The rollback/persistence gate subsequently
+passed on `.173`; remaining work is publication and final status synchronization.
+
+**Observed on 2026-07-21:** the Device Operator installed the v2.6.0 candidate
+on `192.168.40.173`. The authenticated dashboard displayed firmware `v2.6.0`,
+`last update installed`, connected Wi-Fi, NUT health `ok — TCP 3493`,
+`ups.status = OL`, CyberPower CST150UC2 identity, and populated battery/load and
+voltage fields. Independent network checks then returned HTTPS 200,
+unauthenticated status 401, TCP 443 and 3493 open, TCP 8080 refused, and
+read-only NUT `ups.status = OL` / `device.model = CST150UC2`. Serial remained
+closed.
 
 ## Last completed work
 
@@ -1160,9 +1253,8 @@ pending explicit authorization.
 
 ### Remaining Operational Management work
 
-- Complete any additional target-hardware regression checks for the installed
-  `v2.4.0` candidate that are authorized for this slice.
-- Corrupt OTA image rejection validation
+- Publish the validated `v2.6.0` local OTA-management slice and complete the
+  post-publication release audit.
 - Remote service controls and live browser diagnostics
 - Standalone three-second Wi-Fi-only recovery validation in the later physical
   recovery slice
@@ -1170,10 +1262,12 @@ pending explicit authorization.
 
 ## Exact next action
 
-After explicit target-install authorization, repeat network-first preflight and
-install the local `v2.5.0` candidate. Do not push, merge, tag, or publish until
-browser, negative-authentication, Wi-Fi rollback, network, persistence, and
-target-hardware validation are complete.
+Publish the validated v2.6.0 slice: push the reviewed branch, open and merge
+its pull request, tag the implementation merge, create the final GitHub
+release with the exact firmware and checksum assets, and synchronize this
+status document with the resulting refs. The Project Maintainer authorized
+those actions after the `.173` rollback/persistence gate passed. Do not modify
+the independently reserved `.87` board.
 
 ## Operational procedures
 
