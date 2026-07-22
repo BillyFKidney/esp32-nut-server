@@ -17,7 +17,7 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 22:16 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 22:23 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | Local OTA management `v2.6.0` is in progress; API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` remain final and published |
 | Repository branch | `feature/local-ota-management` was created directly from synchronized `main` at `09e5e2cb88714104c84bbba6e0bc8bebaea47844`; no v2.6 changes are published |
@@ -92,18 +92,31 @@ not a valid ESP32-NUT firmware image.` Protected status afterward reported
 v2.6.0, uptime 747 seconds, `running_slot = app1`, `next_slot = app0`, and
 `last_result = installed`; NUT remained healthy with UPS status `OL`.
 
-**Inferred:** the previously delivered known-good install, the valid-image
-Check result, no-reboot/slot-stability observation, and the absence of automatic
-updates satisfy those portions of the v2.6 policy. The release-page link was
-observed in the panel, but it was not opened during this validation.
+**Observed on 2026-07-21 22:23 PDT:** selecting the Update Firmware release link
+opened a new browser tab at the current latest GitHub release,
+`https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.5.0`. The
+page displayed the v2.5.0 release heading and its firmware and checksum assets.
+The link behavior therefore passes; the device still does not fetch firmware
+from a remote source.
 
-**Not yet tested:** a fresh browser-panel install after the Check result,
-rollback/persistence after a v2.6 reboot, and opening the browser release link.
+**Inferred:** the previously delivered known-good install, the valid-image
+Check result, no-reboot/slot-stability observation, the verified release link,
+and the absence of automatic updates satisfy those portions of the v2.6 policy.
+
+**Not yet tested:** an explicit rollback/persistence exercise after a v2.6
+reboot. The Project Maintainer waived a second browser-panel install and
+independent `.87` testing for this slice; the installed candidate has already
+survived its normal OTA restart and remained operational.
 
 **Operational assignment observed on 2026-07-21:** the Project Maintainer
 designated `192.168.40.173` as the Codex development target and reserved the
 board at `192.168.40.87` (MAC ending `8c:08`) for independent Device Operator
 testing. The `.87` board has not been modified by this slice.
+
+**Scope decisions on 2026-07-21 22:23 PDT:** the Project Maintainer waived a
+second browser-panel install and waived independent `.87` acceptance for v2.6.
+The release-link check passed. Remaining work is release preparation plus an
+explicit rollback/persistence check only if the release gate requires it.
 
 **Observed on 2026-07-21:** the Device Operator installed the v2.6.0 candidate
 on `192.168.40.173`. The authenticated dashboard displayed firmware `v2.6.0`,
@@ -1225,9 +1238,8 @@ pending explicit authorization.
 
 ### Remaining Operational Management work
 
-- Complete any additional target-hardware regression checks for the installed
-  `v2.4.0` candidate that are authorized for this slice.
-- Corrupt OTA image rejection validation
+- Complete an explicit rollback/persistence check for the v2.6 candidate only
+  if the release gate requires it.
 - Remote service controls and live browser diagnostics
 - Standalone three-second Wi-Fi-only recovery validation in the later physical
   recovery slice
@@ -1235,12 +1247,11 @@ pending explicit authorization.
 
 ## Exact next action
 
-Complete the remaining proportional v2.6 validation on development target
-`192.168.40.173`: decide whether a second browser-panel install and the
-rollback/persistence check are required, and optionally open the release link.
-Keep `192.168.40.87` untouched for independent testing. Do not push, merge,
-tag, or publish until browser, network, persistence, rollback, and
-target-hardware validation are complete.
+Reconcile the existing user-owned worktree changes, review the v2.6 branch,
+and decide whether the explicit rollback/persistence check is required. The
+Project Maintainer waived a second install and `.87` testing. Do not push,
+merge, tag, or publish until the branch review is complete and the Project
+Maintainer explicitly authorizes publication.
 
 ## Operational procedures
 
