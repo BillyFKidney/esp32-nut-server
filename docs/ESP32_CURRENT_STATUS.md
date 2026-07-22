@@ -17,7 +17,7 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 23:12 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 23:14 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | Local OTA management `v2.6.0` is final, target-validated, merged, tagged, and published; live diagnostics `v2.7.0` is the next planned slice |
 | Repository branch | Local `main` and `origin/main` are synchronized at merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2`; v2.6.0 was merged by PR #24 |
@@ -149,6 +149,12 @@ GitHub release was published with `nut-esp32s3.bin` and
 `nut-esp32s3.bin.sha256`. Downloaded release verification returned `OK` for
 the exact SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869`.
 The release audit passes; `.87` was not modified.
+
+**Observed on 2026-07-21 23:14 PDT:** network-first post-publication checks
+rediscovered MAC `30:30:f9:16:89:a4` at `192.168.40.173`. HTTPS returned 200,
+unauthenticated status returned 401, TCP 443 and read-only NUT TCP 3493
+accepted connections, NUT returned `ups.status = OL`, and retired TCP 8080
+remained refused. No serial port was opened.
 
 ## Last completed work
 
