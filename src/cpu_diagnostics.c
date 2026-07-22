@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <string.h>
 
+#include "esp_attr.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -34,7 +35,8 @@ static uint32_t cpu_diagnostics_sample_interval_ms =
     CPU_DIAGNOSTICS_SAMPLE_INTERVAL_MS;
 static uint64_t cpu_diagnostics_sampled_at_ms;
 
-static bool cpu_diagnostics_idle_hook(void)
+/* These callbacks run from FreeRTOS idle/tick hooks while flash cache may be disabled. */
+static bool IRAM_ATTR cpu_diagnostics_idle_hook(void)
 {
     const UBaseType_t core = xPortGetCoreID();
     if (core < CPU_DIAGNOSTICS_CORE_COUNT)
@@ -44,7 +46,7 @@ static bool cpu_diagnostics_idle_hook(void)
     return true;
 }
 
-static void cpu_diagnostics_tick_hook(void)
+static void IRAM_ATTR cpu_diagnostics_tick_hook(void)
 {
     const UBaseType_t core = xPortGetCoreID();
     if (core >= CPU_DIAGNOSTICS_CORE_COUNT)
