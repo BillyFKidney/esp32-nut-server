@@ -3,16 +3,21 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #include "api_tokens.h"
+#include "driver/temperature_sensor.h"
 #include "drivers/dstate.h"
 #include "esp_app_desc.h"
+#include "esp_chip_info.h"
 #include "esp_check.h"
 #include "esp_err.h"
+#include "esp_flash.h"
+#include "esp_heap_caps.h"
 #include "esp_https_server.h"
 #include "esp_log.h"
 #include "esp_mac.h"
@@ -30,6 +35,7 @@
 #include "nvs.h"
 #include "ota.h"
 #include "psa/crypto.h"
+#include "sdkconfig.h"
 #include "time_config.h"
 #include "wifi-provisioning.h"
 
@@ -56,7 +62,7 @@
 #define MANAGEMENT_SESSION_HEX_LENGTH (MANAGEMENT_SESSION_BYTES * 2)
 #define MANAGEMENT_SESSION_IDLE_US (15LL * 60LL * 1000000LL)
 #define MANAGEMENT_FORM_BODY_LIMIT 640
-#define MANAGEMENT_ADMIN_PAGE_SIZE 28000
+#define MANAGEMENT_ADMIN_PAGE_SIZE 36000
 #define MANAGEMENT_STATUS_RESPONSE_SIZE 5000
 #define MANAGEMENT_WIFI_SCAN_RESPONSE_SIZE 4200
 #define MANAGEMENT_NUT_VALUE_LENGTH 96
@@ -65,6 +71,42 @@
 #define MANAGEMENT_PRIVATE_KEY_BUFFER_SIZE 1024
 #define MANAGEMENT_LOGIN_MAX_FAILURES 5
 #define MANAGEMENT_LOGIN_COOLDOWN_US (60LL * 1000000LL)
+#define MANAGEMENT_BOARD_PROFILE "YD-ESP32-23"
+#define MANAGEMENT_MODULE_PROFILE "ESP32-S3-WROOM-1-N16R8"
+
+#if CONFIG_ESPTOOLPY_FLASHSIZE_1MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (1U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_2MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (2U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_4MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (4U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_8MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (8U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_16MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (16U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_32MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (32U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_64MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (64U * 1024U * 1024U)
+#elif CONFIG_ESPTOOLPY_FLASHSIZE_128MB
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (128U * 1024U * 1024U)
+#else
+#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES 0U
+#endif
+
+#if CONFIG_SPIRAM_MODE_OCT
+#define MANAGEMENT_PSRAM_MODE "octal"
+#elif CONFIG_SPIRAM_MODE_QUAD
+#define MANAGEMENT_PSRAM_MODE "quad"
+#else
+#define MANAGEMENT_PSRAM_MODE "unavailable"
+#endif
+
+#if CONFIG_SPIRAM
+#define MANAGEMENT_PSRAM_SPEED_MHZ CONFIG_SPIRAM_SPEED
+#else
+#define MANAGEMENT_PSRAM_SPEED_MHZ 0
+#endif
 
 _Static_assert(sizeof(MANAGEMENT_NAMESPACE) <= NVS_NS_NAME_MAX_SIZE,
                "Management NVS namespace exceeds the ESP-IDF limit");
@@ -373,6 +415,123 @@ static void management_collect_nut_snapshot(ManagementNutSnapshot *snapshot)
                               sizeof(snapshot->ups_realpower));
     management_copy_nut_value("ups.firmware", snapshot->ups_firmware,
                               sizeof(snapshot->ups_firmware));
+}
+
+typedef struct
+{
+    esp_chip_info_t chip;
+    uint32_t flash_size_bytes;
+    size_t psram_size_bytes;
+    size_t free_internal_heap_bytes;
+    size_t free_psram_bytes;
+    uint32_t minimum_free_heap_bytes;
+    bool chip_temperature_available;
+    float chip_temperature_celsius;
+} ManagementHardwareSnapshot;
+
+static bool management_hardware_initialized;
+static uint32_t management_flash_size_bytes;
+static temperature_sensor_handle_t management_temperature_sensor;
+
+static const char *management_chip_model_name(esp_chip_model_t model)
+{
+    switch (model)
+    {
+    case CHIP_ESP32:
+        return "ESP32";
+    case CHIP_ESP32S2:
+        return "ESP32-S2";
+    case CHIP_ESP32S3:
+        return "ESP32-S3";
+    case CHIP_ESP32C2:
+        return "ESP32-C2";
+    case CHIP_ESP32C3:
+        return "ESP32-C3";
+    case CHIP_ESP32C5:
+        return "ESP32-C5";
+    case CHIP_ESP32C6:
+        return "ESP32-C6";
+    case CHIP_ESP32H2:
+        return "ESP32-H2";
+    case CHIP_ESP32P4:
+        return "ESP32-P4";
+    case CHIP_ESP32C61:
+        return "ESP32-C61";
+    case CHIP_ESP32H21:
+        return "ESP32-H21";
+    case CHIP_ESP32H4:
+        return "ESP32-H4";
+    default:
+        return "unknown";
+    }
+}
+
+static void management_initialize_hardware_diagnostics(void)
+{
+    if (management_hardware_initialized)
+    {
+        return;
+    }
+    management_hardware_initialized = true;
+
+    uint32_t detected_flash_size = 0;
+    if (esp_flash_get_physical_size(NULL, &detected_flash_size) == ESP_OK)
+    {
+        management_flash_size_bytes = detected_flash_size;
+    }
+    else
+    {
+        management_flash_size_bytes = MANAGEMENT_COMPILED_FLASH_SIZE_BYTES;
+        ESP_LOGW(TAG, "Unable to detect physical flash size; using configured size");
+    }
+
+    const temperature_sensor_config_t temperature_configuration =
+        TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
+    esp_err_t result = temperature_sensor_install(&temperature_configuration,
+                                                  &management_temperature_sensor);
+    if (result != ESP_OK)
+    {
+        management_temperature_sensor = NULL;
+        ESP_LOGW(TAG, "Internal chip temperature is unavailable: %s",
+                 esp_err_to_name(result));
+        return;
+    }
+
+    result = temperature_sensor_enable(management_temperature_sensor);
+    if (result != ESP_OK)
+    {
+        ESP_LOGW(TAG, "Unable to enable internal chip temperature: %s",
+                 esp_err_to_name(result));
+        temperature_sensor_uninstall(management_temperature_sensor);
+        management_temperature_sensor = NULL;
+    }
+}
+
+static void management_collect_hardware_snapshot(ManagementHardwareSnapshot *snapshot)
+{
+    memset(snapshot, 0, sizeof(*snapshot));
+    esp_chip_info(&snapshot->chip);
+    snapshot->flash_size_bytes = management_flash_size_bytes != 0
+                                     ? management_flash_size_bytes
+                                     : MANAGEMENT_COMPILED_FLASH_SIZE_BYTES;
+    snapshot->psram_size_bytes = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
+    snapshot->free_internal_heap_bytes =
+        heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    snapshot->free_psram_bytes =
+        heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    snapshot->minimum_free_heap_bytes = esp_get_minimum_free_heap_size();
+
+    if (management_temperature_sensor != NULL)
+    {
+        float temperature_celsius = 0.0f;
+        if (temperature_sensor_get_celsius(management_temperature_sensor,
+                                            &temperature_celsius) == ESP_OK &&
+            isfinite(temperature_celsius))
+        {
+            snapshot->chip_temperature_available = true;
+            snapshot->chip_temperature_celsius = temperature_celsius;
+        }
+    }
 }
 
 static esp_err_t management_open_nvs(nvs_open_mode_t mode, nvs_handle_t *handle)
@@ -1278,7 +1437,13 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<p class=metric><strong>Load</strong><span id=dashboardLoad>Loading…</span></p></article>"
              "<article class=card><h3>Power</h3><p class=metric><strong>Battery voltage</strong><span id=dashboardBatteryVoltage>Loading…</span></p>"
              "<p class=metric><strong>Input voltage</strong><span id=dashboardInputVoltage>Loading…</span></p>"
-             "<p class=metric><strong>Output voltage</strong><span id=dashboardOutputVoltage>Loading…</span></p></article></section></section>"
+             "<p class=metric><strong>Output voltage</strong><span id=dashboardOutputVoltage>Loading…</span></p></article>"
+             "<article class=card><h3>Hardware diagnostics</h3><p class=metric><strong>Chip</strong><span id=dashboardChip>Loading…</span></p>"
+             "<p class=metric><strong>Board</strong><span id=dashboardBoard>Loading…</span></p>"
+             "<p class=metric><strong>Flash</strong><span id=dashboardFlash>Loading…</span></p>"
+             "<p class=metric><strong>PSRAM</strong><span id=dashboardPsram>Loading…</span></p>"
+             "<p class=metric><strong>Free memory</strong><span id=dashboardMemory>Loading…</span></p>"
+             "<p class=metric><strong>Chip temperature</strong><span id=dashboardChipTemperature>Loading…</span></p></article></section></section>"
              "<section id=panel-status class=panel hidden><h2>Device Status</h2><details><summary>Raw status JSON</summary><pre id=status>Loading…</pre></details></section>"
              "<section id=panel-time class=panel hidden><h2>Date and Time</h2><p id=timeSummary>Loading time status…</p>"
              "<form id=timeConfigForm><label class=check><input id=ntpEnabled type=checkbox> Synchronize automatically with NTP</label>"
@@ -1320,11 +1485,11 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "const csrf='%s',status=document.getElementById('status'),timeSummary=document.getElementById('timeSummary'),timeConfigForm=document.getElementById('timeConfigForm'),ntpEnabled=document.getElementById('ntpEnabled'),ntpServer=document.getElementById('ntpServer'),timeZone=document.getElementById('timeZone'),syncNow=document.getElementById('syncNow'),manualTimeForm=document.getElementById('manualTimeForm'),manualDateTime=document.getElementById('manualDateTime'),timeResult=document.getElementById('timeResult'),wifiCurrent=document.getElementById('wifiCurrent'),wifiScanButton=document.getElementById('wifiScanButton'),wifiScanResult=document.getElementById('wifiScanResult'),wifiForm=document.getElementById('wifiForm'),wifiSsid=document.getElementById('wifiSsid'),wifiNetworkList=document.getElementById('wifiNetworkList'),wifiPassword=document.getElementById('wifiPassword'),wifiShowPassword=document.getElementById('wifiShowPassword'),wifiConfigureButton=document.getElementById('wifiConfigureButton'),wifiResult=document.getElementById('wifiResult'),currentPassword=document.getElementById('currentPassword'),newPassword=document.getElementById('newPassword'),confirmPassword=document.getElementById('confirmPassword'),passwordForm=document.getElementById('passwordForm'),passwordResult=document.getElementById('passwordResult'),tokenForm=document.getElementById('tokenForm'),tokenOnce=document.getElementById('tokenOnce'),tokenValue=document.getElementById('tokenValue'),tokenMetadata=document.getElementById('tokenMetadata'),tokenList=document.getElementById('tokenList'),tokenResult=document.getElementById('tokenResult'),deleteTokenDialog=document.getElementById('deleteTokenDialog'),deleteTokenName=document.getElementById('deleteTokenName'),deleteTokenAck=document.getElementById('deleteTokenAck'),deleteTokenConfirm=document.getElementById('deleteTokenConfirm'),otaForm=document.getElementById('otaForm'),otaFile=document.getElementById('otaFile'),otaButton=document.getElementById('otaButton'),otaResult=document.getElementById('otaResult');let pendingTokenId='';"
              "const otaCheckButton=document.getElementById('otaCheckButton');"
              "const tabs=document.querySelectorAll('.tab'),panels={dashboard:document.getElementById('panel-dashboard'),status:document.getElementById('panel-status'),time:document.getElementById('panel-time'),wifi:document.getElementById('panel-wifi'),password:document.getElementById('panel-password'),tokens:document.getElementById('panel-tokens'),ota:document.getElementById('panel-ota')};"
-             "const dashboardFirmware=document.getElementById('dashboardFirmware'),dashboardUptime=document.getElementById('dashboardUptime'),dashboardUpdate=document.getElementById('dashboardUpdate'),dashboardWifi=document.getElementById('dashboardWifi'),dashboardSignal=document.getElementById('dashboardSignal'),dashboardNut=document.getElementById('dashboardNut'),dashboardUpsStatus=document.getElementById('dashboardUpsStatus'),dashboardUps=document.getElementById('dashboardUps'),dashboardSerial=document.getElementById('dashboardSerial'),dashboardBatteryType=document.getElementById('dashboardBatteryType'),dashboardBatteryMfrDate=document.getElementById('dashboardBatteryMfrDate'),dashboardUpsTemperature=document.getElementById('dashboardUpsTemperature'),dashboardBattery=document.getElementById('dashboardBattery'),dashboardRuntime=document.getElementById('dashboardRuntime'),dashboardLoad=document.getElementById('dashboardLoad'),dashboardBatteryVoltage=document.getElementById('dashboardBatteryVoltage'),dashboardInputVoltage=document.getElementById('dashboardInputVoltage'),dashboardOutputVoltage=document.getElementById('dashboardOutputVoltage');"
-             "function displayValue(value){return value===undefined||value===null||value===''||value==='unavailable'?'Not available':String(value)}function formatUptime(seconds){if(typeof seconds!=='number')return displayValue(seconds);const days=Math.floor(seconds/86400),hours=Math.floor(seconds%%86400/3600),minutes=Math.floor(seconds%%3600/60),remaining=Math.floor(seconds%%60);return (days?days+'d ':'')+(hours?hours+'h ':'')+(minutes?minutes+'m ':'')+remaining+'s'}"
+             "const dashboardFirmware=document.getElementById('dashboardFirmware'),dashboardUptime=document.getElementById('dashboardUptime'),dashboardUpdate=document.getElementById('dashboardUpdate'),dashboardWifi=document.getElementById('dashboardWifi'),dashboardSignal=document.getElementById('dashboardSignal'),dashboardNut=document.getElementById('dashboardNut'),dashboardUpsStatus=document.getElementById('dashboardUpsStatus'),dashboardUps=document.getElementById('dashboardUps'),dashboardSerial=document.getElementById('dashboardSerial'),dashboardBatteryType=document.getElementById('dashboardBatteryType'),dashboardBatteryMfrDate=document.getElementById('dashboardBatteryMfrDate'),dashboardUpsTemperature=document.getElementById('dashboardUpsTemperature'),dashboardBattery=document.getElementById('dashboardBattery'),dashboardRuntime=document.getElementById('dashboardRuntime'),dashboardLoad=document.getElementById('dashboardLoad'),dashboardBatteryVoltage=document.getElementById('dashboardBatteryVoltage'),dashboardInputVoltage=document.getElementById('dashboardInputVoltage'),dashboardOutputVoltage=document.getElementById('dashboardOutputVoltage'),dashboardChip=document.getElementById('dashboardChip'),dashboardBoard=document.getElementById('dashboardBoard'),dashboardFlash=document.getElementById('dashboardFlash'),dashboardPsram=document.getElementById('dashboardPsram'),dashboardMemory=document.getElementById('dashboardMemory'),dashboardChipTemperature=document.getElementById('dashboardChipTemperature');"
+             "function displayValue(value){return value===undefined||value===null||value===''||value==='unavailable'?'Not available':String(value)}function formatUptime(seconds){if(typeof seconds!=='number')return displayValue(seconds);const days=Math.floor(seconds/86400),hours=Math.floor(seconds%%86400/3600),minutes=Math.floor(seconds%%3600/60),remaining=Math.floor(seconds%%60);return (days?days+'d ':'')+(hours?hours+'h ':'')+(minutes?minutes+'m ':'')+remaining+'s'}function formatBytes(value){if(typeof value!=='number'||value<0)return displayValue(value);if(value<1024)return value+' B';const units=['KB','MB','GB'];let scaled=value,unit='B';for(const next of units){if(scaled<1024)break;scaled/=1024;unit=next}return scaled.toFixed(scaled>=10?0:1)+' '+unit}"
              "function selectPanel(name){for(const tab of tabs)tab.setAttribute('aria-selected',tab.dataset.panel===name?'true':'false');for(const panelName in panels)panels[panelName].hidden=panelName!==name}"
              "tabs.forEach(tab=>tab.onclick=()=>selectPanel(tab.dataset.panel));"
-             "function renderDashboard(x){const wifi=x.wifi||{},nut=x.nut||{},ups=x.ups||{},update=x.update||{};dashboardFirmware.textContent=displayValue(x.firmware);dashboardUptime.textContent=formatUptime(x.uptime_seconds);dashboardUpdate.textContent=displayValue(update.last_result);dashboardWifi.textContent=displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected');dashboardSignal.textContent=displayValue(wifi.rssi_dbm)+' dBm';dashboardNut.textContent=displayValue(nut.health)+' — TCP '+displayValue(nut.port)+(nut.data_stale?' — data stale':'');dashboardUpsStatus.textContent=displayValue(ups.status);dashboardUps.textContent=displayValue(nut.ups_name)+' — '+displayValue(ups.manufacturer)+' '+displayValue(ups.model);dashboardSerial.textContent=displayValue(ups.serial);dashboardBatteryType.textContent=displayValue(ups.battery_type);dashboardBatteryMfrDate.textContent=displayValue(ups.battery_mfr_date);dashboardUpsTemperature.textContent=displayValue(ups.temperature);dashboardBattery.textContent=displayValue(ups.battery_charge)+' %%';dashboardRuntime.textContent=displayValue(ups.battery_runtime)+' s';dashboardLoad.textContent=displayValue(ups.load)+' %%';dashboardBatteryVoltage.textContent=displayValue(ups.battery_voltage)+' V';dashboardInputVoltage.textContent=displayValue(ups.input_voltage)+' V';dashboardOutputVoltage.textContent=displayValue(ups.output_voltage)+' V'}"
+             "function renderDashboard(x){const wifi=x.wifi||{},nut=x.nut||{},ups=x.ups||{},update=x.update||{},hardware=x.hardware||{},chip=hardware.chip||{},board=hardware.board||{},flash=hardware.flash||{},psram=hardware.psram||{},memory=hardware.memory||{},temperature=hardware.chip_temperature||{};dashboardFirmware.textContent=displayValue(x.firmware);dashboardUptime.textContent=formatUptime(x.uptime_seconds);dashboardUpdate.textContent=displayValue(update.last_result);dashboardWifi.textContent=displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected');dashboardSignal.textContent=displayValue(wifi.rssi_dbm)+' dBm';dashboardNut.textContent=displayValue(nut.health)+' — TCP '+displayValue(nut.port)+(nut.data_stale?' — data stale':'');dashboardUpsStatus.textContent=displayValue(ups.status);dashboardUps.textContent=displayValue(nut.ups_name)+' — '+displayValue(ups.manufacturer)+' '+displayValue(ups.model);dashboardSerial.textContent=displayValue(ups.serial);dashboardBatteryType.textContent=displayValue(ups.battery_type);dashboardBatteryMfrDate.textContent=displayValue(ups.battery_mfr_date);dashboardUpsTemperature.textContent=displayValue(ups.temperature);dashboardBattery.textContent=displayValue(ups.battery_charge)+' %%';dashboardRuntime.textContent=displayValue(ups.battery_runtime)+' s';dashboardLoad.textContent=displayValue(ups.load)+' %%';dashboardBatteryVoltage.textContent=displayValue(ups.battery_voltage)+' V';dashboardInputVoltage.textContent=displayValue(ups.input_voltage)+' V';dashboardOutputVoltage.textContent=displayValue(ups.output_voltage)+' V';dashboardChip.textContent=displayValue(chip.model)+' rev '+displayValue(chip.revision)+' — '+displayValue(chip.cores)+' cores';dashboardBoard.textContent=displayValue(board.profile)+' — '+displayValue(board.module);dashboardFlash.textContent=flash.size_bytes?formatBytes(flash.size_bytes)+' — '+displayValue(flash.mode)+' '+displayValue(flash.frequency):'Not available';dashboardPsram.textContent=psram.available?formatBytes(psram.size_bytes)+' — '+displayValue(psram.mode)+' '+displayValue(psram.frequency_mhz)+' MHz':'Not available';dashboardMemory.textContent='Internal '+formatBytes(memory.free_internal_bytes)+' — PSRAM '+formatBytes(memory.free_psram_bytes)+' — min '+formatBytes(memory.minimum_free_bytes);dashboardChipTemperature.textContent=temperature.available?displayValue(temperature.celsius)+' °C':'Not available'}"
              "function renderWifi(x){const wifi=x.wifi||{};wifiCurrent.textContent='Current network: '+displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected')+' — '+displayValue(wifi.rssi_dbm)+' dBm';if(!wifiSsid.value&&wifi.ssid)wifiSsid.value=wifi.ssid}"
              "async function loadStatus(){try{const r=await fetch('/api/v1/status',{cache:'no-store'}),x=await r.json();status.textContent=JSON.stringify(x,null,2);renderDashboard(x);renderWifi(x);if(x.time){ntpEnabled.checked=x.time.ntp_enabled;ntpServer.value=x.time.ntp_server;timeZone.value=x.time.timezone;syncNow.disabled=!x.time.ntp_enabled;if(x.time.available){timeSummary.textContent=x.time.local+' ('+x.time.timezone+'), UTC '+x.time.utc+', source '+x.time.source+(x.time.synchronization_pending?' — synchronization pending':'');manualDateTime.value=x.time.local.slice(0,16)}else{timeSummary.textContent=x.time.synchronization_pending?'Time is not set; waiting for NTP.':'Time is not set.'}}}catch(error){status.textContent='Unable to load device status.';wifiCurrent.textContent='Unable to load current Wi-Fi status.'}}"
              "wifiShowPassword.onchange=()=>wifiPassword.type=wifiShowPassword.checked?'text':'password';"
@@ -1739,6 +1904,9 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     time_config_get_status(&time_status);
     ManagementNutSnapshot nut_snapshot;
     management_collect_nut_snapshot(&nut_snapshot);
+    management_initialize_hardware_diagnostics();
+    ManagementHardwareSnapshot hardware_snapshot;
+    management_collect_hardware_snapshot(&hardware_snapshot);
     char last_update_result[32] = {0};
     if (ota_get_last_result(last_update_result, sizeof(last_update_result)) != ESP_OK)
     {
@@ -1803,7 +1971,51 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     MANAGEMENT_JSON_STRING(next_partition != NULL ? next_partition->label : "unavailable");
     MANAGEMENT_JSON_APPEND("},\"update\":{\"last_result\":");
     MANAGEMENT_JSON_STRING(last_update_result);
-    MANAGEMENT_JSON_APPEND("},\"nut\":{\"port\":3493,\"mode\":\"read-only\","
+    MANAGEMENT_JSON_APPEND("},\"hardware\":{\"chip\":{\"model\":");
+    MANAGEMENT_JSON_STRING(management_chip_model_name(hardware_snapshot.chip.model));
+    MANAGEMENT_JSON_APPEND(",\"revision\":%u,\"cores\":%u,\"features\":{",
+                           (unsigned int)hardware_snapshot.chip.revision,
+                           (unsigned int)hardware_snapshot.chip.cores);
+    MANAGEMENT_JSON_APPEND("\"embedded_flash\":%s,\"wifi_bgn\":%s,",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_EMB_FLASH) != 0 ? "true" : "false",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_WIFI_BGN) != 0 ? "true" : "false");
+    MANAGEMENT_JSON_APPEND("\"bluetooth_classic\":%s,\"bluetooth_le\":%s,",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_BT) != 0 ? "true" : "false",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_BLE) != 0 ? "true" : "false");
+    MANAGEMENT_JSON_APPEND("\"ieee802154\":%s,\"embedded_psram\":%s}},",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_IEEE802154) != 0 ? "true" : "false",
+                           (hardware_snapshot.chip.features & CHIP_FEATURE_EMB_PSRAM) != 0 ? "true" : "false");
+    MANAGEMENT_JSON_APPEND("\"board\":{\"profile\":");
+    MANAGEMENT_JSON_STRING(MANAGEMENT_BOARD_PROFILE);
+    MANAGEMENT_JSON_APPEND(",\"module\":");
+    MANAGEMENT_JSON_STRING(MANAGEMENT_MODULE_PROFILE);
+    MANAGEMENT_JSON_APPEND("},\"flash\":{\"size_bytes\":%lu,\"mode\":",
+                           (unsigned long)hardware_snapshot.flash_size_bytes);
+    MANAGEMENT_JSON_STRING(CONFIG_ESPTOOLPY_FLASHMODE);
+    MANAGEMENT_JSON_APPEND(",\"frequency\":");
+    MANAGEMENT_JSON_STRING(CONFIG_ESPTOOLPY_FLASHFREQ);
+    MANAGEMENT_JSON_APPEND("},\"psram\":{\"available\":%s,\"size_bytes\":%lu,\"mode\":",
+                           hardware_snapshot.psram_size_bytes > 0 ? "true" : "false",
+                           (unsigned long)hardware_snapshot.psram_size_bytes);
+    MANAGEMENT_JSON_STRING(MANAGEMENT_PSRAM_MODE);
+    MANAGEMENT_JSON_APPEND(",\"frequency_mhz\":%d},\"memory\":{"
+                           "\"free_internal_bytes\":%lu,\"free_psram_bytes\":%lu,"
+                           "\"minimum_free_bytes\":%lu},\"chip_temperature\":{"
+                           "\"available\":%s,\"celsius\":",
+                           MANAGEMENT_PSRAM_SPEED_MHZ,
+                           (unsigned long)hardware_snapshot.free_internal_heap_bytes,
+                           (unsigned long)hardware_snapshot.free_psram_bytes,
+                           (unsigned long)hardware_snapshot.minimum_free_heap_bytes,
+                           hardware_snapshot.chip_temperature_available ? "true" : "false");
+    if (hardware_snapshot.chip_temperature_available)
+    {
+        MANAGEMENT_JSON_APPEND("%.1f", (double)hardware_snapshot.chip_temperature_celsius);
+    }
+    else
+    {
+        MANAGEMENT_JSON_APPEND("null");
+    }
+    MANAGEMENT_JSON_APPEND("}},\"nut\":{\"port\":3493,\"mode\":\"read-only\","
                            "\"available\":%s,\"data_stale\":%s,\"health\":",
                            nut_snapshot.available ? "true" : "false",
                            nut_snapshot.stale ? "true" : "false");
@@ -2257,6 +2469,8 @@ esp_err_t management_server_start(void)
     {
         return ESP_OK;
     }
+
+    management_initialize_hardware_diagnostics();
 
     ESP_RETURN_ON_ERROR(management_load_or_create_certificate(), TAG,
                         "Unable to prepare HTTPS certificate");
