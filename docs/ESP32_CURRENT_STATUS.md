@@ -17,17 +17,17 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 21:40 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 22:06 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
 | Active slice target | Local OTA management `v2.6.0` is in progress; API tokens `v2.3.0`, management dashboard `v2.4.0`, and Wi-Fi management `v2.5.0` remain final and published |
 | Repository branch | `feature/local-ota-management` was created directly from synchronized `main` at `09e5e2cb88714104c84bbba6e0bc8bebaea47844`; no v2.6 changes are published |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; the v2.6 working tree adds local image checking |
 | Remote state | PR #22 is merged, tag `v2.5.0` is public, the GitHub release is final with firmware and checksum assets, and no v2.6 branch, tag, PR, or release exists |
-| Source worktree | v2.6 source changes are local and uncommitted; generated ESP-IDF outputs remain ignored |
+| Source worktree | v2.6 source changes are local commits on `feature/local-ota-management`; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | **Observed:** v2.6.0 local-OTA candidate built successfully with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869`, and 61% of the smallest application partition free; it is not installed or published |
+| Latest local build | **Observed:** v2.6.0 local-OTA candidate built successfully with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869`, and 61% of the smallest application partition free; it is installed on development target `.173` and is not published |
 | Latest published release | Final `v2.5.0`, tagged at PR #22 merge commit `36fb7886a90172520c2a34af8785cf8238619806` and published with the firmware and checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.5.0) |
-| Installed firmware | **Observed:** network-first checks currently reach two ESP32-NUT instances at `192.168.40.87` and `192.168.40.173`; authenticated firmware versions were not independently read during this preflight |
+| Installed firmware | **Observed:** development target `192.168.40.173` is running authenticated v2.6.0; the independent `.87` board remains reserved for Device Operator testing |
 | Last USB flash | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
@@ -74,15 +74,25 @@ Firmware panel now exposes Check, Install, and a browser release-download link;
 the device does not fetch remote firmware. HTTPS route registration is now at
 the configured limit of 16 handlers.
 
-**Inferred:** the previously delivered known-good install and the absence of
-automatic updates satisfy those portions of the v2.6 policy. Target evidence
-for corrupt-image rejection and browser exercise of the new Check/Download
-controls remain required before the slice can be called complete.
+**Observed on 2026-07-21 22:06 PDT:** Chrome reached the authenticated Update
+Firmware panel on `.173`; the release-page link, local image picker, Check, and
+Install controls were visible. Selecting the v2.6.0 candidate and choosing
+Check returned `Firmware image verified. It is ready to install.` The dashboard
+continued to report v2.6.0, uptime 39 seconds, and `last update installed`; the
+protected status JSON continued to report `running_slot = app1` and
+`next_slot = app0`. This is evidence that checking did not reboot or change the
+active slot. A deliberately invalid fixture was then selected, but the browser
+ADMIN session had expired; the request returned `Invalid session or CSRF token.`
+before image verification, so no device state changed.
 
-**Not yet tested:** the new authenticated Check control with valid and corrupt
-images, proof that checking does not reboot or change OTA slots, complete
-Update Firmware-panel behavior, rollback/persistence after a v2.6 reboot, and
-browser release-link behavior.
+**Inferred:** the previously delivered known-good install, the valid-image
+Check result, no-reboot/slot-stability observation, and the absence of automatic
+updates satisfy those portions of the v2.6 policy. The release-page link was
+observed in the panel, but it was not opened during this validation.
+
+**Not yet tested:** invalid-image rejection with a fresh authenticated session,
+a fresh browser-panel install after the Check result, rollback/persistence after
+a v2.6 reboot, and opening the browser release link.
 
 **Operational assignment observed on 2026-07-21:** the Project Maintainer
 designated `192.168.40.173` as the Codex development target and reserved the
@@ -1219,9 +1229,9 @@ pending explicit authorization.
 
 ## Exact next action
 
-Use the authenticated v2.6 console on development target `192.168.40.173` to
-exercise the new Check control with one known-good image and one deliberately
-corrupt image, then verify no reboot/slot change after checks. Keep
+Sign in again to the authenticated v2.6 console on development target
+`192.168.40.173`, exercise Check with the deliberately invalid fixture, and
+verify the expected invalid-image response with no reboot/slot change. Keep
 `192.168.40.87` untouched for independent testing. Do not push, merge, tag, or
 publish until browser, negative-authentication, network, persistence, rollback,
 and target-hardware validation are complete.
