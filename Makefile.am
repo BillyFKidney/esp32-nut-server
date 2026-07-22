@@ -157,7 +157,9 @@ EXTRA_DIST = LICENSE-GPL2 LICENSE-GPL3 LICENSE-DCO MAINTAINERS
 # Since the renaming of documentation to `*.adoc` extension to help IDE
 # and GitHub UIs to render the source files in a pretty fashion, we need
 # to list them:
-EXTRA_DIST += INSTALL.nut.adoc UPGRADING.adoc TODO.adoc NEWS.adoc README.adoc
+EXTRA_DIST += docs/upstream/INSTALL.nut.adoc docs/upstream/UPGRADING.adoc \
+	docs/upstream/TODO.adoc docs/upstream/NEWS.adoc README.adoc \
+	boards/partitions/nut_fat_8MB.csv
 
 # The document is now part of qa-guide; the script might be a bit git-oriented,
 # but can be useful in builds from tarball, probably. Anyhow, having the doc
@@ -729,8 +731,11 @@ man all-man man-man check-man check-man-man html-man all-html:
 	+cd $(abs_top_builddir)/docs/man && $(MAKE) $(AM_MAKEFLAGS) -s $(abs_top_builddir)/docs/man/.prep-src-docs
 	+cd $(abs_top_builddir)/docs && $(MAKE) $(AM_MAKEFLAGS) $@
 
-INSTALL.nut UPGRADING NEWS README:
-	+cd $(abs_top_builddir)/docs && $(MAKE) $(AM_MAKEFLAGS) ../$(@F).adoc-parsed && cp -f ../$(@F).adoc-parsed ../$(@F)
+INSTALL.nut UPGRADING NEWS:
+	+cd $(abs_top_builddir)/docs && $(MAKE) $(AM_MAKEFLAGS) ../docs/upstream/$(@F).adoc-parsed && cp -f ../docs/upstream/$(@F).adoc-parsed ../$(@F)
+
+README:
+	+cd $(abs_top_builddir)/docs && $(MAKE) $(AM_MAKEFLAGS) ../README.adoc-parsed && cp -f ../README.adoc-parsed ../$(@F)
 
 # Workarounds for https://github.com/github/markup/issues/1095
 # require direct definition of our attributes in each source

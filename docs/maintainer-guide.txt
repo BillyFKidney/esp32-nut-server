@@ -108,7 +108,7 @@ about security or other matters.
 
 * clean up "in-development" bits from files (which we would revert after
   release), e.g.:
-** TODO etc. referring planned future in the `NEWS.adoc` and `UPDATING.adoc`
+** TODO etc. referring planned future in the `upstream/NEWS.adoc` and `UPDATING.adoc`
    files - except for the upcoming release
 ** DO NOT yet remove "PLANNED:" from the new release section title
 ** comment away the top-most (auto-resolved) NUT version and build date
@@ -120,7 +120,7 @@ about security or other matters.
 ** commit this change (to add a revert-commit after the release tag), e.g.:
 +
 ----
-:; git commit -sm 'NEWS.adoc, UPGRADING.adoc, docs/docinfo.xml.in: finalize text before NUT v2.8.0 release'
+:; git commit -sm 'upstream/NEWS.adoc, upstream/UPGRADING.adoc, docs/docinfo.xml.in: finalize text before NUT v2.8.0 release'
 ----
 
 * revise the lists of symbols exported by shared libraries delivered by NUT:
@@ -137,7 +137,7 @@ about security or other matters.
 TODO: Maintain proper library scripts (maybe in Git) with exact lists of
 symbol names and API versions, similar to what `GNUC` or `SUNW` libraries do.
 
-* revise the contents of `NEWS.adoc` and `UPDATING.adoc` files; verify that
+* revise the contents of `upstream/NEWS.adoc` and `UPDATING.adoc` files; verify that
   any recent changes to drivers (including `main.c` and other major impact
   from common code) and sub-drivers (`*-hid.c` for `usbhid-ups`, `*-mib.c`
   for `snmp-ups`, `nutdrv_qx_*` etc.) have been reflected in bumps to their
@@ -148,7 +148,7 @@ symbol names and API versions, similar to what `GNUC` or `SUNW` libraries do.
    release info section title and commit it separately, e.g.:
 +
 ----
-:; git commit -sm 'NEWS.adoc: remove "PLANNED" from section title before NUT v2.8.0 release'
+:; git commit -sm 'upstream/NEWS.adoc: remove "PLANNED" from section title before NUT v2.8.0 release'
 ----
 * NOTE that the `ChangeLog` file is currently not tracked in SCM
 * update this document: `docs/maintainer-guide.txt` as it inevitably requires
@@ -285,7 +285,7 @@ VERSION_FORCED_SEMVER:NUT_VERSION_FORCED_SEMVER='2.8.3'
    the subsequent "in-development" codebase.
 ** in `source` submodule add a copy of tarball, checksum and hash files for
    download: `make dist{,-hash,-sig}` (or since NUT v2.8.3, `make dist-files`)
-*** for a `new-X.Y.Z.txt` file use the `NEWS.adoc` with a stripped title
+*** for a `new-X.Y.Z.txt` file use the `upstream/NEWS.adoc` with a stripped title
     and prominent `link:` asciidoc markup (see existing files)
 ** update `historic/index.txt` with an entry for the new release tag and date
 ** `git tag` the website release

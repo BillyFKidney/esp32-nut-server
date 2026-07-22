@@ -397,6 +397,7 @@ man:
 CLEANFILES = *.xml *.html *.pdf *-spellchecked* *-contentchecked* .check-* docbook-xsl.css docinfo.xml.in.tmp docinfo-since-v*.xml* *-docinfo.xml*
 CLEANFILES += $(top_builddir)/INSTALL.nut $(top_builddir)/UPGRADING $(top_builddir)/ChangeLog.adoc
 CLEANFILES += $(top_builddir)/*.adoc-parsed *.adoc-parsed
+CLEANFILES += $(top_builddir)/docs/upstream/*.adoc-parsed
 # These two "must be" there per autotools standards, so a "make clean"
 # should not compromise a rebuild:
 DISTCLEANFILES = $(top_builddir)/NEWS $(top_builddir)/README
@@ -517,11 +518,11 @@ $(top_builddir)/ChangeLog.adoc: $(top_builddir)/ChangeLog
 # Add other directory deps (not for local EXTRA_DIST) and generated contents
 FULL_USER_MANUAL_DEPS = $(USER_MANUAL_DEPS) $(SHARED_DEPS) \
 	$(top_builddir)/README.adoc-parsed \
-	$(top_builddir)/INSTALL.nut.adoc-parsed \
-	$(top_builddir)/UPGRADING.adoc-parsed \
-	../TODO.adoc ../scripts/ufw/README.adoc
+	$(top_builddir)/docs/upstream/INSTALL.nut.adoc-parsed \
+	$(top_builddir)/docs/upstream/UPGRADING.adoc-parsed \
+	../docs/upstream/TODO.adoc ../scripts/ufw/README.adoc
 FULL_DEVELOPER_GUIDE_DEPS = $(DEVELOPER_GUIDE_DEPS) $(SHARED_DEPS) \
-	../scripts/augeas/README.adoc ../TODO.adoc \
+	../scripts/augeas/README.adoc ../docs/upstream/TODO.adoc \
 	../lib/README.adoc \
 	../tools/nut-scanner/README.adoc
 FULL_QA_GUIDE_DEPS = $(QA_GUIDE_DEPS) $(SHARED_DEPS) \
@@ -531,7 +532,7 @@ user-manual.html user-manual.chunked user-manual.pdf: $(FULL_USER_MANUAL_DEPS)
 developer-guide.html developer-guide.chunked developer-guide.pdf: $(FULL_DEVELOPER_GUIDE_DEPS)
 packager-guide.html packager-guide.chunked packager-guide.pdf: packager-guide.txt asciidoc.conf
 qa-guide.html qa-guide.chunked qa-guide.pdf: $(FULL_QA_GUIDE_DEPS)
-release-notes.html release-notes.chunked release-notes.pdf: release-notes.txt $(top_builddir)/NEWS.adoc-parsed $(top_builddir)/UPGRADING.adoc-parsed asciidoc.conf
+release-notes.html release-notes.chunked release-notes.pdf: release-notes.txt $(top_builddir)/docs/upstream/NEWS.adoc-parsed $(top_builddir)/docs/upstream/UPGRADING.adoc-parsed asciidoc.conf
 solaris-usb.html solaris-usb.chunked solaris-usb.pdf: solaris-usb.txt asciidoc.conf
 
 # We intentionally evaluate that the original generated ChangeLog file is
@@ -773,9 +774,9 @@ qa-guide.pdf: docinfo-since-v2.8.3.xml qa-guide-docinfo.xml
 # Used below for spellcheck and for .prep-src-docs
 SPELLCHECK_SRC_DEFAULT = $(ALL_TXT_SRC) \
 	asciidoc-vars.conf \
-	../ci_build.adoc ../README.adoc ../NEWS.adoc \
-	../INSTALL.nut.adoc ../UPGRADING.adoc \
-	../TODO.adoc ../scripts/ufw/README.adoc \
+	../ci_build.adoc ../README.adoc ../docs/upstream/NEWS.adoc \
+	../docs/upstream/INSTALL.nut.adoc ../docs/upstream/UPGRADING.adoc \
+	../docs/upstream/TODO.adoc ../scripts/ufw/README.adoc \
 	../scripts/augeas/README.adoc ../lib/README.adoc \
 	../tools/nut-scanner/README.adoc \
 	../AUTHORS ../COPYING ../LICENSE-GPL2 ../LICENSE-GPL3 ../LICENSE-DCO

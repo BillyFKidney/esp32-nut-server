@@ -6614,6 +6614,6 @@ AS_IF([test x"${NUT_VERSION_DEPLOYED-}" = x"<reenter>"], [
 	AC_MSG_NOTICE([of an existing NUT installation. You are advised to first])
 	AC_MSG_NOTICE([install into a temporary DESTDIR and verify the fliesystem])
 	AC_MSG_NOTICE([layout of the new build against what you already have.])
-	AC_MSG_NOTICE([Check INSTALL.nut.adoc for practical details and example.])
+	AC_MSG_NOTICE([Check docs/upstream/INSTALL.nut.adoc for practical details and example.])
 	AC_MSG_NOTICE([==========================================================])
 ])

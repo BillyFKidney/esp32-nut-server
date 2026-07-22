@@ -3,6 +3,8 @@
 This document is the operational handoff for the active ESP32-S3 development
 session. It complements the long-term roadmap in
 [ESP32_DEVELOPMENT_PLAN.md](ESP32_DEVELOPMENT_PLAN.md); it does not replace it.
+The repository root and directory ownership policy is documented in
+[ESP32_REPOSITORY_LAYOUT.md](ESP32_REPOSITORY_LAYOUT.md).
 
 Before interacting with hardware, use [ESP32_PREFLIGHT.md](ESP32_PREFLIGHT.md).
 Development-team authority and responsibilities are defined in
@@ -17,18 +19,18 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-21 23:14 PDT, America/Los_Angeles |
+| Updated | 2026-07-21 23:35 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | Local OTA management `v2.6.0` is final, target-validated, merged, tagged, and published; live diagnostics `v2.7.0` is the next planned slice |
-| Repository branch | Local `main` and `origin/main` are synchronized at merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2`; v2.6.0 was merged by PR #24 |
+| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; repository layout cleanup is the pre-v2.7.0 slice; live diagnostics `v2.7.0` follows it |
+| Repository branch | `feature/repository-layout` was created from synchronized `main` at `780d1f086`; this branch contains layout and documentation changes only |
 | Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc` |
-| Remote state | PR #24 is merged, annotated tag `v2.6.0` is public, and the final GitHub release contains the firmware and checksum assets |
-| Source worktree | `main` contains the published v2.6.0 implementation and documentation; generated ESP-IDF outputs remain ignored |
+| Remote state | PR #24 is merged, annotated tag `v2.6.0` is public, and the final GitHub release contains the firmware and checksum assets; local `main` and `origin/main` are synchronized at `780d1f086` |
+| Source worktree | `feature/repository-layout` retains the published v2.6.0 implementation while reorganizing documentation and board support files; generated ESP-IDF outputs remain ignored |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
-| Latest local build | **Observed:** exact-tag v2.6.0 build succeeded with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869`, valid ESP32-S3 checksum/validation hash, and 61% of the smallest application partition free |
+| Latest local build | **Observed:** `feature/repository-layout` built successfully with ESP-IDF v6.0.2; 1,306,576 bytes, SHA-256 `ff5220693d20f3ba6656dbbd3b84a1618cfac727051f4b31aa6ec7f9084d0b0e`, valid ESP32-S3 checksum/validation hash, and 61% of the smallest application partition free; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
 | Latest published release | Final `v2.6.0`, tagged at PR #24 merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2` and published with standard firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0) |
 | Installed firmware | **Observed:** development target `192.168.40.173` is running v2.6.0 with `running_slot = app0`, `next_slot = app1`, and `last_result = installed`; the independent `.87` board remains reserved for Device Operator testing |
-| Last USB flash | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward |
+| Last USB flash (historical) | **Observed:** a newly connected ESP32-S3 with MAC `30:30:f9:16:8c:08` received the complete published `v2.5.0` image on `/dev/cu.usbmodem1101`; flash verification and hard reset completed, but no LAN address was observed afterward; no v2.6.0 image was flashed in this layout-only slice |
 | Board | YD-ESP32-23 with ESP32-S3-WROOM-1-N16R8 |
 | UPS | CyberPower CST150UC2 on the ESP32 native USB host port |
 | Last verified IPv4 address | **Observed:** `192.168.40.87` (MAC `30:30:f9:16:8c:08`) and `192.168.40.173` (MAC `30:30:f9:16:89:a4`) both accepted HTTPS 443 and NUT 3493, returned HTTPS 200, and refused retired TCP 8080; the new board at `.87` returned read-only NUT `ups.status = OL` |
@@ -38,14 +40,20 @@ private keys, or Wi-Fi credentials here.
 
 ## Current objective
 
-The API-token `v2.3.0`, management-dashboard `v2.4.0`, and Wi-Fi-management
-`v2.5.0` slices are complete, target-validated by the Device Operator, merged,
-tagged, and published. The v2.5.0 release includes the requested tabbed
+The API-token `v2.3.0`, management-dashboard `v2.4.0`, Wi-Fi-management
+`v2.5.0`, and local OTA-management `v2.6.0` slices are complete,
+target-validated by the Device Operator, merged, tagged, and published. The
+v2.6.0 release includes the local firmware-check and installation safeguards;
+the v2.5.0 release includes the requested tabbed
 ADMIN-console presentation shell, local Wi-Fi Show password toggle, bounded
 2.4 GHz network scan, visible SSID/RSSI/security rows, manual SSID fallback,
 dashboard SSID display, and scan-selection collapse/focus behavior. Continue to
 preserve LAN-only HTTPS, read-only NUT, and the existing ADMIN and Agent
 authorization boundaries. UPS access remains read-only.
+
+The current `feature/repository-layout` branch is a source and documentation
+cleanup only. It does not alter firmware source, the HTTPS/NUT service
+boundaries, authorization behavior, partition contents, or release assets.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
@@ -94,8 +102,8 @@ v2.6.0, uptime 747 seconds, `running_slot = app1`, `next_slot = app0`, and
 
 **Observed on 2026-07-21 22:23 PDT:** selecting the Update Firmware release link
 opened a new browser tab at the current latest GitHub release,
-`https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.5.0`. The
-page displayed the v2.5.0 release heading and its firmware and checksum assets.
+`https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0`. The
+page displayed the v2.6.0 release heading and its firmware and checksum assets.
 The link behavior therefore passes; the device still does not fetch firmware
 from a remote source.
 
@@ -184,6 +192,18 @@ remained refused. No serial port was opened.
 - Merged the v2.5.0 Wi-Fi-management slice through PR #22 at
   `36fb7886a90172520c2a34af8785cf8238619806`, tagged it `v2.5.0`, and published
   the exact firmware and checksum assets.
+- Merged the v2.6.0 local OTA-management slice through PR #24 at
+  `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2`, tagged it `v2.6.0`, and published
+  the exact firmware and checksum assets.
+- Started the pre-v2.7.0 repository-layout slice on `feature/repository-layout`.
+- Moved upstream narrative documents to `docs/upstream/`, the ESP-IDF/PlatformIO
+  partition table to `boards/partitions/`, and the formatting helper to
+  `tools/`; updated the build, distribution, documentation, and agent-routing
+  references together.
+- Added `docs/ESP32_REPOSITORY_LAYOUT.md` to document root-file ownership and
+  the files intentionally retained for external CI compatibility.
+- Rebuilt the layout branch with ESP-IDF v6.0.2; the firmware build completed
+  successfully and no firmware source files changed in this slice.
 
 ## Installed firmware and hardware evidence
 
@@ -1267,6 +1287,8 @@ pending explicit authorization.
 
 ### Remaining Operational Management work
 
+- Review and merge the pre-v2.7.0 repository-layout slice before starting
+  live-diagnostics implementation.
 - Begin the v2.7.0 live-diagnostics slice after its own preflight and scope
   review.
 - Remote service controls and live browser diagnostics
@@ -1276,9 +1298,10 @@ pending explicit authorization.
 
 ## Exact next action
 
-Prepare the v2.7.0 live-diagnostics preflight from synchronized `main`. Do not
-modify the independently reserved `.87` board unless the Project Maintainer
-explicitly changes that scope.
+Review and merge `feature/repository-layout` into the published v2.6.0 `main`.
+After that merge, prepare the v2.7.0 live-diagnostics preflight. Do not modify
+the independently reserved `.87` board unless the Project Maintainer explicitly
+changes that scope.
 
 ## Operational procedures
 
