@@ -19,13 +19,13 @@ private keys, or Wi-Fi credentials here.
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-07-22 01:29 PDT, America/Los_Angeles |
+| Updated | 2026-07-22 02:05 PDT, America/Los_Angeles |
 | Active milestone | Operational Management `v2.x` release family |
-| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics slice and development-build-identity target acceptance are complete, and `feature/esp32-hardware-diagnostics` is now the active implementation branch |
-| Repository branch | **Observed on 2026-07-22 01:29 PDT:** `feature/esp32-hardware-diagnostics` was created from the dirty `feature/development-build-identity` state at `748d0c77a`; all existing user-owned source and documentation changes remain unstaged and preserved |
-| Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc` |
-| Remote state | PR #24 and PR #25 are merged, annotated tag `v2.6.0` is public, and the final GitHub release contains the firmware and checksum assets; local `main` and `origin/main` include the post-merge status synchronization |
-| Source worktree | The v2.7.0 worktree contains the first-slice `src/management.c` change and the separate root `CMakeLists.txt` build-identity change; generated ESP-IDF outputs remain ignored, and the new hardware-diagnostics branch has no source edits yet |
+| Active slice target | v2.6.0 is final, target-validated, merged, tagged, and published; the pre-v2.7.0 repository layout cleanup is complete and merged; the first expanded live-diagnostics and development-build-identity slices are merged, and `feature/esp32-hardware-diagnostics` is the active implementation branch |
+| Repository branch | **Observed on 2026-07-22 02:05 PDT:** `feature/esp32-hardware-diagnostics` is a clean branch from updated `main` at `a5089c34d`; the former mixed handoff is preserved locally as `feature/esp32-hardware-diagnostics-handoff`, and local `main` and `origin/main` are synchronized |
+| Validated implementation state | PR #20 merged API tokens at `595e3dcda`; PR #21 merged the management dashboard at `349c19c21`; PR #22 merged Wi-Fi management at `36fb7886a90172520c2a34af8785cf8238619806`; PR #24 merged local OTA management at `1d2e18acc`; PR #26 merged optional NUT diagnostic fields at `24e7ee23`; PR #27 merged Git-derived development build identity at `a5089c34` |
+| Remote state | PR #24, PR #25, PR #26, and PR #27 are merged; annotated tag `v2.6.0` remains the latest public release, with no v2.7.0 tag or release; local `main` and `origin/main` are synchronized |
+| Source worktree | The clean hardware-diagnostics branch contains the merged `src/management.c` NUT-field change, root `CMakeLists.txt` build-identity change, and v2.7 scope/acceptance documentation; generated ESP-IDF outputs remain ignored, and no hardware-diagnostics source implementation has begun |
 | Build environment | ESP-IDF v6.0.2, target `esp32s3` |
 | Latest local build | **Observed on 2026-07-22 01:11 PDT:** the `feature/development-build-identity` candidate built successfully with ESP-IDF v6.0.2 as `v2.6.0-6-g748d0c77a-dirty`; 1,307,696 bytes, SHA-256 `6be41c121a192ab976238d61e899a8e95d581a9392e25ecc9c1c5e5e411f686b`, and 61% of the smallest application partition free; the published v2.6.0 asset remains separately verified at SHA-256 `1fdec5bbd15c4d6b9c2137ef264734ef1d100559ceccc40fef145e265d0a3869` |
 | Latest published release | Final `v2.6.0`, tagged at PR #24 merge commit `1d2e18acc0ebd52b77bfbf9198b31ebc8c66dfd2` and published with standard firmware/checksum assets: [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0) |
@@ -58,6 +58,13 @@ boundaries, authorization behavior, partition contents, or release assets.
 
 The authoritative scope and security decisions are in
 [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
+
+**Observed on 2026-07-22 02:05 PDT:** PR #26 and PR #27 were reviewed for
+scope, had no reported CI checks or review threads, and merged in dependency
+order. The new `feature/esp32-hardware-diagnostics` branch starts from updated
+`main` at `a5089c34d`; implementation work is the next action. No firmware was
+flashed or installed, no tag or release was created, and `.87` remains
+untouched.
 
 ## v2.7.0 scope recorded
 
