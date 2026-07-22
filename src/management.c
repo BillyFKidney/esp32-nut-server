@@ -69,7 +69,7 @@
 #define MANAGEMENT_STATUS_RESPONSE_SIZE 7000
 #define MANAGEMENT_WIFI_SCAN_RESPONSE_SIZE 4200
 #define MANAGEMENT_NUT_VALUE_LENGTH 96
-#define MANAGEMENT_HTTPS_ROUTE_CAPACITY 16
+#define MANAGEMENT_HTTPS_ROUTE_CAPACITY 17
 #define MANAGEMENT_LOG_ENTRY_CAPACITY 24
 #define MANAGEMENT_LOG_MESSAGE_LENGTH 192
 #define MANAGEMENT_LOG_CHUNK_LENGTH 256
@@ -1498,6 +1498,12 @@ static void management_set_session_cookie(httpd_req_t *request, char *session_he
     httpd_resp_set_hdr(request, "Set-Cookie", session_header);
 }
 
+static void management_expire_session_cookie(httpd_req_t *request)
+{
+    httpd_resp_set_hdr(request, "Set-Cookie",
+                       "ESP32NUT_SESSION=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict");
+}
+
 static void management_start_setup_session(httpd_req_t *request, char *csrf,
                                            size_t csrf_size, char *setup_header,
                                            size_t setup_header_size)
@@ -1749,6 +1755,7 @@ static esp_err_t management_root_handler(httpd_req_t *request)
     }
     if (!management_cookie_is_authorized(request, true))
     {
+        management_expire_session_cookie(request);
         const int retry_after = management_login_retry_after_seconds(esp_timer_get_time());
         if (retry_after > 0)
         {
@@ -1851,7 +1858,7 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "<button onclick=logout()>Sign out</button><script>"
              "const csrf='%s',status=document.getElementById('status'),timeSummary=document.getElementById('timeSummary'),timeConfigForm=document.getElementById('timeConfigForm'),ntpEnabled=document.getElementById('ntpEnabled'),ntpServer=document.getElementById('ntpServer'),timeZone=document.getElementById('timeZone'),syncNow=document.getElementById('syncNow'),manualTimeForm=document.getElementById('manualTimeForm'),manualDateTime=document.getElementById('manualDateTime'),timeResult=document.getElementById('timeResult'),wifiCurrent=document.getElementById('wifiCurrent'),wifiScanButton=document.getElementById('wifiScanButton'),wifiScanResult=document.getElementById('wifiScanResult'),wifiForm=document.getElementById('wifiForm'),wifiSsid=document.getElementById('wifiSsid'),wifiNetworkList=document.getElementById('wifiNetworkList'),wifiPassword=document.getElementById('wifiPassword'),wifiShowPassword=document.getElementById('wifiShowPassword'),wifiConfigureButton=document.getElementById('wifiConfigureButton'),wifiResult=document.getElementById('wifiResult'),currentPassword=document.getElementById('currentPassword'),newPassword=document.getElementById('newPassword'),confirmPassword=document.getElementById('confirmPassword'),passwordForm=document.getElementById('passwordForm'),passwordResult=document.getElementById('passwordResult'),tokenForm=document.getElementById('tokenForm'),tokenOnce=document.getElementById('tokenOnce'),tokenValue=document.getElementById('tokenValue'),tokenMetadata=document.getElementById('tokenMetadata'),tokenList=document.getElementById('tokenList'),tokenResult=document.getElementById('tokenResult'),deleteTokenDialog=document.getElementById('deleteTokenDialog'),deleteTokenName=document.getElementById('deleteTokenName'),deleteTokenAck=document.getElementById('deleteTokenAck'),deleteTokenConfirm=document.getElementById('deleteTokenConfirm'),otaForm=document.getElementById('otaForm'),otaFile=document.getElementById('otaFile'),otaButton=document.getElementById('otaButton'),otaResult=document.getElementById('otaResult');let pendingTokenId='';"
              "const otaCheckButton=document.getElementById('otaCheckButton');"
-             "const sessionNotice=document.getElementById('sessionNotice');let sessionRemainingSeconds=null;"
+             "const sessionNotice=document.getElementById('sessionNotice');let sessionRemainingSeconds=null,sessionActivityInFlight=false,sessionActivitySentAt=0;"
              "const tabs=document.querySelectorAll('.tab'),panels={dashboard:document.getElementById('panel-dashboard'),status:document.getElementById('panel-status'),time:document.getElementById('panel-time'),wifi:document.getElementById('panel-wifi'),password:document.getElementById('panel-password'),tokens:document.getElementById('panel-tokens'),ota:document.getElementById('panel-ota')};"
              "const dashboardFirmware=document.getElementById('dashboardFirmware'),dashboardUptime=document.getElementById('dashboardUptime'),dashboardUpdate=document.getElementById('dashboardUpdate'),dashboardWifi=document.getElementById('dashboardWifi'),dashboardSignal=document.getElementById('dashboardSignal'),dashboardNut=document.getElementById('dashboardNut'),dashboardUpsStatus=document.getElementById('dashboardUpsStatus'),dashboardUps=document.getElementById('dashboardUps'),dashboardSerial=document.getElementById('dashboardSerial'),dashboardBatteryType=document.getElementById('dashboardBatteryType'),dashboardBatteryMfrDate=document.getElementById('dashboardBatteryMfrDate'),dashboardUpsTemperature=document.getElementById('dashboardUpsTemperature'),dashboardBattery=document.getElementById('dashboardBattery'),dashboardRuntime=document.getElementById('dashboardRuntime'),dashboardLoad=document.getElementById('dashboardLoad'),dashboardBatteryVoltage=document.getElementById('dashboardBatteryVoltage'),dashboardInputVoltage=document.getElementById('dashboardInputVoltage'),dashboardOutputVoltage=document.getElementById('dashboardOutputVoltage'),dashboardChip=document.getElementById('dashboardChip'),dashboardBoard=document.getElementById('dashboardBoard'),dashboardFlash=document.getElementById('dashboardFlash'),dashboardPsram=document.getElementById('dashboardPsram'),dashboardMemory=document.getElementById('dashboardMemory'),dashboardChipTemperature=document.getElementById('dashboardChipTemperature'),dashboardLogs=document.getElementById('dashboardLogs');"
              "function displayValue(value){return value===undefined||value===null||value===''||value==='unavailable'?'Not available':String(value)}function formatUptime(seconds){if(typeof seconds!=='number')return displayValue(seconds);const days=Math.floor(seconds/86400),hours=Math.floor(seconds%%86400/3600),minutes=Math.floor(seconds%%3600/60),remaining=Math.floor(seconds%%60);return (days?days+'d ':'')+(hours?hours+'h ':'')+(minutes?minutes+'m ':'')+remaining+'s'}function formatBytes(value){if(typeof value!=='number'||value<0)return displayValue(value);if(value<1024)return value+' B';const units=['KB','MB','GB'];let scaled=value,unit='B';for(const next of units){if(scaled<1024)break;scaled/=1024;unit=next}return scaled.toFixed(scaled>=10?0:1)+' '+unit}"
@@ -1859,7 +1866,9 @@ static esp_err_t management_root_handler(httpd_req_t *request)
              "tabs.forEach(tab=>tab.onclick=()=>selectPanel(tab.dataset.panel));"
              "function renderDashboard(x){const wifi=x.wifi||{},nut=x.nut||{},ups=x.ups||{},update=x.update||{},hardware=x.hardware||{},chip=hardware.chip||{},board=hardware.board||{},flash=hardware.flash||{},psram=hardware.psram||{},memory=hardware.memory||{},temperature=hardware.chip_temperature||{},logs=x.logs||{};dashboardFirmware.textContent=displayValue(x.firmware);dashboardUptime.textContent=formatUptime(x.uptime_seconds);dashboardUpdate.textContent=displayValue(update.last_result);dashboardWifi.textContent=displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected');dashboardSignal.textContent=displayValue(wifi.rssi_dbm)+' dBm';dashboardNut.textContent=displayValue(nut.health)+' — TCP '+displayValue(nut.port)+(nut.data_stale?' — data stale':'');dashboardUpsStatus.textContent=displayValue(ups.status);dashboardUps.textContent=displayValue(nut.ups_name)+' — '+displayValue(ups.manufacturer)+' '+displayValue(ups.model);dashboardSerial.textContent=displayValue(ups.serial);dashboardBatteryType.textContent=displayValue(ups.battery_type);dashboardBatteryMfrDate.textContent=displayValue(ups.battery_mfr_date);dashboardUpsTemperature.textContent=displayValue(ups.temperature);dashboardBattery.textContent=displayValue(ups.battery_charge)+' %%';dashboardRuntime.textContent=displayValue(ups.battery_runtime)+' s';dashboardLoad.textContent=displayValue(ups.load)+' %%';dashboardBatteryVoltage.textContent=displayValue(ups.battery_voltage)+' V';dashboardInputVoltage.textContent=displayValue(ups.input_voltage)+' V';dashboardOutputVoltage.textContent=displayValue(ups.output_voltage)+' V';dashboardChip.textContent=displayValue(chip.model)+' rev '+displayValue(chip.revision)+' — '+displayValue(chip.cores)+' cores';dashboardBoard.textContent=displayValue(board.profile)+' — '+displayValue(board.module);dashboardFlash.textContent=flash.size_bytes?formatBytes(flash.size_bytes)+' — '+displayValue(flash.mode)+' '+displayValue(flash.frequency):'Not available';dashboardPsram.textContent=psram.available?formatBytes(psram.size_bytes)+' — '+displayValue(psram.mode)+' '+displayValue(psram.frequency_mhz)+' MHz':'Not available';dashboardMemory.textContent='Internal '+formatBytes(memory.free_internal_bytes)+' — PSRAM '+formatBytes(memory.free_psram_bytes)+' — min '+formatBytes(memory.minimum_free_bytes);dashboardChipTemperature.textContent=temperature.available?displayValue(temperature.celsius)+' °C':'Not available';dashboardLogs.textContent=Array.isArray(logs)?(logs.length?logs.map(log=>(log.timestamp_local||log.timestamp_utc||('+'+(Number(log.uptime_ms||0)/1000).toFixed(3)+'s'))+' '+displayValue(log.level).toUpperCase()+' '+displayValue(log.message)).join('\\n'):'No runtime logs yet.'):'Not available'}"
              "function updateSessionNotice(){if(sessionRemainingSeconds===null||sessionRemainingSeconds>300){sessionNotice.hidden=true;return}if(sessionRemainingSeconds<=0){sessionNotice.textContent='ADMIN session expired. Returning to sign-in…';sessionNotice.hidden=false;location='/';return}const minutes=Math.floor(sessionRemainingSeconds/60),seconds=sessionRemainingSeconds%%60;sessionNotice.textContent='ADMIN session expires in '+minutes+':'+String(seconds).padStart(2,'0')+' due to inactivity. Normal activity resets the deadline.';sessionNotice.hidden=false}"
-             "function renderSession(session){const remaining=Number(session&&session.remaining_seconds);sessionRemainingSeconds=Number.isFinite(remaining)?Math.max(0,Math.floor(remaining)):null;updateSessionNotice()}"
+             "function renderSession(session){if(sessionActivityInFlight||sessionActivitySentAt&&Date.now()-sessionActivitySentAt<1500)return;const remaining=Number(session&&session.remaining_seconds);sessionRemainingSeconds=Number.isFinite(remaining)?Math.max(0,Math.floor(remaining)):null;updateSessionNotice()}"
+             "async function recordSessionActivity(){const now=Date.now();if(sessionActivityInFlight||now-sessionActivitySentAt<1000)return;sessionActivitySentAt=now;sessionActivityInFlight=true;try{const r=await fetch('/api/v1/admin/session/activity',{method:'POST',headers:{'X-ESP32-NUT-CSRF':csrf},cache:'no-store'});if(r.status===401||r.status===403){location='/';return}if(!r.ok)return;const x=await r.json(),remaining=Number(x.remaining_seconds);if(Number.isFinite(remaining)){sessionRemainingSeconds=Math.max(0,Math.floor(remaining));updateSessionNotice()}}catch(error){}finally{sessionActivityInFlight=false}}"
+             "['click','focusin','input','change','submit','keydown'].forEach(eventName=>document.addEventListener(eventName,recordSessionActivity,true));"
              "const renderDashboardBase=renderDashboard;renderDashboard=function(x){renderDashboardBase(x);renderSession(x.session||{})};setInterval(()=>{if(sessionRemainingSeconds!==null&&sessionRemainingSeconds>0){sessionRemainingSeconds--;updateSessionNotice()}},1000);"
              "function renderWifi(x){const wifi=x.wifi||{};wifiCurrent.textContent='Current network: '+displayValue(wifi.ssid)+' — '+displayValue(wifi.ip)+' — '+(wifi.connected?'connected':'not connected')+' — '+displayValue(wifi.rssi_dbm)+' dBm';if(!wifiSsid.value&&wifi.ssid)wifiSsid.value=wifi.ssid}"
              "async function loadStatus(){try{const r=await fetch('/api/v1/status',{cache:'no-store'});if(r.status===401||r.status===403){location='/';return}const x=await r.json();status.textContent=JSON.stringify(x,null,2);renderDashboard(x);renderWifi(x);if(x.time){ntpEnabled.checked=x.time.ntp_enabled;ntpServer.value=x.time.ntp_server;timeZone.value=x.time.timezone;syncNow.disabled=!x.time.ntp_enabled;if(x.time.available){timeSummary.textContent=x.time.local+' ('+x.time.timezone+'), UTC '+x.time.utc+', source '+x.time.source+(x.time.synchronization_pending?' — synchronization pending':'');manualDateTime.value=x.time.local.slice(0,16)}else{timeSummary.textContent=x.time.synchronization_pending?'Time is not set; waiting for NTP.':'Time is not set.'}}}catch(error){status.textContent='Unable to load device status.';wifiCurrent.textContent='Unable to load current Wi-Fi status.'}}"
@@ -2084,8 +2093,7 @@ static esp_err_t management_logout_handler(httpd_req_t *request)
         return management_send_json(request, "403 Forbidden", "{\"error\":\"Invalid session or CSRF token.\"}");
     }
     management_clear_session();
-    httpd_resp_set_hdr(request, "Set-Cookie",
-                       "ESP32NUT_SESSION=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict");
+    management_expire_session_cookie(request);
     return management_send_redirect(request, "/");
 }
 
@@ -2453,6 +2461,27 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     const esp_err_t send_result = management_send_json(request, "200 OK", response);
     mbedtls_platform_zeroize(response, sizeof(response));
     return send_result;
+}
+
+static esp_err_t management_session_activity_handler(httpd_req_t *request)
+{
+    if (!management_csrf_is_valid(request))
+    {
+        return management_send_json(
+            request, "403 Forbidden",
+            "{\"error\":\"Invalid session or CSRF token.\"}");
+    }
+
+    char response[96];
+    const uint32_t remaining_seconds = management_session_remaining_seconds();
+    snprintf(response, sizeof(response),
+             "{\"remaining_seconds\":%u,\"warning\":%s}",
+             (unsigned int)remaining_seconds,
+             remaining_seconds > 0 &&
+                     remaining_seconds <= MANAGEMENT_SESSION_WARNING_SECONDS
+                 ? "true"
+                 : "false");
+    return management_send_json(request, "200 OK", response);
 }
 
 static esp_err_t management_token_list_handler(httpd_req_t *request)
@@ -2885,6 +2914,7 @@ esp_err_t management_server_start(void)
     const httpd_uri_t password = {.uri = "/api/v1/admin/password", .method = HTTP_POST, .handler = management_password_change_handler};
     const httpd_uri_t logout = {.uri = "/logout", .method = HTTP_POST, .handler = management_logout_handler};
     const httpd_uri_t status = {.uri = "/api/v1/status", .method = HTTP_GET, .handler = management_status_handler};
+    const httpd_uri_t session_activity = {.uri = "/api/v1/admin/session/activity", .method = HTTP_POST, .handler = management_session_activity_handler};
     const httpd_uri_t time_configuration = {.uri = "/api/v1/admin/time", .method = HTTP_POST, .handler = management_time_config_handler};
     const httpd_uri_t ota_check = {.uri = "/api/v1/ota/check", .method = HTTP_POST, .handler = management_ota_check_handler};
     const httpd_uri_t ota = {.uri = "/api/v1/ota/install", .method = HTTP_POST, .handler = management_ota_install_handler};
@@ -2896,7 +2926,7 @@ esp_err_t management_server_start(void)
     const httpd_uri_t agent_ota = {.uri = "/api/v1/agent/ota/install", .method = HTTP_POST, .handler = management_agent_ota_install_handler};
     const httpd_uri_t *routes[] = {
         &root, &setup, &login_page, &login, &password, &logout, &status,
-        &time_configuration, &ota_check, &ota, &token_list, &token_create, &token_delete,
+        &session_activity, &time_configuration, &ota_check, &ota, &token_list, &token_create, &token_delete,
         &wifi_scan, &wifi_configuration, &agent_ota};
     _Static_assert(sizeof(routes) / sizeof(routes[0]) <=
                        MANAGEMENT_HTTPS_ROUTE_CAPACITY,
