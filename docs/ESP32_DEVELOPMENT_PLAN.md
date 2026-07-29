@@ -163,6 +163,7 @@ proportional build and target-hardware validation.
 | Order | Release target | Branch | Scope and merge boundary |
 | --- | --- | --- | --- |
 | 1–8 | `v2.0.0`–`v2.7.0` | Completed branches | Published slice details and acceptance evidence are archived in the completed-history document linked above. |
+| 8a | `v2.7.1` | `fix/management-request-header-limit` | Compatible recovery patch: raise only the HTTPS management server's bounded request-header limit so browser requests forwarded through the trusted reverse proxy can reach setup and authentication handlers. |
 | 9 | `v2.8.0` | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
 | 10 | `v2.9.0` | `feature/operational-management-acceptance` | Integrate and validate the definition of done from iPhone and MacBook Air, close documentation gaps, and publish the final `v2.x` acceptance release. |
 

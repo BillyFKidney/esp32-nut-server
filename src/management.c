@@ -36,6 +36,7 @@
 
 #define MANAGEMENT_DEFAULT_DEVICE_NAME "ESP32-NUT"
 #define MANAGEMENT_HTTPS_PORT 443
+#define MANAGEMENT_HTTPS_REQUEST_HEADER_LIMIT 4096U
 #define MANAGEMENT_ADMIN_PAGE_SIZE 36000
 #define MANAGEMENT_STATUS_RESPONSE_SIZE 7000
 #define MANAGEMENT_WIFI_SCAN_RESPONSE_SIZE 4200
@@ -1289,6 +1290,13 @@ esp_err_t management_server_start(void)
     httpd_ssl_config_t configuration = HTTPD_SSL_CONFIG_DEFAULT();
     configuration.httpd.server_port = MANAGEMENT_HTTPS_PORT;
     configuration.httpd.stack_size = 12288;
+    /*
+     * Chrome plus a trusted reverse proxy can exceed ESP-IDF's 1024-byte
+     * default before a setup or authentication handler receives the request.
+     * This remains a bounded, management-server-only limit; the HTTP captive
+     * portal retains its smaller default.
+     */
+    configuration.httpd.max_req_hdr_len = MANAGEMENT_HTTPS_REQUEST_HEADER_LIMIT;
     configuration.httpd.max_open_sockets = 4;
     configuration.httpd.max_uri_handlers = MANAGEMENT_HTTPS_ROUTE_CAPACITY;
     configuration.httpd.lru_purge_enable = true;
