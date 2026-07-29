@@ -37,7 +37,7 @@ and dependency locks remain untracked.
 | --- | --- | --- | --- |
 | 1 | `management-log.c` — bounded ESP-IDF/NUT log capture and status-response log serialization | Locally committed on `feature/management-log-module`; review pending | ESP-IDF v6.0.2 target build passes; public callers use `management-log.h`; status JSON and log behavior are unchanged by inspection; no host test harness is configured for this component |
 | 2 | `management-status.c` — NUT and hardware diagnostic snapshots | Implemented on `feature/management-status-module`; review pending | ESP-IDF v6.0.2 target build passes; NUT dstate and hardware diagnostics moved behind `management-status.h`; authenticated route, session check, and response fields remain in `management.c` |
-| 3 | `management-certificates.c` — certificate/key loading, generation, and NVS persistence | Planned | HTTPS 443 starts with the same stored material; missing/incomplete blobs still regenerate; private key handling remains zeroized |
+| 3 | `management-certificates.c` — certificate/key loading, generation, and NVS persistence | Implemented on `feature/management-certificates-module`; review pending | ESP-IDF v6.0.2 target build passes; HTTPS startup receives the same material through `management-certificates.h`; missing/incomplete blobs still regenerate; private key handling remains zeroized |
 | 4 | `management-credentials.c` — ADMIN credential storage, PBKDF2 verification, and legacy migration | Planned | Setup, login, password change, migration, and factory-reset credential erasure retain current outcomes |
 | 5 | `management-session.c` — session cookies, setup cookies, idle timeout, CSRF, and login throttling | Planned | Existing ADMIN/CSRF and timeout behavior remains unchanged; no token or password disclosure |
 | 6 | `management-http.c` / route composition — shared response helpers, form parsing, and route registration | Planned | All existing routes retain method, path, status, headers, and authorization boundary |
@@ -49,6 +49,22 @@ The order is intentionally conservative: logging has no security decision or
 network state; status is read-only; certificate and credential extraction then
 receive dedicated review before session and route composition; Wi-Fi recovery
 is kept separate because it crosses physical input, NVS erasure, and restart.
+
+### Stage 3: HTTPS certificate material
+
+`management-certificates.c` exclusively owns the persisted self-signed HTTPS
+certificate and private-key lifecycle. It keeps the existing `management` NVS
+namespace and the `https-cert` and `https-key` blob keys. On startup it loads
+both blobs; if either is missing, empty, or unreadable, it zeroizes any
+in-memory private-key data and generates and persists a replacement pair.
+
+The generated pair deliberately retains the previous security behavior: an EC
+P-256 key, a device-specific `ESP32-NUT-…` common name based on the station
+MAC, certificate serial generation, and the existing validity, basic-constraint,
+and key-usage settings. The HTTPS server remains responsible for service
+startup and route registration; it only consumes the module-owned material via
+the read-only [include/management-certificates.h](../include/management-certificates.h)
+interface. No certificate or private-key content is logged or documented.
 
 ## Current slice: management log module
 
@@ -90,9 +106,10 @@ traceable for the factory-reset investigation.
 ## Branch and validation rules
 
 - Start each stage from the latest `main` unless a documented dependency is
-  required and explicitly recorded. `feature/management-status-module` is
-  temporarily stacked on the local Stage 1 logging commit; rebase it onto the
-  merged Stage 1 `main` before publishing or opening its pull request.
+  required and explicitly recorded. `feature/management-certificates-module`
+  is temporarily stacked on the local Stage 2 status commit, which is itself
+  stacked on the local Stage 1 logging commit. Rebase each slice onto the
+  applicable merged `main` before publishing or opening its pull request.
 - Use one branch and pull request per stage; do not combine logging, status,
   authentication, certificates, and Wi-Fi recovery in one change.
 - Run `git diff --check` and inspect the complete diff before building.
@@ -106,8 +123,8 @@ traceable for the factory-reset investigation.
 
 ## Next extractions
 
-After Stage 2 is reviewed and merged, the recommended next slice is
-`management-certificates.c`. It remains deliberately separate because missing
-or incomplete certificate blobs must retain their current regeneration and
-private-key handling behavior. The later factory-reset slice can then trace
-UPS-state retention without mixing certificate, credential, or session changes.
+After Stage 3 is reviewed and merged, the recommended next slice is
+`management-credentials.c`. It remains deliberately separate because password
+hashing, credential migration, and factory-reset credential erasure must retain
+their current outcomes. The later factory-reset slice can then trace UPS-state
+retention without mixing certificate, credential, or session changes.

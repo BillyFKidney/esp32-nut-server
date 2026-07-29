@@ -307,6 +307,7 @@ src/
 ├── main.c              - ESP32 application entry point
 ├── usb.c               - USB host implementation
 ├── management.c        - HTTPS administration orchestration and routes
+├── management-certificates.c - persisted self-signed HTTPS certificate/key lifecycle
 ├── management-log.c    - bounded in-memory management/NUT log capture
 ├── management-status.c - read-only NUT and hardware status snapshots
 ├── wifi.c              - Wi-Fi orchestration and recovery coordination

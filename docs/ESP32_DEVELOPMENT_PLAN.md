@@ -54,12 +54,15 @@ consume a release version by itself and must not blur the acceptance boundary
 of the active UPS-state or factory-reset slices.
 
 The first branch is `feature/management-log-module`, which isolates bounded
-in-memory management log capture and status-response serialization. The active
-follow-on branch is `feature/management-status-module`, which isolates only
-read-only NUT and hardware snapshots while retaining the authenticated route
-and JSON assembly in `management.c`. Credentials, certificate material,
-sessions/CSRF, and Wi-Fi recovery remain separate later boundaries because they
-carry security, persistence, or physical-recovery risk.
+in-memory management log capture and status-response serialization. The second
+branch is `feature/management-status-module`, which isolates only read-only NUT
+and hardware snapshots while retaining the authenticated route and JSON
+assembly in `management.c`. The active follow-on branch is
+`feature/management-certificates-module`, which isolates the persisted
+self-signed HTTPS certificate and private-key lifecycle while keeping HTTPS
+startup and routing in `management.c`. Credentials, sessions/CSRF, and Wi-Fi
+recovery remain separate later boundaries because they carry security,
+persistence, or physical-recovery risk.
 
 ## Target platform
 
