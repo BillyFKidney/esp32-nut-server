@@ -25,6 +25,7 @@ ordinary startup.
 | Hardware, LAN, COM, build, flash, OTA, or recovery | [ESP32_PREFLIGHT.md](docs/ESP32_PREFLIGHT.md) |
 | Authority for physical, destructive, GitHub, or external actions | [ESP32_DEVELOPMENT_ROLES.md](docs/ESP32_DEVELOPMENT_ROLES.md) |
 | Security or authorization behavior | [ESP32_SECURITY.md](docs/ESP32_SECURITY.md) |
+| Management/Wi-Fi modular refactoring | [ESP32_REFACTORING_PLAN.md](docs/ESP32_REFACTORING_PLAN.md) |
 | Synology/AdGuard browser access | [ESP32_MANAGEMENT_PROXY.md](docs/ESP32_MANAGEMENT_PROXY.md) |
 | Moving tracked files or changing repository layout | [ESP32_REPOSITORY_LAYOUT.md](docs/ESP32_REPOSITORY_LAYOUT.md) |
 | Detailed downstream port/build notes | [ESP32_README.md](docs/ESP32_README.md) |
@@ -75,6 +76,8 @@ not disposable clutter.
   access or an unavailable tool into a device-failure claim.
 - Preserve behavior outside the active slice, especially ADMIN/CSRF boundaries,
   service ports, read-only UPS access, and rollback/recovery paths.
+- Keep `management.c` and `wifi.c` as orchestration boundaries while extracting
+  one focused concern per branch; do not mix refactoring with behavior changes.
 
 ## Handoff discipline
 

@@ -11,18 +11,18 @@ the former 101 KB status file is preserved in
 
 ## Repository snapshot
 
-**Repository state was rechecked after the 2026-07-29 documentation merge;
-hardware and LAN state were not checked during this documentation-only work.**
+**Repository state was rechecked at the start of the management modularization
+work; hardware and LAN state were not checked.**
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `feature/factory-reset-clears-state` |
+| Active branch | `feature/management-log-module` |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
 | Branch base | Keep the active feature branch fast-forwarded to current `main` and `origin/main` before implementation; live Git is authoritative |
 | Remote branch | No upstream is configured for the active feature branch |
-| Implementation state | No firmware implementation commit exists on this branch yet |
-| Worktree scope | The startup-context optimization is merged; no firmware source or build input was changed by that work |
+| Implementation state | Behavior-preserving extraction of bounded management logging is implemented on the feature branch; target build passed; no factory-reset behavior has been changed |
+| Worktree scope | `management-log.c`/`management-log.h` extraction, caller/header updates, CMake source-discovery update, and refactoring documentation are the active scope |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
@@ -30,7 +30,18 @@ hardware and LAN state were not checked during this documentation-only work.**
 | Device coordinates | Not checked. Rediscover the IP address and `/dev/cu.usbmodem*` path before hardware work; historical values are not current facts |
 | Authorization | No flash, OTA, factory reset, push, merge, tag, release, or other external action is authorized by this handoff |
 
-## Active slice: factory reset clears state
+## Active slice: management modularization foundation
+
+The active branch isolates the bounded in-memory management log ring buffer,
+ESP-IDF log hook, NUT syslog bridge, timestamp formatting, and status-response
+JSON serialization from `src/management.c`. It must preserve the existing
+authenticated status response and must not change HTTPS, NUT, ADMIN/CSRF, token,
+certificate, Wi-Fi, or factory-reset behavior.
+
+The staged extraction sequence and later management/Wi-Fi boundaries are in
+[ESP32_REFACTORING_PLAN.md](ESP32_REFACTORING_PLAN.md).
+
+## Factory-reset slice remains separate
 
 ### Reported defect
 
@@ -80,10 +91,13 @@ must not be presented as current.
 
 ## Exact next action
 
-Trace every UPS field exposed by the authenticated status response back through
-NUT dstate, runtime caches, and any filesystem persistence. Produce a concrete
-reset-state inventory and a failing test or testable helper before changing the
-factory-reset implementation.
+Review the complete uncommitted diff on `feature/management-log-module` and
+decide whether to commit and open its focused pull request. The target build
+with ESP-IDF v6.0.2 passed and the source component automatically registered
+`src/management-log.c`; no host test harness is configured for this component.
+After this slice is reviewed/merged, resume the separate factory-reset
+investigation by tracing every UPS field exposed by the authenticated status
+response back through NUT dstate, runtime caches, and filesystem persistence.
 
 ## Read only when needed
 

@@ -44,6 +44,21 @@ for that unstable API.
   locks, local `sdkconfig`, or machine/editor settings.
 - Validate changes on the ESP32-S3 target before considering them complete.
 
+## Current engineering-maintenance track: modular refactoring
+
+The large downstream orchestration units are being reduced through small,
+behavior-preserving extraction branches. The staged boundaries, security
+invariants, and validation rules are recorded in
+[ESP32_REFACTORING_PLAN.md](ESP32_REFACTORING_PLAN.md). This track does not
+consume a release version by itself and must not blur the acceptance boundary
+of the active UPS-state or factory-reset slices.
+
+The first branch is `feature/management-log-module`, which isolates bounded
+in-memory management log capture and status-response serialization. The next
+recommended branch is a read-only management-status extraction. Credentials,
+certificate material, sessions/CSRF, and Wi-Fi recovery remain separate later
+boundaries because they carry security, persistence, or physical-recovery risk.
+
 ## Target platform
 
 | Item | Current target |

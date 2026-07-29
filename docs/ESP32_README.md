@@ -306,7 +306,9 @@ The application uses FreeRTOS tasks:
 src/
 ├── main.c              - ESP32 application entry point
 ├── usb.c               - USB host implementation
-├── wifi.c              - WiFi configuration
+├── management.c        - HTTPS administration orchestration and routes
+├── management-log.c    - bounded in-memory management/NUT log capture
+├── wifi.c              - Wi-Fi orchestration and recovery coordination
 ├── drivers/
 │   ├── espusb.c        - ESP32 USB driver backend
 │   └── espusb.h        - USB driver header
