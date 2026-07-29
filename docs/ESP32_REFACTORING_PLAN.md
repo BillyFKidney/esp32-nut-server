@@ -39,7 +39,7 @@ and dependency locks remain untracked.
 | 2 | `management-status.c` — NUT and hardware diagnostic snapshots | Implemented on `feature/management-status-module`; review pending | ESP-IDF v6.0.2 target build passes; NUT dstate and hardware diagnostics moved behind `management-status.h`; authenticated route, session check, and response fields remain in `management.c` |
 | 3 | `management-certificates.c` — certificate/key loading, generation, and NVS persistence | Implemented on `feature/management-certificates-module`; review pending | ESP-IDF v6.0.2 target build passes; HTTPS startup receives the same material through `management-certificates.h`; missing/incomplete blobs still regenerate; private key handling remains zeroized |
 | 4 | `management-credentials.c` — ADMIN credential storage, PBKDF2 verification, and legacy migration | Implemented on `feature/management-credentials-module`; review pending | ESP-IDF v6.0.2 target build passes; setup, login, password change, migration, and factory-reset credential erasure retain current outcomes by code-path inspection |
-| 5 | `management-session.c` — session cookies, setup cookies, idle timeout, CSRF, and login throttling | Planned | Existing ADMIN/CSRF and timeout behavior remains unchanged; no token or password disclosure |
+| 5 | `management-session.c` — session cookies, setup cookies, idle timeout, CSRF, and login throttling | Implemented on `feature/management-session-module`; review pending | ESP-IDF v6.0.2 target build passes; existing ADMIN/CSRF, timeout, and cooldown behavior remains unchanged by code-path inspection; no token or password disclosure |
 | 6 | `management-http.c` / route composition — shared response helpers, form parsing, and route registration | Planned | All existing routes retain method, path, status, headers, and authorization boundary |
 | 7 | `wifi-credentials.c` — active/pending credential persistence and zeroization | Planned | Pending validation, fallback, NVS keys, and factory-reset Wi-Fi erase behavior remain unchanged |
 | 8 | `wifi-diagnostics.c` — connection state, DHCP snapshots, and diagnostic messages | Planned | Status/portal diagnostics remain accurate and bounded; no retry or timeout changes |
@@ -82,6 +82,22 @@ reset remains in `management.c` and erases the full `management` namespace, so
 credential-reset behavior is unchanged. Passwords, derived hashes, and tokens
 must never be logged or documented.
 
+### Stage 5: ADMIN session and CSRF state
+
+`management-session.c` exclusively owns the in-memory ADMIN session cookie,
+CSRF value, first-run setup cookie, constant-time token comparison, idle-time
+tracking, and failed-login cooldown accounting. It preserves the existing token
+length, Secure/HttpOnly/SameSite cookie attributes, five-minute setup-cookie
+lifetime, fifteen-minute ADMIN idle timeout, five-minute warning threshold,
+five-failure threshold, and sixty-second cooldown.
+
+`management.c` retains every route handler and its response policy, including
+the existing 401/403/429 output, form parsing, bearer-token checks, and JSON
+assembly. It calls the module for authorization and CSRF decisions, which keeps
+the ADMIN boundary unchanged while making the mutable state independently
+traceable. No cookie, CSRF value, password, token, or Authorization header is
+logged or documented.
+
 ## Current slice: management log module
 
 The first slice moves the following private state and behavior out of
@@ -122,10 +138,10 @@ traceable for the factory-reset investigation.
 ## Branch and validation rules
 
 - Start each stage from the latest `main` unless a documented dependency is
-  required and explicitly recorded. `feature/management-credentials-module`
-  is temporarily stacked on the local Stage 3 certificate commit, which is
-  itself stacked on the local status and logging commits. Rebase each slice
-  onto the applicable merged `main` before publishing or opening its pull
+  required and explicitly recorded. `feature/management-session-module` is
+  temporarily stacked on the local Stage 4 credentials commit, which is itself
+  stacked on the local certificate, status, and logging commits. Rebase each
+  slice onto the applicable merged `main` before publishing or opening its pull
   request.
 - Use one branch and pull request per stage; do not combine logging, status,
   authentication, certificates, and Wi-Fi recovery in one change.
@@ -140,9 +156,9 @@ traceable for the factory-reset investigation.
 
 ## Next extractions
 
-After Stage 4 is reviewed and merged, the recommended next slice is
-`management-session.c`. It remains deliberately separate because session
-cookies, setup cookies, idle timeout, CSRF validation, and login throttling
-must preserve the current ADMIN boundary. The later factory-reset slice can
-then trace UPS-state retention without mixing certificate, credential, or
+After Stage 5 is reviewed and merged, the recommended next slice is
+`management-http.c` / route composition. It should move only shared response
+helpers, form parsing, and route registration while leaving paths, methods,
+status codes, and authorization calls unchanged. The later factory-reset slice
+can then trace UPS-state retention without mixing certificate, credential, or
 session changes.

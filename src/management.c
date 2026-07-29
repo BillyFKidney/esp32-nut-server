@@ -2,6 +2,7 @@
 #include "management-certificates.h"
 #include "management-credentials.h"
 #include "management-log.h"
+#include "management-session.h"
 #include "management-status.h"
 
 #include <stdbool.h>
@@ -20,11 +21,8 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_ota_ops.h"
-#include "esp_random.h"
 #include "esp_timer.h"
 #include "esp_wifi.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/portmacro.h"
 #include "mbedtls/platform_util.h"
 #include "nvs.h"
 #include "ota.h"
@@ -38,38 +36,18 @@
 
 #define MANAGEMENT_DEFAULT_DEVICE_NAME "ESP32-NUT"
 #define MANAGEMENT_HTTPS_PORT 443
-#define MANAGEMENT_SESSION_BYTES 32
-#define MANAGEMENT_SESSION_HEX_LENGTH (MANAGEMENT_SESSION_BYTES * 2)
-#define MANAGEMENT_SESSION_IDLE_SECONDS (15U * 60U)
-#define MANAGEMENT_SESSION_WARNING_SECONDS (5U * 60U)
-#define MANAGEMENT_SESSION_IDLE_US ((int64_t)MANAGEMENT_SESSION_IDLE_SECONDS * 1000000LL)
 #define MANAGEMENT_FORM_BODY_LIMIT 640
 #define MANAGEMENT_ADMIN_PAGE_SIZE 36000
 #define MANAGEMENT_STATUS_RESPONSE_SIZE 7000
 #define MANAGEMENT_WIFI_SCAN_RESPONSE_SIZE 4200
 #define MANAGEMENT_HTTPS_ROUTE_CAPACITY 17
-#define MANAGEMENT_LOGIN_MAX_FAILURES 5
-#define MANAGEMENT_LOGIN_COOLDOWN_US (60LL * 1000000LL)
 
 _Static_assert(sizeof(MANAGEMENT_NAMESPACE) <= NVS_NS_NAME_MAX_SIZE,
                "Management NVS namespace exceeds the ESP-IDF limit");
 _Static_assert(sizeof(MANAGEMENT_DEVICE_NAME_KEY) <= NVS_KEY_NAME_MAX_SIZE,
                "Device-name NVS key exceeds the ESP-IDF limit");
 
-typedef struct
-{
-    bool active;
-    char cookie[MANAGEMENT_SESSION_HEX_LENGTH + 1];
-    char csrf[MANAGEMENT_SESSION_HEX_LENGTH + 1];
-    int64_t last_activity_us;
-} ManagementSession;
-
 static httpd_handle_t management_https_server;
-static ManagementSession management_session;
-static portMUX_TYPE management_session_lock = portMUX_INITIALIZER_UNLOCKED;
-static portMUX_TYPE management_login_lock = portMUX_INITIALIZER_UNLOCKED;
-static unsigned int management_login_failures;
-static int64_t management_login_cooldown_until_us;
 
 static void management_set_response_headers(httpd_req_t *request)
 {
@@ -111,38 +89,6 @@ static esp_err_t management_send_redirect(httpd_req_t *request, const char *loca
     httpd_resp_set_status(request, "303 See Other");
     httpd_resp_set_hdr(request, "Location", location);
     return httpd_resp_sendstr(request, "Continue");
-}
-
-static void management_bytes_to_hex(const uint8_t *source, size_t source_length,
-                                    char *destination, size_t destination_length)
-{
-    static const char hexadecimal[] = "0123456789abcdef";
-    if (destination_length < source_length * 2 + 1)
-    {
-        if (destination_length > 0)
-        {
-            destination[0] = '\0';
-        }
-        return;
-    }
-
-    for (size_t index = 0; index < source_length; index++)
-    {
-        destination[index * 2] = hexadecimal[source[index] >> 4];
-        destination[index * 2 + 1] = hexadecimal[source[index] & 0x0f];
-    }
-    destination[source_length * 2] = '\0';
-}
-
-static bool management_constant_time_equal(const uint8_t *left, const uint8_t *right,
-                                           size_t length)
-{
-    uint8_t difference = 0;
-    for (size_t index = 0; index < length; index++)
-    {
-        difference |= left[index] ^ right[index];
-    }
-    return difference == 0;
 }
 
 static bool management_json_append(char *destination, size_t destination_size,
@@ -342,269 +288,9 @@ static bool management_form_value(const char *body, const char *name,
     return found;
 }
 
-static bool management_cookie_value(httpd_req_t *request, const char *name,
-                                    char *destination, size_t destination_size)
-{
-    const size_t cookie_length = httpd_req_get_hdr_value_len(request, "Cookie");
-    if (cookie_length == 0 || cookie_length > 256 || destination_size == 0)
-    {
-        return false;
-    }
-
-    char cookie_header[257];
-    if (httpd_req_get_hdr_value_str(request, "Cookie", cookie_header,
-                                    sizeof(cookie_header)) != ESP_OK)
-    {
-        return false;
-    }
-
-    const size_t name_length = strlen(name);
-    char *entry = cookie_header;
-    while (*entry != '\0')
-    {
-        while (*entry == ' ' || *entry == ';')
-        {
-            entry++;
-        }
-        char *separator = strchr(entry, '=');
-        if (separator == NULL)
-        {
-            break;
-        }
-        char *end = strchr(separator + 1, ';');
-        if (end == NULL)
-        {
-            end = entry + strlen(entry);
-        }
-        const size_t entry_name_length = (size_t)(separator - entry);
-        const size_t value_length = (size_t)(end - separator - 1);
-        if (entry_name_length == name_length && strncmp(entry, name, name_length) == 0 &&
-            value_length + 1 <= destination_size)
-        {
-            memcpy(destination, separator + 1, value_length);
-            destination[value_length] = '\0';
-            return true;
-        }
-        entry = end;
-    }
-    return false;
-}
-
-static bool management_is_hex_token(const char *token)
-{
-    if (token == NULL || strlen(token) != MANAGEMENT_SESSION_HEX_LENGTH)
-    {
-        return false;
-    }
-    for (size_t index = 0; index < MANAGEMENT_SESSION_HEX_LENGTH; index++)
-    {
-        const char character = token[index];
-        if (!((character >= '0' && character <= '9') ||
-              (character >= 'a' && character <= 'f')))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-static void management_start_session(void)
-{
-    uint8_t cookie[MANAGEMENT_SESSION_BYTES];
-    uint8_t csrf[MANAGEMENT_SESSION_BYTES];
-    esp_fill_random(cookie, sizeof(cookie));
-    esp_fill_random(csrf, sizeof(csrf));
-
-    taskENTER_CRITICAL(&management_session_lock);
-    management_bytes_to_hex(cookie, sizeof(cookie), management_session.cookie,
-                            sizeof(management_session.cookie));
-    management_bytes_to_hex(csrf, sizeof(csrf), management_session.csrf,
-                            sizeof(management_session.csrf));
-    management_session.last_activity_us = esp_timer_get_time();
-    management_session.active = true;
-    taskEXIT_CRITICAL(&management_session_lock);
-    mbedtls_platform_zeroize(cookie, sizeof(cookie));
-    mbedtls_platform_zeroize(csrf, sizeof(csrf));
-}
-
-static void management_set_session_cookie(httpd_req_t *request, char *session_header,
-                                          size_t session_header_size)
-{
-    taskENTER_CRITICAL(&management_session_lock);
-    snprintf(session_header, session_header_size,
-             "ESP32NUT_SESSION=%s; Path=/; Secure; HttpOnly; SameSite=Strict",
-             management_session.cookie);
-    taskEXIT_CRITICAL(&management_session_lock);
-    httpd_resp_set_hdr(request, "Set-Cookie", session_header);
-}
-
-static void management_expire_session_cookie(httpd_req_t *request)
-{
-    httpd_resp_set_hdr(request, "Set-Cookie",
-                       "ESP32NUT_SESSION=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict");
-}
-
-static void management_start_setup_session(httpd_req_t *request, char *csrf,
-                                           size_t csrf_size, char *setup_header,
-                                           size_t setup_header_size)
-{
-    char cookie[MANAGEMENT_SESSION_HEX_LENGTH + 1];
-    if (!management_cookie_value(request, "ESP32NUT_SETUP", cookie, sizeof(cookie)) ||
-        !management_is_hex_token(cookie))
-    {
-        uint8_t cookie_bytes[MANAGEMENT_SESSION_BYTES];
-        esp_fill_random(cookie_bytes, sizeof(cookie_bytes));
-        management_bytes_to_hex(cookie_bytes, sizeof(cookie_bytes), cookie, sizeof(cookie));
-        mbedtls_platform_zeroize(cookie_bytes, sizeof(cookie_bytes));
-    }
-    snprintf(csrf, csrf_size, "%s", cookie);
-    snprintf(setup_header, setup_header_size,
-             "ESP32NUT_SETUP=%s; Path=/; Max-Age=300; Secure; HttpOnly; SameSite=Strict",
-             cookie);
-    httpd_resp_set_hdr(request, "Set-Cookie", setup_header);
-    mbedtls_platform_zeroize(cookie, sizeof(cookie));
-}
-
-static bool management_setup_csrf_is_valid(httpd_req_t *request, const char *csrf)
-{
-    char cookie[MANAGEMENT_SESSION_HEX_LENGTH + 1];
-    if (!management_is_hex_token(csrf) ||
-        !management_cookie_value(request, "ESP32NUT_SETUP", cookie, sizeof(cookie)) ||
-        !management_is_hex_token(cookie))
-    {
-        return false;
-    }
-
-    const bool valid = management_constant_time_equal((const uint8_t *)cookie,
-                                                      (const uint8_t *)csrf,
-                                                      MANAGEMENT_SESSION_HEX_LENGTH);
-    mbedtls_platform_zeroize(cookie, sizeof(cookie));
-    return valid;
-}
-
-static int management_login_retry_after_seconds(int64_t now)
-{
-    int retry_after = 0;
-    taskENTER_CRITICAL(&management_login_lock);
-    if (now < management_login_cooldown_until_us)
-    {
-        retry_after = (int)((management_login_cooldown_until_us - now + 999999LL) /
-                            1000000LL);
-    }
-    taskEXIT_CRITICAL(&management_login_lock);
-    return retry_after;
-}
-
-static bool management_record_login_failure(int64_t now)
-{
-    bool cooldown_started = false;
-    taskENTER_CRITICAL(&management_login_lock);
-    management_login_failures++;
-    if (management_login_failures >= MANAGEMENT_LOGIN_MAX_FAILURES)
-    {
-        management_login_failures = 0;
-        management_login_cooldown_until_us = now + MANAGEMENT_LOGIN_COOLDOWN_US;
-        cooldown_started = true;
-    }
-    taskEXIT_CRITICAL(&management_login_lock);
-    return cooldown_started;
-}
-
-static void management_record_login_success(void)
-{
-    taskENTER_CRITICAL(&management_login_lock);
-    management_login_failures = 0;
-    management_login_cooldown_until_us = 0;
-    taskEXIT_CRITICAL(&management_login_lock);
-}
-
-static void management_clear_session(void)
-{
-    taskENTER_CRITICAL(&management_session_lock);
-    mbedtls_platform_zeroize(&management_session, sizeof(management_session));
-    taskEXIT_CRITICAL(&management_session_lock);
-}
-
-static uint32_t management_session_remaining_seconds(void)
-{
-    uint32_t remaining_seconds = 0;
-    taskENTER_CRITICAL(&management_session_lock);
-    if (management_session.active)
-    {
-        const int64_t elapsed_us =
-            esp_timer_get_time() - management_session.last_activity_us;
-        if (elapsed_us < MANAGEMENT_SESSION_IDLE_US)
-        {
-            const int64_t remaining_us = MANAGEMENT_SESSION_IDLE_US - elapsed_us;
-            remaining_seconds = remaining_us > 0
-                                    ? (uint32_t)(remaining_us / 1000000LL)
-                                    : 0;
-        }
-    }
-    taskEXIT_CRITICAL(&management_session_lock);
-    return remaining_seconds;
-}
-
-static bool management_cookie_is_authorized(httpd_req_t *request, bool refresh_activity)
-{
-    char value[MANAGEMENT_SESSION_HEX_LENGTH + 1];
-    if (!management_cookie_value(request, "ESP32NUT_SESSION", value, sizeof(value)) ||
-        strlen(value) != MANAGEMENT_SESSION_HEX_LENGTH)
-    {
-        return false;
-    }
-
-    bool authorized = false;
-    taskENTER_CRITICAL(&management_session_lock);
-    const int64_t now = esp_timer_get_time();
-    if (management_session.active &&
-        now - management_session.last_activity_us <= MANAGEMENT_SESSION_IDLE_US &&
-        management_constant_time_equal((const uint8_t *)value,
-                                       (const uint8_t *)management_session.cookie,
-                                       MANAGEMENT_SESSION_HEX_LENGTH))
-    {
-        if (refresh_activity)
-        {
-            management_session.last_activity_us = now;
-        }
-        authorized = true;
-    }
-    else if (management_session.active && now - management_session.last_activity_us > MANAGEMENT_SESSION_IDLE_US)
-    {
-        mbedtls_platform_zeroize(&management_session, sizeof(management_session));
-    }
-    taskEXIT_CRITICAL(&management_session_lock);
-    mbedtls_platform_zeroize(value, sizeof(value));
-    return authorized;
-}
-
-static bool management_csrf_is_valid(httpd_req_t *request)
-{
-    if (!management_cookie_is_authorized(request, true))
-    {
-        return false;
-    }
-
-    char csrf[MANAGEMENT_SESSION_HEX_LENGTH + 1] = {0};
-    if (httpd_req_get_hdr_value_str(request, "X-ESP32-NUT-CSRF", csrf,
-                                    sizeof(csrf)) != ESP_OK ||
-        strlen(csrf) != MANAGEMENT_SESSION_HEX_LENGTH)
-    {
-        return false;
-    }
-
-    bool matches;
-    taskENTER_CRITICAL(&management_session_lock);
-    matches = management_constant_time_equal((const uint8_t *)csrf,
-                                             (const uint8_t *)management_session.csrf,
-                                             MANAGEMENT_SESSION_HEX_LENGTH);
-    taskEXIT_CRITICAL(&management_session_lock);
-    return matches;
-}
-
 static bool management_require_session(httpd_req_t *request)
 {
-    if (management_cookie_is_authorized(request, true))
+    if (management_session_is_authorized(request, true))
     {
         return true;
     }
@@ -615,7 +301,7 @@ static bool management_require_session(httpd_req_t *request)
 
 static bool management_require_session_without_activity(httpd_req_t *request)
 {
-    if (management_cookie_is_authorized(request, false))
+    if (management_session_is_authorized(request, false))
     {
         return true;
     }
@@ -686,17 +372,18 @@ static esp_err_t management_root_handler(httpd_req_t *request)
     {
         char csrf[MANAGEMENT_SESSION_HEX_LENGTH + 1];
         char setup_header[192];
-        management_start_setup_session(request, csrf, sizeof(csrf), setup_header,
+        management_session_start_setup(request, csrf, sizeof(csrf), setup_header,
                                        sizeof(setup_header));
         char page[1800];
         snprintf(page, sizeof(page), management_setup_page_template, csrf);
         mbedtls_platform_zeroize(csrf, sizeof(csrf));
         return management_send_html(request, page);
     }
-    if (!management_cookie_is_authorized(request, true))
+    if (!management_session_is_authorized(request, true))
     {
-        management_expire_session_cookie(request);
-        const int retry_after = management_login_retry_after_seconds(esp_timer_get_time());
+        management_session_expire_cookie(request);
+        const int retry_after =
+            management_session_login_retry_after_seconds(esp_timer_get_time());
         if (retry_after > 0)
         {
             return management_send_login_throttled(request, retry_after);
@@ -705,9 +392,7 @@ static esp_err_t management_root_handler(httpd_req_t *request)
     }
 
     char csrf[MANAGEMENT_SESSION_HEX_LENGTH + 1];
-    taskENTER_CRITICAL(&management_session_lock);
-    snprintf(csrf, sizeof(csrf), "%s", management_session.csrf);
-    taskEXIT_CRITICAL(&management_session_lock);
+    management_session_copy_csrf(csrf, sizeof(csrf));
 
     char *page = calloc(1, MANAGEMENT_ADMIN_PAGE_SIZE);
     if (page == NULL)
@@ -861,7 +546,8 @@ static esp_err_t management_setup_handler(httpd_req_t *request)
                                 management_form_value(body, "password", password, sizeof(password)) &&
                                 management_form_value(body, "confirm", confirmation, sizeof(confirmation)) &&
                                 management_form_value(body, "csrf", csrf, sizeof(csrf));
-    const bool csrf_valid = fields_present && management_setup_csrf_is_valid(request, csrf);
+    const bool csrf_valid = fields_present &&
+                            management_session_setup_csrf_is_valid(request, csrf);
     const bool matches = csrf_valid && strcmp(password, confirmation) == 0;
     const esp_err_t password_result = matches ?
         management_credentials_set_admin_password(password) : ESP_ERR_INVALID_ARG;
@@ -886,10 +572,10 @@ static esp_err_t management_setup_handler(httpd_req_t *request)
                                            "<h1>ESP32-NUT setup</h1><p>Unable to save the ADMIN password. <a href='/'>Try again</a>.</p>");
     }
 
-    management_start_session();
-    management_record_login_success();
+    management_session_start();
+    management_session_record_login_success();
     char session_header[176];
-    management_set_session_cookie(request, session_header, sizeof(session_header));
+    management_session_set_cookie(request, session_header, sizeof(session_header));
     return management_send_redirect(request, "/");
 }
 
@@ -917,7 +603,7 @@ static esp_err_t management_login_page_handler(httpd_req_t *request)
 static esp_err_t management_login_handler(httpd_req_t *request)
 {
     const int64_t now = esp_timer_get_time();
-    const int retry_after = management_login_retry_after_seconds(now);
+    const int retry_after = management_session_login_retry_after_seconds(now);
     if (retry_after > 0)
     {
         return management_send_login_throttled(request, retry_after);
@@ -944,25 +630,25 @@ static esp_err_t management_login_handler(httpd_req_t *request)
     mbedtls_platform_zeroize(password, sizeof(password));
     if (!valid)
     {
-        if (management_record_login_failure(now))
+        if (management_session_record_login_failure(now))
         {
             return management_send_login_throttled(request,
-                                                   (int)(MANAGEMENT_LOGIN_COOLDOWN_US / 1000000LL));
+                                                   MANAGEMENT_LOGIN_COOLDOWN_SECONDS);
         }
         return management_send_html_status(request, "401 Unauthorized",
                                            "<h1>ESP32-NUT sign in</h1><p>Invalid password. <a href='/'>Try again</a>.</p>");
     }
 
-    management_record_login_success();
-    management_start_session();
+    management_session_record_login_success();
+    management_session_start();
     char session_header[176];
-    management_set_session_cookie(request, session_header, sizeof(session_header));
+    management_session_set_cookie(request, session_header, sizeof(session_header));
     return management_send_redirect(request, "/");
 }
 
 static esp_err_t management_password_change_handler(httpd_req_t *request)
 {
-    if (!management_csrf_is_valid(request))
+    if (!management_session_csrf_is_valid(request))
     {
         return management_send_json(request, "403 Forbidden",
                                     "{\"error\":\"Invalid session or CSRF token.\"}");
@@ -1023,21 +709,21 @@ static esp_err_t management_password_change_handler(httpd_req_t *request)
                                     "{\"error\":\"Unable to save the new ADMIN password.\"}");
     }
 
-    management_start_session();
+    management_session_start();
     char session_header[176];
-    management_set_session_cookie(request, session_header, sizeof(session_header));
+    management_session_set_cookie(request, session_header, sizeof(session_header));
     return management_send_json(request, "200 OK",
                                 "{\"message\":\"ADMIN password changed. The browser session was refreshed.\"}");
 }
 
 static esp_err_t management_logout_handler(httpd_req_t *request)
 {
-    if (!management_csrf_is_valid(request))
+    if (!management_session_csrf_is_valid(request))
     {
         return management_send_json(request, "403 Forbidden", "{\"error\":\"Invalid session or CSRF token.\"}");
     }
-    management_clear_session();
-    management_expire_session_cookie(request);
+    management_session_clear();
+    management_session_expire_cookie(request);
     return management_send_redirect(request, "/");
 }
 
@@ -1146,7 +832,7 @@ static esp_err_t management_wifi_scan_handler(httpd_req_t *request)
 
 static esp_err_t management_wifi_configure_handler(httpd_req_t *request)
 {
-    if (!management_csrf_is_valid(request))
+    if (!management_session_csrf_is_valid(request))
     {
         return management_send_json(
             request, "403 Forbidden",
@@ -1409,7 +1095,7 @@ static esp_err_t management_status_handler(httpd_req_t *request)
 
 static esp_err_t management_session_activity_handler(httpd_req_t *request)
 {
-    if (!management_csrf_is_valid(request))
+    if (!management_session_csrf_is_valid(request))
     {
         return management_send_json(
             request, "403 Forbidden",
@@ -1489,7 +1175,7 @@ static esp_err_t management_token_list_handler(httpd_req_t *request)
 
 static esp_err_t management_token_create_handler(httpd_req_t *request)
 {
-    if (!management_csrf_is_valid(request))
+    if (!management_session_csrf_is_valid(request))
     {
         return management_send_json(
             request, "403 Forbidden",
@@ -1578,7 +1264,7 @@ static esp_err_t management_token_create_handler(httpd_req_t *request)
 
 static esp_err_t management_token_delete_handler(httpd_req_t *request)
 {
-    if (!management_csrf_is_valid(request))
+    if (!management_session_csrf_is_valid(request))
     {
         return management_send_json(
             request, "403 Forbidden",
@@ -1632,7 +1318,7 @@ static esp_err_t management_token_delete_handler(httpd_req_t *request)
 
 static esp_err_t management_time_config_handler(httpd_req_t *request)
 {
-    if (!management_csrf_is_valid(request))
+    if (!management_session_csrf_is_valid(request))
     {
         return management_send_json(request, "403 Forbidden",
                                     "{\"error\":\"Invalid session or CSRF token.\"}");
@@ -1749,7 +1435,7 @@ static esp_err_t management_time_config_handler(httpd_req_t *request)
 
 static esp_err_t management_ota_install_handler(httpd_req_t *request)
 {
-    if (!management_csrf_is_valid(request))
+    if (!management_session_csrf_is_valid(request))
     {
         return management_send_json(request, "403 Forbidden", "{\"error\":\"Invalid session or CSRF token.\"}");
     }
@@ -1758,7 +1444,7 @@ static esp_err_t management_ota_install_handler(httpd_req_t *request)
 
 static esp_err_t management_ota_check_handler(httpd_req_t *request)
 {
-    if (!management_csrf_is_valid(request))
+    if (!management_session_csrf_is_valid(request))
     {
         return management_send_json(request, "403 Forbidden", "{\"error\":\"Invalid session or CSRF token.\"}");
     }
@@ -1815,8 +1501,8 @@ esp_err_t management_factory_reset(void)
         result = nvs_commit(handle);
     }
     nvs_close(handle);
-    management_clear_session();
-    management_record_login_success();
+    management_session_clear();
+    management_session_record_login_success();
     return result;
 }
 

@@ -310,6 +310,7 @@ src/
 ├── management-certificates.c - persisted self-signed HTTPS certificate/key lifecycle
 ├── management-credentials.c - ADMIN credential storage, verification, and migration
 ├── management-log.c    - bounded in-memory management/NUT log capture
+├── management-session.c - ADMIN/setup cookies, CSRF, timeout, and login throttling
 ├── management-status.c - read-only NUT and hardware status snapshots
 ├── wifi.c              - Wi-Fi orchestration and recovery coordination
 ├── drivers/

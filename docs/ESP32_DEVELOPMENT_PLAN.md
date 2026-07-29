@@ -64,8 +64,11 @@ startup and routing in `management.c`. The active follow-on branch is
 `feature/management-credentials-module`, which isolates ADMIN credential
 storage, PBKDF2 verification, and legacy migration while retaining routes,
 sessions/CSRF, throttling, and factory-reset orchestration in `management.c`.
-Wi-Fi recovery remains a separate later boundary because it carries
-physical-recovery risk.
+The active follow-on branch is `feature/management-session-module`, which
+isolates ADMIN and setup cookies, CSRF validation, idle expiry, and login
+throttling while retaining routes, response policy, bearer-token checks, and
+factory-reset orchestration in `management.c`. Wi-Fi recovery remains a
+separate later boundary because it carries physical-recovery risk.
 
 ## Target platform
 
