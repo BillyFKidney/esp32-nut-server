@@ -26,13 +26,12 @@ access remains read-only.
 
 ## Current operating model
 
-The published operational baseline is `v2.6.0`. This release adds an
-ADMIN-session and CSRF-protected local image check before install, preserves
-the authenticated install and scoped Agent OTA paths, rejects invalid images,
-and retains ESP32-S3 bootloader rollback behavior. It passed target
-rollback/persistence validation on `.173`; the branch, installed firmware,
-target observations, and exact next action are maintained in
-[docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md).
+The published operational baseline is `v2.7.0`. Active work is the bounded
+`v2.7.1` factory-reset state-clearing fix. The current branch, repository facts,
+acceptance boundary, authorization state, and exact next action are maintained
+in [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md). Historical
+release and device evidence is archived rather than carried in that fast-start
+handoff.
 
 The normal browser path uses Synology as a LAN reverse proxy:
 
@@ -66,20 +65,16 @@ preserved.
 
 ## Start here
 
-Before hardware work, read:
+For normal development startup, read only:
 
-1. [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) for current
-   repository and device facts
-2. [docs/ESP32_REPOSITORY_LAYOUT.md](docs/ESP32_REPOSITORY_LAYOUT.md) for root
-   file ownership and directory policy
-3. [docs/ESP32_PREFLIGHT.md](docs/ESP32_PREFLIGHT.md) for the network-first
-   session checklist
-4. [docs/ESP32_DEVELOPMENT_ROLES.md](docs/ESP32_DEVELOPMENT_ROLES.md) for
-   authority and responsibilities
-5. [docs/ESP32_MANAGEMENT_PROXY.md](docs/ESP32_MANAGEMENT_PROXY.md) when using
-   the Synology/AdGuard browser path
-6. [docs/ESP32_DEVELOPMENT_PLAN.md](docs/ESP32_DEVELOPMENT_PLAN.md) for the
-   roadmap and implementation slices
+1. [AGENTS.md](AGENTS.md) for routing and non-negotiable guardrails
+2. [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) for the current
+   branch, active acceptance boundary, and exact next action
+
+Then follow the task-specific link in `AGENTS.md`. Read preflight only before
+hardware/LAN/COM/build/deployment work, roles only when authority matters, and
+the plan or milestone Q&A only when their scope or decisions are needed. Do
+not preload `docs/archive/` during ordinary startup.
 
 Use current network discovery for every session. Recorded IP addresses and USB
 paths are observations, not permanent device coordinates.
@@ -117,7 +112,8 @@ private keys, or Authorization headers in the repository or chat.
 
 | Need | Start here |
 | --- | --- |
-| Current facts and next action | [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) |
+| Current branch, facts, acceptance boundary, and next action | [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) |
+| Historical/completed evidence | [docs/archive/README.md](docs/archive/README.md) |
 | Repository layout policy | [ESP32_REPOSITORY_LAYOUT.md](docs/ESP32_REPOSITORY_LAYOUT.md) |
 | Hardware/session preflight | [ESP32_PREFLIGHT.md](docs/ESP32_PREFLIGHT.md) |
 | Synology/AdGuard HTTPS access | [ESP32_MANAGEMENT_PROXY.md](docs/ESP32_MANAGEMENT_PROXY.md) |

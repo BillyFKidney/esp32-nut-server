@@ -18,7 +18,7 @@ See [ESP32_DEVELOPMENT_PLAN.md](ESP32_DEVELOPMENT_PLAN.md) for the downstream
 roadmap, completed milestones, and feature tracking.
 
 See [ESP32_CURRENT_STATUS.md](ESP32_CURRENT_STATUS.md) for the active branch,
-installed-firmware evidence, and exact next action. Before hardware work, use
+current repository state, acceptance boundary, and exact next action. Before hardware work, use
 [ESP32_PREFLIGHT.md](ESP32_PREFLIGHT.md); team authority and responsibilities
 are defined in [ESP32_DEVELOPMENT_ROLES.md](ESP32_DEVELOPMENT_ROLES.md).
 
@@ -531,11 +531,7 @@ For general NUT questions:
 
 ## Changelog
 
-### Current Version
-
-- ESP-IDF v6.0.2 and ESP32-S3-N16R8 build support
-- Read-only USB discovery and CyberPower NUT HID polling
-- Endpoint-zero control-transfer workaround for 64-byte reports
-- Clean USB disconnect and hot reconnect handling
-
-See git history for detailed changes.
+The former current-version summary is preserved in
+[ESP32_README_CHANGELOG.md](archive/ESP32_README_CHANGELOG.md). Use
+[ESP32_CURRENT_STATUS.md](ESP32_CURRENT_STATUS.md) for the active branch and
+release baseline, and Git history/releases for detailed changes.
