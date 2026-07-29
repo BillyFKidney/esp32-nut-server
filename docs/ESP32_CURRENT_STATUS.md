@@ -17,13 +17,13 @@ evidence is preserved in [2026-07-29 target candidate smoke validation](archive/
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `feature/management-pages-module` |
+| Active branch | `feature/management-auth-routes` |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
-| Branch base | Stacked on the local `feature/ota-check-image-identity` slice, which is itself stacked on the local `candidate/wifi-provisioning-web-header-limit` integration candidate. That candidate combines the Wi-Fi provisioning-web extraction and the request-header-limit fix, and remains stacked on the local route-inventory, Wi-Fi diagnostic, Wi-Fi credential, HTTP-helper, session, credential, certificate, status, and logging slices. Rebase reviewed slices onto merged `main` before publishing; live Git is authoritative |
+| Branch base | Stacked on the local `feature/management-pages-module` slice, which is stacked on the local `feature/ota-check-image-identity` slice and then the local `candidate/wifi-provisioning-web-header-limit` integration candidate. That candidate combines the Wi-Fi provisioning-web extraction and the request-header-limit fix, and remains stacked on the local route-inventory, Wi-Fi diagnostic, Wi-Fi credential, HTTP-helper, session, credential, certificate, status, and logging slices. Rebase reviewed slices onto merged `main` before publishing; live Git is authoritative |
 | Remote branch | No upstream is configured for the active feature branch |
-| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, route-inventory, and temporary Wi-Fi provisioning-web slices are locally committed and target builds passed. The checked-image identity behavior has target acceptance: the authenticated Update Firmware page reported the checked local image as `v2.7.0-23-g0d2776aaf`. The management-page rendering slice now builds locally; target behavior remains untested for this refactor |
-| Worktree scope | Setup, login, cooldown, and authenticated administration-page rendering have moved from `src/management.c` into a focused `src/management-pages.c` module. Authorization, CSRF decisions, route behavior, and HTTP response policy remain in `management.c` |
+| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, route-inventory, and temporary Wi-Fi provisioning-web slices are locally committed and target builds passed. The checked-image identity behavior has target acceptance: the authenticated Update Firmware page reported the checked local image as `v2.7.0-23-g0d2776aaf`. The management-page and ADMIN-route slices both build locally; target behavior remains untested for those refactors |
+| Worktree scope | First-run setup, sign-in, legacy `/login` redirect, and ADMIN password-change handlers have moved from `src/management.c` into a focused `src/management-auth-routes.c` module. Credential persistence, session state, and page rendering remain in their focused modules; server startup, route paths/methods/order, and non-auth routes remain in `management.c` |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
@@ -50,21 +50,39 @@ validation, so it does not add reboot or running-dashboard evidence. The
 dashboard after a successful reboot remains the authoritative source for the
 version currently running on the device.
 
-## Active slice: management page rendering
+## Completed preceding slice: management page rendering
 
 `src/management.c` previously owned both security/route decisions and the
 embedded setup, login, cooldown, and authenticated administration HTML/JS.
 This slice moves only the rendering boundary into `management-pages.c`.
-`management.c` will retain setup-session creation, ADMIN authorization,
-throttle decisions, CSRF copying/zeroization, all route handlers, and response
-policy. The page module receives only the request and a supplied CSRF value;
-it must not read or mutate credentials, sessions, cookies, tokens, or NVS.
+`management.c` retains setup-session creation, root-page ADMIN authorization,
+throttle decisions, and CSRF copying/zeroization. The page module receives only
+the request and a supplied CSRF value; it must not read or mutate credentials,
+sessions, cookies, tokens, or NVS. The later ADMIN-route slice owns the four
+corresponding handler bodies without changing their policy.
 
 The resulting local ESP-IDF v6.0.2 build passes. Source comparison confirms the
 setup, login, cooldown, and authenticated HTML/JavaScript moved byte-for-byte
 except for the private page-buffer symbol. This is deliberately before route
 composition: page markup is a cohesive non-routing boundary, while route
 extraction still requires the recorded route-by-route acceptance matrix.
+
+## Active slice: ADMIN route handlers
+
+`management-auth-routes.c` owns the existing `POST /setup`, `GET /login`,
+`POST /login`, and `POST /api/v1/admin/password` handlers. The route paths,
+methods, form limits, response statuses/messages, login-cooldown rules, and
+credential/CSRF zeroization remain unchanged. `management.c` retains root-page
+authorization, logout, non-auth route handlers, HTTPS startup, and the exact
+route-registration order; it only references the focused module's handler
+symbols for these four routes.
+
+Source comparison confirms the moved handler bodies are unchanged except for
+their exported function names, and the local ESP-IDF v6.0.2 build passes. This
+slice requires later explicit browser validation of setup, login failure,
+login cooldown, password change, and logout behavior before it can claim
+target acceptance. No credentials, cookies, tokens, or Authorization headers
+are recorded in this handoff.
 
 ## Stacked prerequisite: Wi-Fi provisioning web module
 
@@ -139,17 +157,17 @@ must not be presented as current.
 
 ## Exact next action
 
-Review and commit `feature/management-pages-module`. Keep target validation
+Review and commit `feature/management-auth-routes`. Keep browser validation
 separate until an explicit non-install browser test or a later OTA authorization
-is provided. The recommended next extraction is a separate feature branch for
-one focused route family, beginning with a source-level boundary review rather
-than moving all route registrations at once. Temporary-portal target acceptance
-remains separate and requires a non-production device or an explicitly approved
-recovery session. Do not publish this stacked branch before the preceding slices
-are reviewed, merged, and rebased onto `main`. The separate factory-reset
-investigation still requires tracing every UPS field exposed by the
-authenticated status response back through NUT dstate, runtime caches, and
-filesystem persistence.
+is provided. The recommended next extraction is a separate branch for one
+focused non-auth route family, beginning with a source-level boundary review
+rather than moving all route registrations at once. Temporary-portal target
+acceptance remains separate and requires a non-production device or an
+explicitly approved recovery session. Do not publish this stacked branch before
+the preceding slices are reviewed, merged, and rebased onto `main`. The
+separate factory-reset investigation still requires tracing every UPS field
+exposed by the authenticated status response back through NUT dstate, runtime
+caches, and filesystem persistence.
 
 ## Read only when needed
 

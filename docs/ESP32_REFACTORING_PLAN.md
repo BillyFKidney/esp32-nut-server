@@ -69,8 +69,8 @@ out of `management.c`.
 | Bounded in-memory management-log capture and status serialization | `management-log.c` | Complete | No separate log API exists or is planned in this extraction |
 | OTA body handling, image verification, descriptor identity, boot selection, and restart coordination | `ota.c` | Complete focused boundary | Management routes retain ADMIN/CSRF/content-type checks and response policy; a separate `management-ota.c` is not currently needed |
 | Common HTTP headers, HTML/JSON/redirect responses, JSON utilities, and bounded form handling | `management-http.c` | Complete | It is not an HTML-template module and does not own route decisions |
-| Setup, login, cooldown, and authenticated administration page rendering | `management-pages.c` | Implemented on `feature/management-pages-module`; ESP-IDF v6.0.2 build passed; target behavior not yet tested for this refactor | ADMIN/session/CSRF decisions, route handlers, and response policy |
-| Setup/login/password route handlers | Future `management-auth-routes.c` only if still beneficial after pages move | Planned | Current behavior remains in `management.c` until a small, separately reviewed slice |
+| Setup, login, cooldown, and authenticated administration page rendering | `management-pages.c` | Implemented on `feature/management-pages-module`; ESP-IDF v6.0.2 build passed; target behavior not yet tested for this refactor | Root-page ADMIN/session/CSRF decisions remain in `management.c`; the page module does not own route handlers or policy |
+| Setup/login/password route handlers | `management-auth-routes.c` | Implemented on `feature/management-auth-routes`; ESP-IDF v6.0.2 build passed; target behavior not yet tested for this refactor | Root-page authorization, logout, server startup, route order, and all non-auth routes remain in `management.c` |
 | Wi-Fi, token, and time route handlers | Future focused route modules only where a cohesive boundary remains | Planned | Current behavior remains in `management.c` until separately reviewed |
 | Final route composition | `management-routes.c` and/or `management-server.c` | Planned after route acceptance matrix | Preserve route order, headers, authorization, and endpoint semantics exactly |
 
@@ -86,14 +86,33 @@ passed the request and a caller-provided CSRF value; it does not inspect or
 mutate credentials, sessions, cookies, API tokens, NVS, Wi-Fi state, or route
 registration.
 
-`management.c` continues to own first-run setup-session creation, ADMIN
-authorization, login-throttle decisions, CSRF copying and zeroization, all
-route handlers, and every success/error response policy. The original
-page-template payloads were moved byte-for-byte by source comparison, apart
-from the renamed private page-buffer constant. The resulting ESP-IDF v6.0.2
-build passed. A target browser check for this refactor remains separate and
-requires explicit authorization; no firmware installation is implied by the
-local build.
+`management.c` continues to own first-run setup-session creation, root-page
+ADMIN authorization, login-throttle decisions, and CSRF copying/zeroization.
+The page module owns no route decision. The later `management-auth-routes.c`
+slice owns the four setup/login/password handler bodies while retaining their
+existing response policy. The original page-template payloads were moved
+byte-for-byte by source comparison, apart from the renamed private page-buffer
+constant. The resulting ESP-IDF v6.0.2 build passed. A target browser check for
+this refactor remains separate and requires explicit authorization; no firmware
+installation is implied by the local build.
+
+### Current ADMIN route-handler slice
+
+`management-auth-routes.c` owns the existing first-run setup, sign-in,
+legacy-login redirect, and ADMIN password-change handlers. It depends only on
+the existing credential, session, page-rendering, and HTTP helper interfaces.
+The route paths, methods, form-size limit, login-cooldown behavior, response
+statuses/messages, credential migration behavior, and zeroization of password,
+confirmation, form-body, and CSRF buffers remain unchanged.
+
+`management.c` retains its root-page security decision, logout handler,
+server startup, route-registration order, and all non-auth handlers. The four
+existing route registrations now reference exported handler symbols from the
+focused module. Source comparison confirms the moved bodies are unchanged
+apart from those symbols, and an ESP-IDF v6.0.2 build passed. Because these
+are security-sensitive browser flows, target acceptance must be separately
+authorized and includes setup, login failure, cooldown, password change, and
+logout checks. No device-side install is implied by this local refactor.
 
 ### Stage 3: HTTPS certificate material
 
@@ -136,12 +155,14 @@ length, Secure/HttpOnly/SameSite cookie attributes, five-minute setup-cookie
 lifetime, fifteen-minute ADMIN idle timeout, five-minute warning threshold,
 five-failure threshold, and sixty-second cooldown.
 
-`management.c` retains every route handler and its response policy, including
-the existing 401/403/429 output, form parsing, bearer-token checks, and JSON
-assembly. It calls the module for authorization and CSRF decisions, which keeps
-the ADMIN boundary unchanged while making the mutable state independently
-traceable. No cookie, CSRF value, password, token, or Authorization header is
-logged or documented.
+At the session-state boundary, `management.c` retained route-level policy,
+including the existing 401/403/429 output, form parsing, bearer-token checks,
+and JSON assembly. The later, separately reviewed
+`management-auth-routes.c` slice moves only the setup/login/password handlers;
+all other route families remain in `management.c`. Session authorization and
+CSRF decisions stay in `management-session.c`, which keeps the ADMIN boundary
+independently traceable. No cookie, CSRF value, password, token, or
+Authorization header is logged or documented.
 
 ### Stage 6: shared HTTPS response and bounded form handling
 
@@ -152,12 +173,12 @@ read and decode helpers. It preserves the existing 640-byte body limit, timeout
 and size errors, URL-decoding behavior, and zeroization of the temporary copied
 form body.
 
-`management.c` retains each route handler, route path and method, response
-status selection, authorization and CSRF decision, form-field semantics,
-bearer-token handling, JSON field order, and route registration. Route
-composition remains a distinct later stage because it requires a route-by-route
-acceptance inventory. No password, cookie, CSRF value, token, or Authorization
-header is logged or documented.
+At the shared HTTP-helper boundary, `management.c` retained route path/method,
+authorization/CSRF decisions, bearer-token handling, JSON field order, and
+route registration. Later focused modules may own a whole handler family while
+preserving those endpoint semantics. Route composition remains a distinct later
+stage because it requires a route-by-route acceptance inventory. No password,
+cookie, CSRF value, token, or Authorization header is logged or documented.
 
 ### Stage 7: Wi-Fi active and pending credential persistence
 
