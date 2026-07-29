@@ -16,13 +16,13 @@ work; hardware and LAN state were not checked.**
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `feature/management-certificates-module` |
+| Active branch | `feature/management-credentials-module` |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
-| Branch base | Temporarily stacked on the local `feature/management-status-module` commit, which is stacked on the local logging commit; rebase the reviewed slices onto merged `main` before publishing; live Git is authoritative |
+| Branch base | Temporarily stacked on the local `feature/management-certificates-module` commit, which is stacked on the local status and logging commits; rebase the reviewed slices onto merged `main` before publishing; live Git is authoritative |
 | Remote branch | No upstream is configured for the active feature branch |
-| Implementation state | Logging and read-only status extractions are locally committed; HTTPS certificate/key lifecycle extraction is implemented on this stacked feature branch and target build passed; no factory-reset behavior has been changed |
-| Worktree scope | `management-certificates.c`/`management-certificates.h`, explicit component registration, HTTPS-server caller updates, and modular-refactoring documentation are the active scope |
+| Implementation state | Logging, read-only status, and HTTPS certificate/key lifecycle extractions are locally committed; ADMIN credential lifecycle extraction is implemented on this stacked feature branch and target build passed; no factory-reset behavior has been changed |
+| Worktree scope | `management-credentials.c`/`management-credentials.h`, explicit component registration, HTTPS-route caller updates, and modular-refactoring documentation are the active scope |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
@@ -30,24 +30,26 @@ work; hardware and LAN state were not checked.**
 | Device coordinates | Not checked. Rediscover the IP address and `/dev/cu.usbmodem*` path before hardware work; historical values are not current facts |
 | Authorization | No flash, OTA, factory reset, push, merge, tag, release, or other external action is authorized by this handoff |
 
-## Active slice: HTTPS certificate material
+## Active slice: ADMIN credentials
 
-The active branch moves the self-signed HTTPS certificate/private-key lifecycle
-from `src/management.c` into `management-certificates.c`. The module preserves
-the `management` NVS namespace and the `https-cert`/`https-key` blob keys,
-stored-pair reuse, missing/incomplete-pair regeneration, and private-key
-zeroization. `management.c` remains responsible for HTTPS-server startup,
-routes, ADMIN/session/CSRF boundaries, and factory-reset orchestration.
+The active branch moves ADMIN credential storage, PBKDF2 verification,
+constant-time comparison, and legacy migration detection from
+`src/management.c` into `management-credentials.c`. The module preserves the
+`management` NVS namespace, `admin-cred` current credential, legacy
+`admin-salt`/`admin-hash` compatibility, and zeroization of credential data.
+`management.c` remains responsible for HTTPS routes, form parsing, ADMIN
+sessions, CSRF checks, throttling, migration handling, and factory-reset
+orchestration.
 
 This must not change HTTPS `443`, NUT `3493`, refused `8080`, ADMIN/CSRF,
-token, Wi-Fi, or factory-reset behavior.
+token, certificate, Wi-Fi, or factory-reset behavior.
 
 The staged extraction sequence and later management/Wi-Fi boundaries are in
 [ESP32_REFACTORING_PLAN.md](ESP32_REFACTORING_PLAN.md).
 
-This is temporarily a stacked local branch based on the committed logging and
-status extractions. Review and merge each preceding slice, then rebase this
-branch onto the merged `main` before publishing it.
+This is temporarily a stacked local branch based on the committed logging,
+status, and certificate extractions. Review and merge each preceding slice,
+then rebase this branch onto the merged `main` before publishing it.
 
 ## Factory-reset slice remains separate
 
@@ -99,15 +101,16 @@ must not be presented as current.
 
 ## Exact next action
 
-Review the focused local certificate-extraction commit on
-`feature/management-certificates-module`. The target build with ESP-IDF v6.0.2
+Review the focused local credential-extraction commit on
+`feature/management-credentials-module`. The target build with ESP-IDF v6.0.2
 passed after explicit registration of `management-log.c`,
-`management-status.c`, and `management-certificates.c`; no host test harness is
-configured for this component. Do not publish this stacked branch before the
-preceding slices are reviewed, merged, and rebased onto `main`. After the
-modular slices are reviewed/merged, resume the separate factory-reset
-investigation by tracing every UPS field exposed by the authenticated status
-response back through NUT dstate, runtime caches, and filesystem persistence.
+`management-status.c`, `management-certificates.c`, and
+`management-credentials.c`; no host test harness is configured for this
+component. Do not publish this stacked branch before the preceding slices are
+reviewed, merged, and rebased onto `main`. After the modular slices are
+reviewed/merged, resume the separate factory-reset investigation by tracing
+every UPS field exposed by the authenticated status response back through NUT
+dstate, runtime caches, and filesystem persistence.
 
 ## Read only when needed
 

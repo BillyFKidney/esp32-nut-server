@@ -6,6 +6,7 @@
 FILE(GLOB_RECURSE app_sources ${CMAKE_SOURCE_DIR}/src/*.*)
 list(APPEND app_sources
     ${CMAKE_SOURCE_DIR}/src/management-certificates.c
+    ${CMAKE_SOURCE_DIR}/src/management-credentials.c
     ${CMAKE_SOURCE_DIR}/src/management-log.c
     ${CMAKE_SOURCE_DIR}/src/management-status.c
 )

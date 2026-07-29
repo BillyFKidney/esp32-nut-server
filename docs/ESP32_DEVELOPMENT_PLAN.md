@@ -60,9 +60,12 @@ and hardware snapshots while retaining the authenticated route and JSON
 assembly in `management.c`. The active follow-on branch is
 `feature/management-certificates-module`, which isolates the persisted
 self-signed HTTPS certificate and private-key lifecycle while keeping HTTPS
-startup and routing in `management.c`. Credentials, sessions/CSRF, and Wi-Fi
-recovery remain separate later boundaries because they carry security,
-persistence, or physical-recovery risk.
+startup and routing in `management.c`. The active follow-on branch is
+`feature/management-credentials-module`, which isolates ADMIN credential
+storage, PBKDF2 verification, and legacy migration while retaining routes,
+sessions/CSRF, throttling, and factory-reset orchestration in `management.c`.
+Wi-Fi recovery remains a separate later boundary because it carries
+physical-recovery risk.
 
 ## Target platform
 
