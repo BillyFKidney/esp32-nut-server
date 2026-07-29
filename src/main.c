@@ -14,6 +14,7 @@
 #include "esp_vfs_fat.h"
 #include "esp_task_wdt.h"
 #include "management.h"
+#include "management-log.h"
 #include "ota.h"
 #include "wifi-provisioning.h"
 

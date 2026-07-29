@@ -210,7 +210,11 @@ The `v2.6.0` local OTA-management slice adds an ADMIN-session and CSRF-
 protected **Check firmware** action before installation. The device validates
 the complete local ESP32 image without selecting a boot slot, rejects invalid
 images, and continues to use the existing authenticated install and scoped
-Agent OTA routes. Published `v2.6.0` passed target rollback/persistence
+Agent OTA routes. The current development slice extends a successful check
+response to report the verified image's embedded firmware version when its
+application descriptor is available; the dashboard after reboot remains the
+authoritative confirmation of the version actually installed and running.
+Published `v2.6.0` passed target rollback/persistence
 validation on the `.173` development device; the device never downloads
 firmware from a remote source. Obtain the exact release image and its checksum
 sidecar from the [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0).
@@ -306,13 +310,23 @@ The application uses FreeRTOS tasks:
 src/
 ├── main.c              - ESP32 application entry point
 ├── usb.c               - USB host implementation
-├── wifi.c              - WiFi configuration
+├── management.c        - HTTPS administration orchestration and routes
+├── management-certificates.c - persisted self-signed HTTPS certificate/key lifecycle
+├── management-credentials.c - ADMIN credential storage, verification, and migration
+├── management-http.c   - shared defensive HTTP responses and bounded form handling
+├── management-log.c    - bounded in-memory management/NUT log capture
+├── management-session.c - ADMIN/setup cookies, CSRF, timeout, and login throttling
+├── management-status.c - read-only NUT and hardware status snapshots
+├── wifi.c              - Wi-Fi orchestration and recovery coordination
+├── wifi-credentials.c  - active/pending Wi-Fi NVS credential records
+├── wifi-diagnostics.c  - connection diagnostics and read-only DHCP snapshots
 ├── drivers/
 │   ├── espusb.c        - ESP32 USB driver backend
 │   └── espusb.h        - USB driver header
 └── [other NUT files]   - Standard NUT components
 
 docs/
+├── ESP32_ROUTE_INVENTORY.md - HTTPS route refactoring acceptance baseline
 └── ESP32_SECURITY.md   - Security documentation
 ```
 

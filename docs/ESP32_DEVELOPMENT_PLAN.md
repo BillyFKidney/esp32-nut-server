@@ -44,6 +44,47 @@ for that unstable API.
   locks, local `sdkconfig`, or machine/editor settings.
 - Validate changes on the ESP32-S3 target before considering them complete.
 
+## Current engineering-maintenance track: modular refactoring
+
+The large downstream orchestration units are being reduced through small,
+behavior-preserving extraction branches. The staged boundaries, security
+invariants, and validation rules are recorded in
+[ESP32_REFACTORING_PLAN.md](ESP32_REFACTORING_PLAN.md). This track does not
+consume a release version by itself and must not blur the acceptance boundary
+of the active UPS-state or factory-reset slices.
+
+The first branch is `feature/management-log-module`, which isolates bounded
+in-memory management log capture and status-response serialization. The second
+branch is `feature/management-status-module`, which isolates only read-only NUT
+and hardware snapshots while retaining the authenticated route and JSON
+assembly in `management.c`. The active follow-on branch is
+`feature/management-certificates-module`, which isolates the persisted
+self-signed HTTPS certificate and private-key lifecycle while keeping HTTPS
+startup and routing in `management.c`. The active follow-on branch is
+`feature/management-credentials-module`, which isolates ADMIN credential
+storage, PBKDF2 verification, and legacy migration while retaining routes,
+sessions/CSRF, throttling, and factory-reset orchestration in `management.c`.
+The active follow-on branch is `feature/management-session-module`, which
+isolates ADMIN and setup cookies, CSRF validation, idle expiry, and login
+throttling while retaining routes, response policy, bearer-token checks, and
+factory-reset orchestration in `management.c`. Wi-Fi recovery remains a
+separate later boundary because it carries physical-recovery risk. The active
+follow-on branch is `feature/management-http-module`, which isolates shared
+defensive response headers, HTML/JSON/redirect output mechanics, bounded JSON
+construction, and bounded URL-form parsing while retaining every route,
+authorization decision, field semantic, and response status choice in
+`management.c`. The active follow-on branch is
+`feature/wifi-credentials-module`, which isolates only active and pending
+Wi-Fi record persistence while retaining NVS initialization, connection and
+retry behavior, portal behavior, BOOT recovery, and factory-reset coordination
+in `wifi.c`. The active follow-on branch is
+`feature/wifi-diagnostics-module`, which isolates only the user-facing
+connection diagnostic and read-only DHCP snapshot formatting while retaining
+connection/retry decisions, DHCP startup, portal behavior, BOOT recovery, and
+factory-reset coordination in `wifi.c`. The active documentation follow-on
+branch is `feature/management-route-inventory`, which records the route-level
+acceptance baseline before any handler or registration refactor.
+
 ## Target platform
 
 | Item | Current target |
@@ -122,6 +163,7 @@ proportional build and target-hardware validation.
 | Order | Release target | Branch | Scope and merge boundary |
 | --- | --- | --- | --- |
 | 1–8 | `v2.0.0`–`v2.7.0` | Completed branches | Published slice details and acceptance evidence are archived in the completed-history document linked above. |
+| 8a | `v2.7.1` | `fix/management-request-header-limit` | Compatible recovery patch: raise only the HTTPS management server's bounded request-header limit so browser requests forwarded through the trusted reverse proxy can reach setup and authentication handlers. |
 | 9 | `v2.8.0` | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
 | 10 | `v2.9.0` | `feature/operational-management-acceptance` | Integrate and validate the definition of done from iPhone and MacBook Air, close documentation gaps, and publish the final `v2.x` acceptance release. |
 

@@ -1,9 +1,7 @@
 #include "wifi-provisioning.h"
 
-#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "dns-server.h"
@@ -30,13 +28,10 @@
 #include "nvs_flash.h"
 #include "management.h"
 #include "time_config.h"
-#include "wifi-portal.h"
+#include "wifi-credentials.h"
+#include "wifi-diagnostics.h"
+#include "wifi-provisioning-web.h"
 
-#define WIFI_CONFIG_NAMESPACE "wifi-config"
-#define WIFI_SSID_KEY "ssid"
-#define WIFI_PASSWORD_KEY "password"
-#define WIFI_PENDING_SSID_KEY "pending-ssid"
-#define WIFI_PENDING_PASSWORD_KEY "pending-pass"
 #define WIFI_AP_INTERFACE_KEY "WIFI_AP_DEF"
 #define WIFI_AP_CHANNEL 1
 #define WIFI_AP_MAX_CONNECTIONS 4
@@ -49,8 +44,6 @@
 #define WIFI_RECOVERY_TASK_STACK_SIZE 3072
 #define WIFI_MANAGEMENT_TASK_STACK_SIZE 12288
 #define WIFI_SCAN_RESULT_LIMIT WIFI_MANAGEMENT_SCAN_RESULT_LIMIT
-#define WIFI_REQUEST_BODY_LIMIT 256
-#define WIFI_CONNECTION_DIAGNOSTIC_LENGTH 192
 #define WIFI_BOOT_BUTTON GPIO_NUM_0
 #define WIFI_BOOT_RESET_HOLD_MS 3000
 #define WIFI_BOOT_FACTORY_RESET_HOLD_MS 15000
@@ -61,22 +54,13 @@
 #define WIFI_FAILED_BIT BIT1
 #define WIFI_PORTAL_STARTED_BIT BIT2
 
+_Static_assert(WIFI_CREDENTIALS_SSID_CAPACITY == WIFI_MANAGEMENT_SSID_MAX_LENGTH + 1U,
+               "Wi-Fi credential SSID storage must match the management API limit");
+_Static_assert(WIFI_CREDENTIALS_PASSWORD_CAPACITY ==
+                   WIFI_MANAGEMENT_PASSWORD_MAX_LENGTH + 1U,
+               "Wi-Fi credential password storage must match the management API limit");
+
 static const char *TAG = "nut-wifi";
-
-typedef struct
-{
-    char ssid[33];
-    char password[64];
-} WifiCredentials;
-
-typedef struct
-{
-    struct netif *network_interface;
-    bool available;
-    bool offer_received;
-    uint8_t state;
-    uint8_t tries;
-} WifiDhcpSnapshot;
 
 static EventGroupHandle_t wifi_event_group;
 static esp_netif_t *station_network_interface;
@@ -89,11 +73,16 @@ static bool portal_start_scheduled;
 static bool management_start_scheduled;
 static unsigned int connection_retry_count;
 static bool station_associated;
-static char connection_diagnostic[WIFI_CONNECTION_DIAGNOSTIC_LENGTH];
 static portMUX_TYPE wifi_state_lock = portMUX_INITIALIZER_UNLOCKED;
 static SemaphoreHandle_t wifi_management_scan_lock;
 
 static void wifi_schedule_portal(void);
+static esp_err_t wifi_schedule_restart(void);
+
+static WifiProvisioningWebContext portal_web_context = {
+    .connection_requested = &connection_requested,
+    .schedule_restart = wifi_schedule_restart,
+};
 
 static void wifi_start_management_task(void *argument)
 {
@@ -118,114 +107,6 @@ static void wifi_start_management_task(void *argument)
     vTaskDelete(NULL);
 }
 
-static void wifi_set_connection_diagnostic(const char *message)
-{
-    taskENTER_CRITICAL(&wifi_state_lock);
-    snprintf(connection_diagnostic, sizeof(connection_diagnostic), "%s", message);
-    taskEXIT_CRITICAL(&wifi_state_lock);
-}
-
-static void wifi_get_connection_diagnostic(char *destination, size_t destination_size)
-{
-    taskENTER_CRITICAL(&wifi_state_lock);
-    snprintf(destination, destination_size, "%s", connection_diagnostic);
-    taskEXIT_CRITICAL(&wifi_state_lock);
-}
-
-static const char *wifi_dhcp_state_name(uint8_t state)
-{
-    switch (state)
-    {
-        case DHCP_STATE_REQUESTING:
-            return "REQUESTING";
-        case DHCP_STATE_INIT:
-            return "INIT";
-        case DHCP_STATE_REBOOTING:
-            return "REBOOTING";
-        case DHCP_STATE_REBINDING:
-            return "REBINDING";
-        case DHCP_STATE_RENEWING:
-            return "RENEWING";
-        case DHCP_STATE_SELECTING:
-            return "SELECTING";
-        case DHCP_STATE_INFORMING:
-            return "INFORMING";
-        case DHCP_STATE_CHECKING:
-            return "CHECKING";
-        case DHCP_STATE_BOUND:
-            return "BOUND";
-        case DHCP_STATE_BACKING_OFF:
-            return "BACKING_OFF";
-        case DHCP_STATE_OFF:
-        default:
-            return "OFF";
-    }
-}
-
-static void wifi_capture_dhcp_snapshot_callback(void *argument)
-{
-    WifiDhcpSnapshot *snapshot = argument;
-    const struct dhcp *dhcp = netif_dhcp_data(snapshot->network_interface);
-    if (dhcp == NULL)
-    {
-        return;
-    }
-
-    snapshot->available = true;
-    snapshot->state = dhcp->state;
-    snapshot->tries = dhcp->tries;
-    snapshot->offer_received = !ip4_addr_isany_val(dhcp->offered_ip_addr);
-}
-
-static void wifi_capture_dhcp_diagnostic(void)
-{
-    WifiDhcpSnapshot snapshot = {
-        .network_interface = (struct netif *)esp_netif_get_netif_impl(station_network_interface),
-    };
-    if (snapshot.network_interface == NULL ||
-        tcpip_callback_wait(wifi_capture_dhcp_snapshot_callback, &snapshot) != ERR_OK)
-    {
-        wifi_set_connection_diagnostic("Wi-Fi associated, but the DHCP client state could not be inspected.");
-        return;
-    }
-
-    if (!snapshot.available)
-    {
-        wifi_set_connection_diagnostic("Wi-Fi associated, but the DHCP client was not running.");
-        return;
-    }
-
-    if ((snapshot.state == DHCP_STATE_SELECTING || snapshot.state == DHCP_STATE_BACKING_OFF) &&
-        !snapshot.offer_received)
-    {
-        char message[WIFI_CONNECTION_DIAGNOSTIC_LENGTH];
-        snprintf(message, sizeof(message),
-                 "Wi-Fi associated, but no DHCP offer was received (%s after %u attempts).",
-                 wifi_dhcp_state_name(snapshot.state), snapshot.tries);
-        wifi_set_connection_diagnostic(message);
-        return;
-    }
-
-    if (snapshot.state == DHCP_STATE_REQUESTING && snapshot.offer_received)
-    {
-        wifi_set_connection_diagnostic("A DHCP offer was received, but its lease acknowledgement did not arrive.");
-        return;
-    }
-
-    if (snapshot.state == DHCP_STATE_CHECKING && snapshot.offer_received)
-    {
-        wifi_set_connection_diagnostic("A DHCP acknowledgement was received; the offered address is being checked for a conflict.");
-        return;
-    }
-
-    char message[WIFI_CONNECTION_DIAGNOSTIC_LENGTH];
-    snprintf(message, sizeof(message),
-             "Wi-Fi associated, but DHCP did not complete (state %s, %u attempts, offer %s).",
-             wifi_dhcp_state_name(snapshot.state), snapshot.tries,
-             snapshot.offer_received ? "received" : "not received");
-    wifi_set_connection_diagnostic(message);
-}
-
 static void nvs_initialize(void)
 {
     esp_err_t result = nvs_flash_init();
@@ -235,132 +116,6 @@ static void nvs_initialize(void)
         result = nvs_flash_init();
     }
     ESP_ERROR_CHECK(result);
-}
-
-static bool wifi_credentials_load(WifiCredentials *credentials)
-{
-    nvs_handle_t handle;
-    if (nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READONLY, &handle) != ESP_OK)
-    {
-        return false;
-    }
-
-    size_t ssid_length = sizeof(credentials->ssid);
-    size_t password_length = sizeof(credentials->password);
-    const esp_err_t ssid_result = nvs_get_str(handle, WIFI_SSID_KEY, credentials->ssid, &ssid_length);
-    const esp_err_t password_result = nvs_get_str(handle, WIFI_PASSWORD_KEY, credentials->password, &password_length);
-    nvs_close(handle);
-
-    return ssid_result == ESP_OK && password_result == ESP_OK && credentials->ssid[0] != '\0';
-}
-
-static bool wifi_pending_credentials_load(WifiCredentials *credentials)
-{
-    nvs_handle_t handle;
-    if (nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READONLY, &handle) != ESP_OK)
-    {
-        return false;
-    }
-
-    size_t ssid_length = sizeof(credentials->ssid);
-    size_t password_length = sizeof(credentials->password);
-    const esp_err_t ssid_result = nvs_get_str(handle, WIFI_PENDING_SSID_KEY, credentials->ssid, &ssid_length);
-    const esp_err_t password_result = nvs_get_str(handle, WIFI_PENDING_PASSWORD_KEY, credentials->password, &password_length);
-    nvs_close(handle);
-
-    return ssid_result == ESP_OK && password_result == ESP_OK && credentials->ssid[0] != '\0';
-}
-
-static esp_err_t wifi_credentials_save(const WifiCredentials *credentials)
-{
-    nvs_handle_t handle;
-    esp_err_t result = nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
-    if (result != ESP_OK)
-    {
-        return result;
-    }
-
-    result = nvs_set_str(handle, WIFI_SSID_KEY, credentials->ssid);
-    if (result == ESP_OK)
-    {
-        result = nvs_set_str(handle, WIFI_PASSWORD_KEY, credentials->password);
-    }
-    if (result == ESP_OK)
-    {
-        result = nvs_commit(handle);
-    }
-    nvs_close(handle);
-    return result;
-}
-
-static esp_err_t wifi_pending_credentials_save(const WifiCredentials *credentials)
-{
-    nvs_handle_t handle;
-    esp_err_t result = nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
-    if (result != ESP_OK)
-    {
-        return result;
-    }
-
-    result = nvs_set_str(handle, WIFI_PENDING_SSID_KEY, credentials->ssid);
-    if (result == ESP_OK)
-    {
-        result = nvs_set_str(handle, WIFI_PENDING_PASSWORD_KEY, credentials->password);
-    }
-    if (result == ESP_OK)
-    {
-        result = nvs_commit(handle);
-    }
-    nvs_close(handle);
-    return result;
-}
-
-static esp_err_t wifi_pending_credentials_erase(void)
-{
-    nvs_handle_t handle;
-    esp_err_t result = nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
-    if (result != ESP_OK)
-    {
-        return result;
-    }
-
-    result = nvs_erase_key(handle, WIFI_PENDING_SSID_KEY);
-    if (result == ESP_ERR_NVS_NOT_FOUND)
-    {
-        result = ESP_OK;
-    }
-    if (result == ESP_OK)
-    {
-        result = nvs_erase_key(handle, WIFI_PENDING_PASSWORD_KEY);
-        if (result == ESP_ERR_NVS_NOT_FOUND)
-        {
-            result = ESP_OK;
-        }
-    }
-    if (result == ESP_OK)
-    {
-        result = nvs_commit(handle);
-    }
-    nvs_close(handle);
-    return result;
-}
-
-static esp_err_t wifi_credentials_erase(void)
-{
-    nvs_handle_t handle;
-    esp_err_t result = nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
-    if (result != ESP_OK)
-    {
-        return result;
-    }
-
-    result = nvs_erase_all(handle);
-    if (result == ESP_OK)
-    {
-        result = nvs_commit(handle);
-    }
-    nvs_close(handle);
-    return result;
 }
 
 static void wifi_recovery_task(void *argument)
@@ -568,220 +323,21 @@ static void wifi_event_handler(void *argument, esp_event_base_t event_base,
     ESP_LOGW(TAG, "Wi-Fi is unavailable after %u retries", WIFI_MAXIMUM_RETRIES);
 }
 
-static void http_set_common_headers(httpd_req_t *request)
-{
-    httpd_resp_set_hdr(request, "Cache-Control", "no-store");
-    httpd_resp_set_hdr(request, "X-Content-Type-Options", "nosniff");
-}
-
-static esp_err_t http_send_json(httpd_req_t *request, const char *status,
-                                const char *json)
-{
-    http_set_common_headers(request);
-    httpd_resp_set_status(request, status);
-    httpd_resp_set_type(request, "application/json");
-    return httpd_resp_sendstr(request, json);
-}
-
-static esp_err_t portal_root_handler(httpd_req_t *request)
-{
-    http_set_common_headers(request);
-    httpd_resp_set_hdr(request, "Content-Security-Policy",
-                       "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; form-action 'self'");
-    httpd_resp_set_type(request, "text/html; charset=utf-8");
-    return httpd_resp_send(request, wifi_portal_html, wifi_portal_html_length);
-}
-
-static esp_err_t portal_not_found_handler(httpd_req_t *request, httpd_err_code_t error)
-{
-    (void)error;
-    http_set_common_headers(request);
-    httpd_resp_set_status(request, "303 See Other");
-    httpd_resp_set_hdr(request, "Location", "/");
-    return httpd_resp_sendstr(request, "Continue to ESP32-NUT Wi-Fi setup");
-}
-
-static esp_err_t json_send_escaped_string(httpd_req_t *request, const char *value)
-{
-    if (httpd_resp_send_chunk(request, "\"", 1) != ESP_OK)
-    {
-        return ESP_FAIL;
-    }
-
-    for (const unsigned char *character = (const unsigned char *)value; *character != '\0'; character++)
-    {
-        char encoded[7];
-        const char *chunk = (const char *)character;
-        size_t chunk_length = 1;
-        if (*character == '\\' || *character == '\"')
-        {
-            encoded[0] = '\\';
-            encoded[1] = (char)*character;
-            chunk = encoded;
-            chunk_length = 2;
-        }
-        else if (*character < 0x20)
-        {
-            snprintf(encoded, sizeof(encoded), "\\u%04x", *character);
-            chunk = encoded;
-            chunk_length = 6;
-        }
-
-        if (httpd_resp_send_chunk(request, chunk, chunk_length) != ESP_OK)
-        {
-            return ESP_FAIL;
-        }
-    }
-
-    return httpd_resp_send_chunk(request, "\"", 1);
-}
-
-static esp_err_t portal_networks_handler(httpd_req_t *request)
-{
-    connection_requested = false;
-    esp_wifi_disconnect();
-
-    esp_err_t result = esp_wifi_scan_start(NULL, true);
-    if (result != ESP_OK)
-    {
-        ESP_LOGW(TAG, "Wi-Fi scan failed: %s", esp_err_to_name(result));
-        return http_send_json(request, "503 Service Unavailable", "{\"message\":\"Wi-Fi scan failed\"}");
-    }
-
-    uint16_t access_point_count = 0;
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_scan_get_ap_num(&access_point_count));
-    if (access_point_count > WIFI_SCAN_RESULT_LIMIT)
-    {
-        access_point_count = WIFI_SCAN_RESULT_LIMIT;
-    }
-
-    wifi_ap_record_t *records = calloc(access_point_count, sizeof(*records));
-    if (access_point_count > 0 && records == NULL)
-    {
-        return http_send_json(request, "500 Internal Server Error", "{\"message\":\"Out of memory\"}");
-    }
-
-    uint16_t records_returned = access_point_count;
-    result = esp_wifi_scan_get_ap_records(&records_returned, records);
-    if (result != ESP_OK)
-    {
-        free(records);
-        return http_send_json(request, "503 Service Unavailable", "{\"message\":\"Unable to read scan results\"}");
-    }
-
-    http_set_common_headers(request);
-    httpd_resp_set_type(request, "application/json");
-    httpd_resp_send_chunk(request, "[", 1);
-    unsigned int unique_count = 0;
-    for (uint16_t index = 0; index < records_returned; index++)
-    {
-        char ssid[33] = {0};
-        const size_t ssid_length = strnlen((const char *)records[index].ssid, sizeof(ssid) - 1);
-        if (ssid_length == 0)
-        {
-            continue;
-        }
-        memcpy(ssid, records[index].ssid, ssid_length);
-
-        bool duplicate = false;
-        for (uint16_t previous = 0; previous < index; previous++)
-        {
-            if (strncmp((const char *)records[previous].ssid, ssid, sizeof(records[previous].ssid)) == 0)
-            {
-                duplicate = true;
-                break;
-            }
-        }
-        if (duplicate)
-        {
-            continue;
-        }
-
-        if (unique_count++ > 0)
-        {
-            httpd_resp_send_chunk(request, ",", 1);
-        }
-        if (json_send_escaped_string(request, ssid) != ESP_OK)
-        {
-            free(records);
-            return ESP_FAIL;
-        }
-    }
-    free(records);
-    httpd_resp_send_chunk(request, "]", 1);
-    return httpd_resp_send_chunk(request, NULL, 0);
-}
-
-static esp_err_t portal_status_handler(httpd_req_t *request)
-{
-    char diagnostic[WIFI_CONNECTION_DIAGNOSTIC_LENGTH];
-    wifi_get_connection_diagnostic(diagnostic, sizeof(diagnostic));
-
-    http_set_common_headers(request);
-    httpd_resp_set_type(request, "application/json");
-    if (httpd_resp_send_chunk(request, "{\"message\":", HTTPD_RESP_USE_STRLEN) != ESP_OK ||
-        json_send_escaped_string(request, diagnostic) != ESP_OK ||
-        httpd_resp_send_chunk(request, "}", HTTPD_RESP_USE_STRLEN) != ESP_OK)
-    {
-        return ESP_FAIL;
-    }
-    return httpd_resp_send_chunk(request, NULL, 0);
-}
-
-static int hexadecimal_value(char character)
-{
-    if (character >= '0' && character <= '9')
-    {
-        return character - '0';
-    }
-    character = (char)tolower((unsigned char)character);
-    if (character >= 'a' && character <= 'f')
-    {
-        return character - 'a' + 10;
-    }
-    return -1;
-}
-
-static bool url_decode(char *destination, size_t destination_size, const char *source)
-{
-    size_t output_length = 0;
-    while (*source != '\0')
-    {
-        if (output_length + 1 >= destination_size)
-        {
-            return false;
-        }
-
-        if (*source == '+')
-        {
-            destination[output_length++] = ' ';
-            source++;
-        }
-        else if (*source == '%' && source[1] != '\0' && source[2] != '\0')
-        {
-            const int high = hexadecimal_value(source[1]);
-            const int low = hexadecimal_value(source[2]);
-            if (high < 0 || low < 0)
-            {
-                return false;
-            }
-            destination[output_length++] = (char)((high << 4) | low);
-            source += 3;
-        }
-        else
-        {
-            destination[output_length++] = *source++;
-        }
-    }
-    destination[output_length] = '\0';
-    return true;
-}
-
 static void wifi_restart_task(void *parameter)
 {
     (void)parameter;
     vTaskDelay(pdMS_TO_TICKS(1500));
     esp_restart();
+}
+
+static esp_err_t wifi_schedule_restart(void)
+{
+    if (xTaskCreate(wifi_restart_task, "wifi-restart", WIFI_RESTART_TASK_STACK_SIZE,
+                    NULL, 5, NULL) != pdPASS)
+    {
+        return ESP_ERR_NO_MEM;
+    }
+    return ESP_OK;
 }
 
 esp_err_t wifi_management_scan(WifiManagementScanResults *results)
@@ -958,115 +514,6 @@ esp_err_t wifi_management_stage_credentials(const char *ssid, const char *passwo
     return ESP_OK;
 }
 
-static esp_err_t portal_configure_handler(httpd_req_t *request)
-{
-    if (request->content_len <= 0 || request->content_len >= WIFI_REQUEST_BODY_LIMIT)
-    {
-        return http_send_json(request, "400 Bad Request", "{\"message\":\"Invalid request\"}");
-    }
-
-    char request_body[WIFI_REQUEST_BODY_LIMIT];
-    size_t received = 0;
-    while (received < (size_t)request->content_len)
-    {
-        const int result = httpd_req_recv(request, request_body + received,
-                                          (size_t)request->content_len - received);
-        if (result <= 0)
-        {
-            return http_send_json(request, "400 Bad Request", "{\"message\":\"Incomplete request\"}");
-        }
-        received += (size_t)result;
-    }
-    request_body[received] = '\0';
-
-    char encoded_ssid[97];
-    char encoded_password[190];
-    WifiCredentials credentials = {0};
-    if (httpd_query_key_value(request_body, "ssid", encoded_ssid, sizeof(encoded_ssid)) != ESP_OK ||
-        httpd_query_key_value(request_body, "password", encoded_password, sizeof(encoded_password)) != ESP_OK ||
-        !url_decode(credentials.ssid, sizeof(credentials.ssid), encoded_ssid) ||
-        !url_decode(credentials.password, sizeof(credentials.password), encoded_password))
-    {
-        return http_send_json(request, "400 Bad Request", "{\"message\":\"Invalid network name or password\"}");
-    }
-
-    const size_t ssid_length = strlen(credentials.ssid);
-    const size_t password_length = strlen(credentials.password);
-    if (ssid_length == 0 || ssid_length > 32 ||
-        (password_length > 0 && (password_length < 8 || password_length > 63)))
-    {
-        return http_send_json(request, "400 Bad Request",
-                              "{\"message\":\"Use a 1-32 character network name and an 8-63 character password, or leave the password blank for an open network.\"}");
-    }
-
-    ESP_LOGI(TAG, "Saving pending credentials for Wi-Fi network '%s'", credentials.ssid);
-    const esp_err_t result = wifi_pending_credentials_save(&credentials);
-    if (result != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Unable to save pending Wi-Fi credentials: %s", esp_err_to_name(result));
-        return http_send_json(request, "500 Internal Server Error",
-                              "{\"message\":\"Unable to save Wi-Fi credentials. Try again.\"}");
-    }
-
-    if (xTaskCreate(wifi_restart_task, "wifi-restart", WIFI_RESTART_TASK_STACK_SIZE,
-                    NULL, 5, NULL) != pdPASS)
-    {
-        ESP_LOGE(TAG, "Unable to schedule Wi-Fi validation restart");
-        return http_send_json(request, "500 Internal Server Error",
-                              "{\"message\":\"Unable to restart for Wi-Fi validation. Try again.\"}");
-    }
-
-    return http_send_json(
-        request, "200 OK",
-        "{\"message\":\"Credentials saved. The device will restart and test Wi-Fi without the setup access point. They will be kept for automatic retries if the connection cannot be completed.\"}");
-}
-
-static httpd_handle_t portal_http_start(void)
-{
-    httpd_config_t configuration = HTTPD_DEFAULT_CONFIG();
-    configuration.max_open_sockets = 4;
-    configuration.lru_purge_enable = true;
-
-    httpd_handle_t server = NULL;
-    if (httpd_start(&server, &configuration) != ESP_OK)
-    {
-        return NULL;
-    }
-
-    const httpd_uri_t root = {
-        .uri = "/",
-        .method = HTTP_GET,
-        .handler = portal_root_handler,
-    };
-    const httpd_uri_t networks = {
-        .uri = "/api/networks",
-        .method = HTTP_GET,
-        .handler = portal_networks_handler,
-    };
-    const httpd_uri_t configure = {
-        .uri = "/api/configure",
-        .method = HTTP_POST,
-        .handler = portal_configure_handler,
-    };
-    const httpd_uri_t status = {
-        .uri = "/api/status",
-        .method = HTTP_GET,
-        .handler = portal_status_handler,
-    };
-
-    if (httpd_register_uri_handler(server, &root) != ESP_OK ||
-        httpd_register_uri_handler(server, &networks) != ESP_OK ||
-        httpd_register_uri_handler(server, &configure) != ESP_OK ||
-        httpd_register_uri_handler(server, &status) != ESP_OK ||
-        httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, portal_not_found_handler) != ESP_OK)
-    {
-        httpd_stop(server);
-        return NULL;
-    }
-
-    return server;
-}
-
 static esp_err_t wifi_portal_start(void)
 {
     taskENTER_CRITICAL(&wifi_state_lock);
@@ -1112,7 +559,7 @@ static esp_err_t wifi_portal_start(void)
     ESP_RETURN_ON_ERROR(esp_netif_dhcps_start(access_point_network_interface), TAG,
                         "Unable to restart fallback DHCP server");
 
-    portal_http_server = portal_http_start();
+    portal_http_server = wifi_provisioning_web_start(&portal_web_context);
     ESP_RETURN_ON_FALSE(portal_http_server != NULL, ESP_FAIL, TAG,
                         "Unable to start captive portal web server");
 
@@ -1207,7 +654,7 @@ static bool wifi_connect_with_timeout(const WifiCredentials *credentials,
 
     if (station_associated)
     {
-        wifi_capture_dhcp_diagnostic();
+        wifi_diagnostics_capture_dhcp(station_network_interface);
     }
     else if ((bits & WIFI_FAILED_BIT) == 0)
     {

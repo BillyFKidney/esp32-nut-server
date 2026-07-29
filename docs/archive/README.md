@@ -18,6 +18,7 @@ when a current document links to it or historical evidence is required.
 | [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT_QA_RECORDS.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT_QA_RECORDS.md) | Completed v2.7.0 QA and target-acceptance records |
 | [ESP32_README_CHANGELOG.md](ESP32_README_CHANGELOG.md) | Superseded current-version summary from the detailed downstream README |
 | [AGENT_STARTUP_CONTEXT_AUDIT_2026-07-29.md](AGENT_STARTUP_CONTEXT_AUDIT_2026-07-29.md) | Before/after startup-context measurements for this optimization |
+| [2026-07-29 target candidate smoke validation](2026-07-29-target-candidate-smoke-validation.md) | Browser-OTA, reboot, ADMIN-session, and network-service evidence for the local Wi-Fi-provisioning/header-limit integration candidate |
 
 ## Archive rules
 

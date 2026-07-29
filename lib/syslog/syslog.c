@@ -1,6 +1,6 @@
 #include "syslog.h"
 
-#include "management.h"
+#include "management-log.h"
 
 void closelog (void) {}
 

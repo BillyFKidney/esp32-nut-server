@@ -20,11 +20,13 @@ ordinary startup.
 | Task or question | Read next |
 | --- | --- |
 | Current branch, active scope, next action | [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) |
+| Continuing with a 64k-context agent | [ESP32_64K_AGENT_HANDOFF.md](docs/ESP32_64K_AGENT_HANDOFF.md) |
 | Roadmap, version, or branch boundary | [ESP32_DEVELOPMENT_PLAN.md](docs/ESP32_DEVELOPMENT_PLAN.md) |
 | Locked Operational Management requirement or decision | [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](docs/ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md) |
 | Hardware, LAN, COM, build, flash, OTA, or recovery | [ESP32_PREFLIGHT.md](docs/ESP32_PREFLIGHT.md) |
 | Authority for physical, destructive, GitHub, or external actions | [ESP32_DEVELOPMENT_ROLES.md](docs/ESP32_DEVELOPMENT_ROLES.md) |
 | Security or authorization behavior | [ESP32_SECURITY.md](docs/ESP32_SECURITY.md) |
+| Management/Wi-Fi modular refactoring | [ESP32_REFACTORING_PLAN.md](docs/ESP32_REFACTORING_PLAN.md) |
 | Synology/AdGuard browser access | [ESP32_MANAGEMENT_PROXY.md](docs/ESP32_MANAGEMENT_PROXY.md) |
 | Moving tracked files or changing repository layout | [ESP32_REPOSITORY_LAYOUT.md](docs/ESP32_REPOSITORY_LAYOUT.md) |
 | Detailed downstream port/build notes | [ESP32_README.md](docs/ESP32_README.md) |
@@ -75,6 +77,11 @@ not disposable clutter.
   access or an unavailable tool into a device-failure claim.
 - Preserve behavior outside the active slice, especially ADMIN/CSRF boundaries,
   service ports, read-only UPS access, and rollback/recovery paths.
+- Keep `management.c` and `wifi.c` as orchestration boundaries while extracting
+  one focused concern per branch; do not mix refactoring with behavior changes.
+- Register each new focused `src/*.c` module explicitly in
+  `src/CMakeLists.txt`; the legacy recursive source glob does not notice new
+  files during an incremental ESP-IDF build.
 
 ## Handoff discipline
 
