@@ -210,7 +210,11 @@ The `v2.6.0` local OTA-management slice adds an ADMIN-session and CSRF-
 protected **Check firmware** action before installation. The device validates
 the complete local ESP32 image without selecting a boot slot, rejects invalid
 images, and continues to use the existing authenticated install and scoped
-Agent OTA routes. Published `v2.6.0` passed target rollback/persistence
+Agent OTA routes. The current development slice extends a successful check
+response to report the verified image's embedded firmware version when its
+application descriptor is available; the dashboard after reboot remains the
+authoritative confirmation of the version actually installed and running.
+Published `v2.6.0` passed target rollback/persistence
 validation on the `.173` development device; the device never downloads
 firmware from a remote source. Obtain the exact release image and its checksum
 sidecar from the [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.6.0).

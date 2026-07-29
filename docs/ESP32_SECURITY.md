@@ -91,6 +91,7 @@ time. The route boundaries are:
 | `/api/v1/admin/tokens` | `GET` | ADMIN session | List non-secret token metadata only |
 | `/api/v1/admin/tokens` | `POST` | ADMIN session and CSRF | Create a token and disclose it once |
 | `/api/v1/admin/tokens` | `DELETE` | ADMIN session, CSRF, and acknowledgement | Permanently revoke one token |
+| `/api/v1/ota/check` | `POST` | ADMIN session and CSRF | Validate a local raw ESP-IDF image and return its non-secret embedded identity without selecting it for boot or restarting |
 | `/api/v1/ota/install` | `POST` | ADMIN session and CSRF | Preserve authenticated Safari OTA |
 | `/api/v1/agent/ota/install` | `POST` | Bearer token with `ota.install` | Accept only a raw ESP-IDF application image with `Content-Type: application/octet-stream` for verified OTA installation |
 

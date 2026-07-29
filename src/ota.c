@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "esp_err.h"
+#include "esp_app_desc.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_ota_ops.h"
@@ -19,6 +20,8 @@
 #define OTA_RECEIVE_BUFFER_SIZE 4096
 #define OTA_RECEIVE_TIMEOUT_RETRIES 3
 #define OTA_REBOOT_DELAY_MS 1000
+#define OTA_IMAGE_VERSION_BUFFER_SIZE (sizeof(((esp_app_desc_t *)0)->version) + 1U)
+#define OTA_CHECK_RESPONSE_SIZE 192U
 
 static bool ota_update_in_progress;
 
@@ -94,6 +97,75 @@ static esp_err_t ota_send_error(httpd_req_t *request, const char *status,
     ota_set_response_headers(request);
     httpd_resp_set_status(request, status);
     return httpd_resp_sendstr(request, message);
+}
+
+static void ota_copy_image_version(char *destination, size_t destination_size,
+                                   const esp_app_desc_t *description)
+{
+    if (destination == NULL || destination_size == 0U)
+    {
+        return;
+    }
+
+    size_t destination_index = 0U;
+    if (description != NULL)
+    {
+        for (size_t source_index = 0U;
+             source_index < sizeof(description->version) &&
+             description->version[source_index] != '\0' &&
+             destination_index + 1U < destination_size;
+             source_index++)
+        {
+            const unsigned char character =
+                (unsigned char)description->version[source_index];
+            destination[destination_index++] =
+                character >= 0x20U && character <= 0x7eU && character != '"' &&
+                        character != '\\'
+                    ? (char)character
+                    : '?';
+        }
+    }
+    destination[destination_index] = '\0';
+
+    if (destination_index == 0U)
+    {
+        snprintf(destination, destination_size, "unavailable");
+    }
+}
+
+static esp_err_t ota_send_checked_response(httpd_req_t *request,
+                                           const esp_partition_t *partition)
+{
+    esp_app_desc_t description = {0};
+    char image_version[OTA_IMAGE_VERSION_BUFFER_SIZE] = {0};
+    const esp_err_t description_result =
+        esp_ota_get_partition_description(partition, &description);
+    if (description_result == ESP_OK)
+    {
+        ota_copy_image_version(image_version, sizeof(image_version), &description);
+    }
+    else
+    {
+        snprintf(image_version, sizeof(image_version), "unavailable");
+        ESP_LOGW(TAG, "Unable to read verified image version: %s",
+                 esp_err_to_name(description_result));
+    }
+
+    char response[OTA_CHECK_RESPONSE_SIZE];
+    const int response_length = snprintf(
+        response, sizeof(response),
+        "{\"status\":\"checked\",\"firmware_version\":\"%s\","
+        "\"message\":\"Firmware image verified: %s. It is ready to install.\"}",
+        image_version, image_version);
+    if (response_length < 0 || (size_t)response_length >= sizeof(response))
+    {
+        ESP_LOGE(TAG, "Unable to format firmware-check response");
+        return ota_send_error(request, "500 Internal Server Error",
+                              "{\"status\":\"error\",\"message\":\"Unable to report the verified firmware image.\"}");
+    }
+
+    ota_set_response_headers(request);
+    return httpd_resp_sendstr(request, response);
 }
 
 static void ota_reboot_task(void *parameter)
@@ -221,9 +293,7 @@ static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
 
     if (!install)
     {
-        ota_set_response_headers(request);
-        return httpd_resp_sendstr(
-            request, "{\"status\":\"checked\",\"message\":\"Firmware image verified. It is ready to install.\"}");
+        return ota_send_checked_response(request, update_partition);
     }
 
     ota_record_result("pending");

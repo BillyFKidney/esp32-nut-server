@@ -11,26 +11,40 @@ the former 101 KB status file is preserved in
 
 ## Repository snapshot
 
-**Repository state was rechecked at the start of the management modularization
-work; hardware and LAN state were not checked.**
+**Repository state and development-target smoke evidence were rechecked on
+2026-07-29. This file records only current handoff facts; the complete target
+evidence is preserved in [2026-07-29 target candidate smoke validation](archive/2026-07-29-target-candidate-smoke-validation.md).**
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `feature/wifi-provisioning-web-module` |
+| Active branch | `feature/ota-check-image-identity` |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
-| Branch base | Temporarily stacked on the local route-inventory and Wi-Fi diagnostic commits, which are stacked on the local Wi-Fi credential, HTTP-helper, session, credential, certificate, status, and logging commits; rebase reviewed slices onto merged `main` before publishing; live Git is authoritative |
+| Branch base | Stacked on the local `candidate/wifi-provisioning-web-header-limit` integration candidate, which combines the Wi-Fi provisioning-web extraction and the request-header-limit fix; that candidate remains stacked on the local route-inventory, Wi-Fi diagnostic, Wi-Fi credential, HTTP-helper, session, credential, certificate, status, and logging slices. Rebase reviewed slices onto merged `main` before publishing; live Git is authoritative |
 | Remote branch | No upstream is configured for the active feature branch |
-| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, and route-inventory slices are locally committed and target builds passed. The active worktree isolates the temporary Wi-Fi provisioning web surface; its target build has passed, while target portal acceptance remains pending. No factory-reset behavior has been changed |
-| Worktree scope | `wifi-provisioning-web.c`, its focused public interface, explicit component registration, and modular-refactoring documentation. Temporary portal behavior is moved without intentionally changing routes, credentials, Wi-Fi recovery, HTTPS, or device behavior |
+| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, route-inventory, and temporary Wi-Fi provisioning-web slices are locally committed and target builds passed. The combined candidate was installed through the authenticated browser OTA path and passed reboot/ADMIN-session smoke checks. The active slice reports the embedded version of a checked local image without changing its validation, installation, or reboot behavior |
+| Worktree scope | `src/ota.c`, the Update Firmware panel wording, and concise current/archive documentation. The check response adds a bounded `firmware_version` field and includes the same version in its message only after the existing complete-image validation succeeds |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
 | Required services | LAN-only HTTPS `443`; read-only NUT `3493`; retired unauthenticated `8080` remains refused |
-| Device coordinates | Not checked. Rediscover the IP address and `/dev/cu.usbmodem*` path before hardware work; historical values are not current facts |
-| Authorization | No flash, OTA, factory reset, merge, tag, release, or other external action is authorized by this handoff. Do not publish this refactor branch without a separate request |
+| Device coordinates | **Observed:** the development-console FQDN was used for browser OTA and current DNS resolved it to `192.168.40.10`. Treat that as the management-proxy address; rediscover the direct ESP32 address and any `/dev/cu.usbmodem*` path before direct hardware work |
+| Authorization | The Project Maintainer authorized the completed browser OTA smoke validation of the integration candidate. No additional flash, OTA, factory reset, push, merge, tag, or release is authorized by this handoff |
 
-## Active slice: Wi-Fi provisioning web module
+## Active slice: checked-image identity
+
+`src/ota.c` already writes a complete checked image to the inactive OTA
+partition and calls `esp_ota_end()` before returning the successful check
+response. This slice reads the ESP-IDF application descriptor from that same
+verified partition and reports its bounded, JSON-safe embedded version in the
+ADMIN-and-CSRF-protected response. It does not select the image for boot, alter
+the inactive-slot choice, persist a new result, or schedule a restart.
+
+The user-facing check text will identify the checked image. The dashboard after
+a successful reboot remains the authoritative source for the version currently
+running on the device.
+
+## Stacked prerequisite: Wi-Fi provisioning web module
 
 The active branch moves the temporary captive-portal HTTP handlers, common
 portal response helpers, bounded form decoding, JSON construction, and route
@@ -103,17 +117,16 @@ must not be presented as current.
 
 ## Exact next action
 
-Review the local Wi-Fi provisioning web-module diff on
-`feature/wifi-provisioning-web-module`, then perform temporary-portal target
-acceptance only on a non-production device or during an explicitly approved
-recovery session. The ESP-IDF v6.0.2 target build passed for this module and
-the preceding logging, status, certificate, credential, session, HTTP-helper,
-Wi-Fi credential, Wi-Fi diagnostic, and route-inventory slices; no host test
-harness is configured for this component. Do not publish this stacked branch
-before the preceding slices are reviewed, merged, and rebased onto `main`. The
-separate factory-reset investigation still requires tracing every UPS field
-exposed by the authenticated status response back through NUT dstate, runtime
-caches, and filesystem persistence.
+Build and review `feature/ota-check-image-identity`. With a separate explicit
+OTA authorization, use the configured development board to check a local
+candidate and confirm that the response names the image's embedded version
+before any install is chosen. Temporary-portal target acceptance remains
+separate and requires a non-production device or an explicitly approved
+recovery session. Do not publish this stacked branch before the preceding
+slices are reviewed, merged, and rebased onto `main`. The separate factory-
+reset investigation still requires tracing every UPS field exposed by the
+authenticated status response back through NUT dstate, runtime caches, and
+filesystem persistence.
 
 ## Read only when needed
 
