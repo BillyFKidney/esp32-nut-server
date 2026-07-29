@@ -56,3 +56,14 @@ format error. It did not erase NVS, OTA metadata, or filesystem partitions; the
 board remained reachable and the normal browser OTA path succeeded afterward.
 Use the authenticated OTA path for normal development updates and treat direct
 serial recovery as a separately scoped troubleshooting task.
+
+## Checked-image identity target acceptance
+
+- **Observed (Project Maintainer):** the authenticated Update Firmware page
+  checked a local application image and displayed `Firmware image verified:
+  v2.7.0-23-g0d2776aaf. It is ready to install.`
+- **Observed:** this is the embedded version reported by the checked image,
+  not merely the version currently running before the check.
+- **Not tested in this acceptance:** no install was selected as part of this
+  check-only validation, so this record does not claim a reboot, dashboard
+  update, or running-version change for `v2.7.0-23-g0d2776aaf`.

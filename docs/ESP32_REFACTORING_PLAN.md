@@ -52,6 +52,49 @@ network state; status is read-only; certificate and credential extraction then
 receive dedicated review before session and route composition; Wi-Fi recovery
 is kept separate because it crosses physical input, NVS erasure, and restart.
 
+## Management module inventory (corrected)
+
+The following inventory supersedes shorthand task lists that combined distinct
+responsibilities. "Complete" means the focused source boundary exists and has
+passed its recorded local build; it does not mean every related route has moved
+out of `management.c`.
+
+| Responsibility | Focused module | Current status | Deliberately retained in `management.c` or later work |
+| --- | --- | --- | --- |
+| HTTPS server bootstrap and route registration | None yet; eventual `management-server.c` and/or `management-routes.c` | Planned; the route inventory is complete | HTTPS server configuration, route order, and all 17 registrations |
+| ADMIN credential format, PBKDF2 verification, persistence, legacy migration | `management-credentials.c` | Complete | Setup, login, password-change, and factory-reset route policy |
+| ADMIN cookies, CSRF, idle timeout, and login throttling | `management-session.c` | Complete | Route-level authorization, 401/403/429 response selection, and form handling |
+| TLS certificate/key storage and self-signed material lifecycle | `management-certificates.c` | Complete | HTTPS server startup and route registration |
+| NUT and hardware diagnostic snapshots | `management-status.c` | Complete | Authenticated status-route authorization and final JSON response aggregation |
+| Bounded in-memory management-log capture and status serialization | `management-log.c` | Complete | No separate log API exists or is planned in this extraction |
+| OTA body handling, image verification, descriptor identity, boot selection, and restart coordination | `ota.c` | Complete focused boundary | Management routes retain ADMIN/CSRF/content-type checks and response policy; a separate `management-ota.c` is not currently needed |
+| Common HTTP headers, HTML/JSON/redirect responses, JSON utilities, and bounded form handling | `management-http.c` | Complete | It is not an HTML-template module and does not own route decisions |
+| Setup, login, cooldown, and authenticated administration page rendering | `management-pages.c` | Implemented on `feature/management-pages-module`; ESP-IDF v6.0.2 build passed; target behavior not yet tested for this refactor | ADMIN/session/CSRF decisions, route handlers, and response policy |
+| Setup/login/password route handlers | Future `management-auth-routes.c` only if still beneficial after pages move | Planned | Current behavior remains in `management.c` until a small, separately reviewed slice |
+| Wi-Fi, token, and time route handlers | Future focused route modules only where a cohesive boundary remains | Planned | Current behavior remains in `management.c` until separately reviewed |
+| Final route composition | `management-routes.c` and/or `management-server.c` | Planned after route acceptance matrix | Preserve route order, headers, authorization, and endpoint semantics exactly |
+
+The next completed page-rendering extraction will reduce `management.c` without
+moving security decisions. It is intentionally safer than extracting setup or
+login routes immediately after the request-header-limit recovery work.
+
+### Current management page-rendering slice
+
+`management-pages.c` owns only the existing setup, login, login-cooldown, and
+authenticated administration HTML/JavaScript rendering. The page module is
+passed the request and a caller-provided CSRF value; it does not inspect or
+mutate credentials, sessions, cookies, API tokens, NVS, Wi-Fi state, or route
+registration.
+
+`management.c` continues to own first-run setup-session creation, ADMIN
+authorization, login-throttle decisions, CSRF copying and zeroization, all
+route handlers, and every success/error response policy. The original
+page-template payloads were moved byte-for-byte by source comparison, apart
+from the renamed private page-buffer constant. The resulting ESP-IDF v6.0.2
+build passed. A target browser check for this refactor remains separate and
+requires explicit authorization; no firmware installation is implied by the
+local build.
+
 ### Stage 3: HTTPS certificate material
 
 `management-certificates.c` exclusively owns the persisted self-signed HTTPS

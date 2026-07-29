@@ -17,21 +17,21 @@ evidence is preserved in [2026-07-29 target candidate smoke validation](archive/
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `feature/ota-check-image-identity` |
+| Active branch | `feature/management-pages-module` |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
-| Branch base | Stacked on the local `candidate/wifi-provisioning-web-header-limit` integration candidate, which combines the Wi-Fi provisioning-web extraction and the request-header-limit fix; that candidate remains stacked on the local route-inventory, Wi-Fi diagnostic, Wi-Fi credential, HTTP-helper, session, credential, certificate, status, and logging slices. Rebase reviewed slices onto merged `main` before publishing; live Git is authoritative |
+| Branch base | Stacked on the local `feature/ota-check-image-identity` slice, which is itself stacked on the local `candidate/wifi-provisioning-web-header-limit` integration candidate. That candidate combines the Wi-Fi provisioning-web extraction and the request-header-limit fix, and remains stacked on the local route-inventory, Wi-Fi diagnostic, Wi-Fi credential, HTTP-helper, session, credential, certificate, status, and logging slices. Rebase reviewed slices onto merged `main` before publishing; live Git is authoritative |
 | Remote branch | No upstream is configured for the active feature branch |
-| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, route-inventory, and temporary Wi-Fi provisioning-web slices are locally committed and target builds passed. The combined candidate was installed through the authenticated browser OTA path and passed reboot/ADMIN-session smoke checks. The active slice reports the embedded version of a checked local image without changing its validation, installation, or reboot behavior |
-| Worktree scope | `src/ota.c`, the Update Firmware panel wording, and concise current/archive documentation. The check response adds a bounded `firmware_version` field and includes the same version in its message only after the existing complete-image validation succeeds |
+| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, route-inventory, and temporary Wi-Fi provisioning-web slices are locally committed and target builds passed. The checked-image identity behavior has target acceptance: the authenticated Update Firmware page reported the checked local image as `v2.7.0-23-g0d2776aaf`. The management-page rendering slice now builds locally; target behavior remains untested for this refactor |
+| Worktree scope | Setup, login, cooldown, and authenticated administration-page rendering have moved from `src/management.c` into a focused `src/management-pages.c` module. Authorization, CSRF decisions, route behavior, and HTTP response policy remain in `management.c` |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
 | Required services | LAN-only HTTPS `443`; read-only NUT `3493`; retired unauthenticated `8080` remains refused |
 | Device coordinates | **Observed:** the development-console FQDN was used for browser OTA and current DNS resolved it to `192.168.40.10`. Treat that as the management-proxy address; rediscover the direct ESP32 address and any `/dev/cu.usbmodem*` path before direct hardware work |
-| Authorization | The Project Maintainer authorized the completed browser OTA smoke validation of the integration candidate. No additional flash, OTA, factory reset, push, merge, tag, or release is authorized by this handoff |
+| Authorization | The Project Maintainer completed the checked-image identity browser test. No additional flash, OTA installation, factory reset, push, merge, tag, or release is authorized by this handoff |
 
-## Active slice: checked-image identity
+## Recent target acceptance: checked-image identity
 
 `src/ota.c` already writes a complete checked image to the inactive OTA
 partition and calls `esp_ota_end()` before returning the successful check
@@ -40,9 +40,31 @@ verified partition and reports its bounded, JSON-safe embedded version in the
 ADMIN-and-CSRF-protected response. It does not select the image for boot, alter
 the inactive-slot choice, persist a new result, or schedule a restart.
 
-The user-facing check text will identify the checked image. The dashboard after
-a successful reboot remains the authoritative source for the version currently
-running on the device.
+**Observed (Project Maintainer):** the authenticated Update Firmware page
+reported `Firmware image verified: v2.7.0-23-g0d2776aaf. It is ready to
+install.` after checking a local image. This confirms the checked-image
+response identifies its embedded version before installation.
+
+**Not tested in this check:** the image was not installed during this specific
+validation, so it does not add reboot or running-dashboard evidence. The
+dashboard after a successful reboot remains the authoritative source for the
+version currently running on the device.
+
+## Active slice: management page rendering
+
+`src/management.c` previously owned both security/route decisions and the
+embedded setup, login, cooldown, and authenticated administration HTML/JS.
+This slice moves only the rendering boundary into `management-pages.c`.
+`management.c` will retain setup-session creation, ADMIN authorization,
+throttle decisions, CSRF copying/zeroization, all route handlers, and response
+policy. The page module receives only the request and a supplied CSRF value;
+it must not read or mutate credentials, sessions, cookies, tokens, or NVS.
+
+The resulting local ESP-IDF v6.0.2 build passes. Source comparison confirms the
+setup, login, cooldown, and authenticated HTML/JavaScript moved byte-for-byte
+except for the private page-buffer symbol. This is deliberately before route
+composition: page markup is a cohesive non-routing boundary, while route
+extraction still requires the recorded route-by-route acceptance matrix.
 
 ## Stacked prerequisite: Wi-Fi provisioning web module
 
@@ -117,14 +139,15 @@ must not be presented as current.
 
 ## Exact next action
 
-Build and review `feature/ota-check-image-identity`. With a separate explicit
-OTA authorization, use the configured development board to check a local
-candidate and confirm that the response names the image's embedded version
-before any install is chosen. Temporary-portal target acceptance remains
-separate and requires a non-production device or an explicitly approved
-recovery session. Do not publish this stacked branch before the preceding
-slices are reviewed, merged, and rebased onto `main`. The separate factory-
-reset investigation still requires tracing every UPS field exposed by the
+Review and commit `feature/management-pages-module`. Keep target validation
+separate until an explicit non-install browser test or a later OTA authorization
+is provided. The recommended next extraction is a separate feature branch for
+one focused route family, beginning with a source-level boundary review rather
+than moving all route registrations at once. Temporary-portal target acceptance
+remains separate and requires a non-production device or an explicitly approved
+recovery session. Do not publish this stacked branch before the preceding slices
+are reviewed, merged, and rebased onto `main`. The separate factory-reset
+investigation still requires tracing every UPS field exposed by the
 authenticated status response back through NUT dstate, runtime caches, and
 filesystem persistence.
 
