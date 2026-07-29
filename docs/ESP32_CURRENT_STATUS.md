@@ -11,18 +11,18 @@ the former 101 KB status file is preserved in
 
 ## Repository snapshot
 
-**Observed from the local repository on 2026-07-29; hardware and LAN state were
-not checked during this documentation-only session.**
+**Repository state was rechecked after the 2026-07-29 documentation merge;
+hardware and LAN state were not checked during this documentation-only work.**
 
 | Field | Current fact |
 | --- | --- |
 | Active branch | `feature/factory-reset-clears-state` |
 | Release target | `v2.7.1` |
-| HEAD | `850a77d424` (`v2.7.0-3-g850a77d42`) |
-| Branch base | Local `main`, `origin/main`, and this branch point to the same commit; divergence is `0/0` |
+| HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
+| Branch base | Keep the active feature branch fast-forwarded to current `main` and `origin/main` before implementation; live Git is authoritative |
 | Remote branch | No upstream is configured for the active feature branch |
 | Implementation state | No firmware implementation commit exists on this branch yet |
-| Worktree scope | Documentation startup optimization is complete but uncommitted; no source or build input has been changed by this work |
+| Worktree scope | The startup-context optimization is merged; no firmware source or build input was changed by that work |
 | Published baseline | `v2.7.0`; `main` contains three documentation commits after the tag |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
@@ -98,7 +98,7 @@ factory-reset implementation.
 | Repository file ownership or moves | [ESP32_REPOSITORY_LAYOUT.md](ESP32_REPOSITORY_LAYOUT.md) |
 | Completed releases and old device evidence | [Archive index](archive/README.md) |
 
-Update this file only when the branch, HEAD, worktree, implementation state,
+Update this file only when the branch, base, worktree, implementation state,
 validation evidence, authorization state, or exact next action changes. Keep
 procedures in preflight, roadmap detail in the development plan, decisions in
 the milestone/security documents, and historical evidence in the archive.

@@ -7,8 +7,8 @@ the project history.
 ## Fast start
 
 1. Read [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md).
-2. Run `git status --short --branch` and confirm that the file's branch, HEAD,
-   and worktree claims are still current.
+2. Run `git status --short --branch`, resolve the live HEAD, and confirm that
+   the file's branch, base, and worktree claims are still current.
 3. Read only the task-specific document selected from the routing table below.
 
 Stop there unless the task requires another reference. Do **not** preload the
@@ -79,7 +79,7 @@ not disposable clutter.
 ## Handoff discipline
 
 Keep [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) lightweight. Update
-it only with current branch/HEAD/worktree facts, implementation and validation
+it only with current branch/base/worktree facts, implementation and validation
 state, authorization or blockers, and one exact next action. Put reusable
 procedures in preflight, roadmap scope in the development plan, decisions in
 the milestone/security documents, and completed evidence in `docs/archive/`.
