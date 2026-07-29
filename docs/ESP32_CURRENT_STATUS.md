@@ -19,13 +19,13 @@ packet for a context-limited agent.**
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `docs/64k-agent-handoff` (documentation preparation branch) |
+| Active branch | `main` |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
-| Branch base | Documentation branch based on the canonical local code base `feature/management-auth-routes` at `fffbf96a3`; rebase reviewed code slices onto merged `main` before publishing; live Git is authoritative |
-| Remote branch | No upstream is configured for the active feature branch |
+| Branch base | `main` now contains the merged refactoring stack and 64k-agent handoff from PR #33 at `22f4cbe6`; live Git is authoritative |
+| Remote branch | `origin/main` is the canonical remote baseline |
 | Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, route-inventory, temporary Wi-Fi provisioning-web, page-rendering, and ADMIN-route slices are locally committed and target builds passed. The Project Maintainer installed `v2.7.0-25-gfffbf96a3`; authenticated dashboard smoke evidence showed Wi-Fi connected, NUT health `ok`, and UPS status `OL` |
-| Worktree scope | This documentation branch adds the compact 64k-agent continuation packet. The canonical code base retains page rendering and setup/login/password handlers in focused modules; server startup, route paths/methods/order, authorization helpers, logout, status response assembly, token routes, time, OTA, Wi-Fi management routes, and factory-reset coordination remain to be handled in separate slices |
+| Worktree scope | `main` contains the compact 64k-agent continuation packet and the completed local refactoring stack. Page rendering and setup/login/password handlers are focused modules; server startup, route paths/methods/order, authorization helpers, logout, status response assembly, token routes, time, OTA, Wi-Fi management routes, and factory-reset coordination remain to be handled in separate slices |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
@@ -162,13 +162,12 @@ must not be presented as current.
 ## Exact next action
 
 Use [ESP32_64K_AGENT_HANDOFF.md](ESP32_64K_AGENT_HANDOFF.md), create
-`feature/management-authorization-module` from `fffbf96a3`, and extract only the
+`feature/management-authorization-module` from `main`, and extract only the
 four shared authorization helpers. Build and review that slice locally. Do not
-publish this documentation branch or the code branch before the preceding
-slices are reviewed, merged, and rebased onto `main`. The separate factory-reset
-investigation still requires tracing every UPS field exposed by the
-authenticated status response back through NUT dstate, runtime caches, and
-filesystem persistence.
+publish the code branch before the preceding slices are reviewed and the branch
+is based on current `main`. The separate factory-reset investigation still
+requires tracing every UPS field exposed by the authenticated status response
+back through NUT dstate, runtime caches, and filesystem persistence.
 
 ## Read only when needed
 

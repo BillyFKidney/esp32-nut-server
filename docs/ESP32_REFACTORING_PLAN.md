@@ -71,7 +71,7 @@ out of `management.c`.
 | Common HTTP headers, HTML/JSON/redirect responses, JSON utilities, and bounded form handling | `management-http.c` | Complete | It is not an HTML-template module and does not own route decisions |
 | Setup, login, cooldown, and authenticated administration page rendering | `management-pages.c` | Implemented on `feature/management-pages-module`; ESP-IDF v6.0.2 build passed; target behavior not yet tested for this refactor | Root-page ADMIN/session/CSRF decisions remain in `management.c`; the page module does not own route handlers or policy |
 | Setup/login/password route handlers | `management-auth-routes.c` | Implemented on `feature/management-auth-routes`; ESP-IDF v6.0.2 build passed; development-device smoke test passed after installation | Root-page authorization, logout, server startup, route order, and all non-auth routes remain in `management.c` |
-| Shared authorization helpers | `management-authorization.c` | Next planned slice from `fffbf96a3` | Preserve session gates, bearer scope, unauthorized responses, header zeroization, and activity semantics exactly |
+| Shared authorization helpers | `management-authorization.c` | Next planned slice from current `main` | Preserve session gates, bearer scope, unauthorized responses, header zeroization, and activity semantics exactly |
 | Session, time, status, token, OTA, and Wi-Fi route handlers | Separate focused route modules | Planned | Extract one route family per branch after source and target acceptance review |
 | Final route composition | `management-routes.c` and/or `management-server.c` | Planned after route acceptance matrix | Preserve route order, headers, authorization, and endpoint semantics exactly |
 
@@ -303,9 +303,9 @@ changed. The module does not log credentials.
 
 The compact [ESP32_64K_AGENT_HANDOFF.md](ESP32_64K_AGENT_HANDOFF.md) is the
 preferred startup packet for a context-limited agent. The canonical continuation
-base is the locally installed development-device commit `fffbf96a3` on
-`feature/management-auth-routes`; the older `feature/management-route-inventory`
-checkout is an ancestor and is not the next code base by default.
+base is current `main`, which now contains the merged refactoring stack and
+handoff from PR #33. The older `feature/management-route-inventory` checkout is
+an ancestor and is not the next code base by default.
 
 The next code slice is intentionally narrow: move the four shared authorization
 helpers from `management.c` into `management-authorization.c`. Do not combine

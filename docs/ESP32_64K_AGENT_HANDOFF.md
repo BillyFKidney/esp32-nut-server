@@ -22,8 +22,9 @@ preload `docs/archive/`.
 ## Canonical continuation state
 
 - Repository: `BillyFKidney/esp32-nut-server`
-- Canonical code base: `feature/management-auth-routes`
-- Canonical code HEAD: `fffbf96a3` (`refactor: isolate management auth routes`)
+- Canonical code base: `main`
+- Canonical code HEAD: resolve from live Git; PR #33 merged the refactoring
+  stack and handoff into `main` at `22f4cbe6`
 - Development device firmware observed after installation:
   `v2.7.0-25-gfffbf96a3`
 - Board: YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8
@@ -33,9 +34,8 @@ preload `docs/archive/`.
 - Required services: LAN-only HTTPS `443`, read-only NUT `3493`, refused `8080`
 
 The local `feature/management-route-inventory` checkout is an earlier ancestor
-of the canonical code base. Do not use it as the starting point for the next
-management extraction unless the branch relationship is intentionally changed
-and recorded first.
+of the refactoring stack now present in `main`. Start the next management
+extraction from the live `main` branch.
 
 ## Observed device smoke evidence
 
@@ -70,7 +70,7 @@ boundaries already exist:
 
 ## Next code slice
 
-Create a new code branch from `fffbf96a3`:
+Create a new code branch from `main`:
 
 ```text
 feature/management-authorization-module
