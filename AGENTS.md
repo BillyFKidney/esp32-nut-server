@@ -78,6 +78,9 @@ not disposable clutter.
   service ports, read-only UPS access, and rollback/recovery paths.
 - Keep `management.c` and `wifi.c` as orchestration boundaries while extracting
   one focused concern per branch; do not mix refactoring with behavior changes.
+- Register each new focused `src/*.c` module explicitly in
+  `src/CMakeLists.txt`; the legacy recursive source glob does not notice new
+  files during an incremental ESP-IDF build.
 
 ## Handoff discipline
 

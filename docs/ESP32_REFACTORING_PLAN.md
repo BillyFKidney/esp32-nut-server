@@ -35,8 +35,8 @@ and dependency locks remain untracked.
 
 | Stage | Boundary | Status | Acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | `management-log.c` — bounded ESP-IDF/NUT log capture and status-response log serialization | Implemented on `feature/management-log-module`; review pending | ESP-IDF v6.0.2 target build passes; public callers use `management-log.h`; status JSON and log behavior are unchanged by inspection; no host test harness is configured for this component |
-| 2 | `management-status.c` — NUT and hardware diagnostic snapshots | Planned | Authenticated `/api/v1/status` response is byte/field-equivalent for unchanged inputs; stale/unavailable semantics remain explicit |
+| 1 | `management-log.c` — bounded ESP-IDF/NUT log capture and status-response log serialization | Locally committed on `feature/management-log-module`; review pending | ESP-IDF v6.0.2 target build passes; public callers use `management-log.h`; status JSON and log behavior are unchanged by inspection; no host test harness is configured for this component |
+| 2 | `management-status.c` — NUT and hardware diagnostic snapshots | Implemented on `feature/management-status-module`; review pending | ESP-IDF v6.0.2 target build passes; NUT dstate and hardware diagnostics moved behind `management-status.h`; authenticated route, session check, and response fields remain in `management.c` |
 | 3 | `management-certificates.c` — certificate/key loading, generation, and NVS persistence | Planned | HTTPS 443 starts with the same stored material; missing/incomplete blobs still regenerate; private key handling remains zeroized |
 | 4 | `management-credentials.c` — ADMIN credential storage, PBKDF2 verification, and legacy migration | Planned | Setup, login, password change, migration, and factory-reset credential erasure retain current outcomes |
 | 5 | `management-session.c` — session cookies, setup cookies, idle timeout, CSRF, and login throttling | Planned | Existing ADMIN/CSRF and timeout behavior remains unchanged; no token or password disclosure |
@@ -62,18 +62,37 @@ The first slice moves the following private state and behavior out of
 
 The dedicated interface is [include/management-log.h](../include/management-log.h).
 The existing callers are `src/main.c`, `lib/syslog/syslog.c`, and the
-authenticated management status handler. The ESP-IDF source component already
-discovers `src/*.c` through its existing CMake source glob, so no parallel
-source list was introduced. The component registration was rechecked by the
-build after CMake reconfiguration.
+authenticated management status handler. Focused modules are listed explicitly
+in `src/CMakeLists.txt` because ESP-IDF does not reconfigure the legacy source
+glob when a new file appears during an incremental build. The component
+registration was rechecked by the target build.
 
 No route, response field, log capacity, timestamp format, or persistence
 behavior is intentionally changed.
 
+## Current slice: management status module
+
+The second slice moves only read-only state collection out of
+`src/management.c`:
+
+- normalized NUT dstate reads, including stale/unavailable handling and
+  manufacturer/model/serial fallback;
+- board profile, module profile, flash, PSRAM, heap, and optional chip
+  temperature diagnostics;
+- idempotent hardware-diagnostic initialization used before HTTPS startup and
+  by the authenticated status route.
+
+The route's session check, HTTP response helper, JSON field order, response
+size limit, and error response remain in `src/management.c`. This keeps the
+ADMIN boundary unchanged while making the runtime data sources independently
+traceable for the factory-reset investigation.
+
 ## Branch and validation rules
 
 - Start each stage from the latest `main` unless a documented dependency is
-  required and explicitly recorded.
+  required and explicitly recorded. `feature/management-status-module` is
+  temporarily stacked on the local Stage 1 logging commit; rebase it onto the
+  merged Stage 1 `main` before publishing or opening its pull request.
 - Use one branch and pull request per stage; do not combine logging, status,
   authentication, certificates, and Wi-Fi recovery in one change.
 - Run `git diff --check` and inspect the complete diff before building.
@@ -87,7 +106,8 @@ behavior is intentionally changed.
 
 ## Next extractions
 
-After Stage 1 is reviewed and merged, the recommended next slice is
-`management-status.c`. It has a read-only boundary and will make the
-factory-reset and UPS-state work easier to trace without moving credentials,
-certificate material, or session authorization in the same change.
+After Stage 2 is reviewed and merged, the recommended next slice is
+`management-certificates.c`. It remains deliberately separate because missing
+or incomplete certificate blobs must retain their current regeneration and
+private-key handling behavior. The later factory-reset slice can then trace
+UPS-state retention without mixing certificate, credential, or session changes.

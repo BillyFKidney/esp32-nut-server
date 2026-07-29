@@ -308,6 +308,7 @@ src/
 ├── usb.c               - USB host implementation
 ├── management.c        - HTTPS administration orchestration and routes
 ├── management-log.c    - bounded in-memory management/NUT log capture
+├── management-status.c - read-only NUT and hardware status snapshots
 ├── wifi.c              - Wi-Fi orchestration and recovery coordination
 ├── drivers/
 │   ├── espusb.c        - ESP32 USB driver backend

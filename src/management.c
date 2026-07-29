@@ -1,31 +1,25 @@
 #include "management.h"
 #include "management-log.h"
+#include "management-status.h"
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdarg.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #include "api_tokens.h"
-#include "driver/temperature_sensor.h"
-#include "drivers/dstate.h"
 #include "esp_app_desc.h"
-#include "esp_chip_info.h"
 #include "esp_check.h"
 #include "esp_err.h"
-#include "esp_flash.h"
-#include "esp_heap_caps.h"
 #include "esp_https_server.h"
 #include "esp_log.h"
 #include "esp_mac.h"
 #include "esp_netif.h"
 #include "esp_ota_ops.h"
 #include "esp_random.h"
-#include "esp_system.h"
 #include "esp_timer.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
@@ -36,7 +30,6 @@
 #include "nvs.h"
 #include "ota.h"
 #include "psa/crypto.h"
-#include "sdkconfig.h"
 #include "time_config.h"
 #include "wifi-provisioning.h"
 
@@ -68,48 +61,11 @@
 #define MANAGEMENT_ADMIN_PAGE_SIZE 36000
 #define MANAGEMENT_STATUS_RESPONSE_SIZE 7000
 #define MANAGEMENT_WIFI_SCAN_RESPONSE_SIZE 4200
-#define MANAGEMENT_NUT_VALUE_LENGTH 96
 #define MANAGEMENT_HTTPS_ROUTE_CAPACITY 17
 #define MANAGEMENT_CERTIFICATE_BUFFER_SIZE 2048
 #define MANAGEMENT_PRIVATE_KEY_BUFFER_SIZE 1024
 #define MANAGEMENT_LOGIN_MAX_FAILURES 5
 #define MANAGEMENT_LOGIN_COOLDOWN_US (60LL * 1000000LL)
-#define MANAGEMENT_BOARD_PROFILE "YD-ESP32-23"
-#define MANAGEMENT_MODULE_PROFILE "ESP32-S3-WROOM-1-N16R8"
-
-#if CONFIG_ESPTOOLPY_FLASHSIZE_1MB
-#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (1U * 1024U * 1024U)
-#elif CONFIG_ESPTOOLPY_FLASHSIZE_2MB
-#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (2U * 1024U * 1024U)
-#elif CONFIG_ESPTOOLPY_FLASHSIZE_4MB
-#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (4U * 1024U * 1024U)
-#elif CONFIG_ESPTOOLPY_FLASHSIZE_8MB
-#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (8U * 1024U * 1024U)
-#elif CONFIG_ESPTOOLPY_FLASHSIZE_16MB
-#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (16U * 1024U * 1024U)
-#elif CONFIG_ESPTOOLPY_FLASHSIZE_32MB
-#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (32U * 1024U * 1024U)
-#elif CONFIG_ESPTOOLPY_FLASHSIZE_64MB
-#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (64U * 1024U * 1024U)
-#elif CONFIG_ESPTOOLPY_FLASHSIZE_128MB
-#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES (128U * 1024U * 1024U)
-#else
-#define MANAGEMENT_COMPILED_FLASH_SIZE_BYTES 0U
-#endif
-
-#if CONFIG_SPIRAM_MODE_OCT
-#define MANAGEMENT_PSRAM_MODE "octal"
-#elif CONFIG_SPIRAM_MODE_QUAD
-#define MANAGEMENT_PSRAM_MODE "quad"
-#else
-#define MANAGEMENT_PSRAM_MODE "unavailable"
-#endif
-
-#if CONFIG_SPIRAM
-#define MANAGEMENT_PSRAM_SPEED_MHZ CONFIG_SPIRAM_SPEED
-#else
-#define MANAGEMENT_PSRAM_SPEED_MHZ 0
-#endif
 
 _Static_assert(sizeof(MANAGEMENT_NAMESPACE) <= NVS_NS_NAME_MAX_SIZE,
                "Management NVS namespace exceeds the ESP-IDF limit");
@@ -152,8 +108,6 @@ static portMUX_TYPE management_session_lock = portMUX_INITIALIZER_UNLOCKED;
 static portMUX_TYPE management_login_lock = portMUX_INITIALIZER_UNLOCKED;
 static unsigned int management_login_failures;
 static int64_t management_login_cooldown_until_us;
-
-extern const char *upsname;
 
 static void management_set_response_headers(httpd_req_t *request)
 {
@@ -326,215 +280,6 @@ static bool management_json_append_string(char *destination, size_t destination_
         }
     }
     return management_json_append(destination, destination_size, used, "\"");
-}
-
-typedef struct
-{
-    bool available;
-    bool stale;
-    char ups_name[32];
-    char manufacturer[MANAGEMENT_NUT_VALUE_LENGTH];
-    char model[MANAGEMENT_NUT_VALUE_LENGTH];
-    char serial[MANAGEMENT_NUT_VALUE_LENGTH];
-    char status[MANAGEMENT_NUT_VALUE_LENGTH];
-    char battery_type[MANAGEMENT_NUT_VALUE_LENGTH];
-    char battery_mfr_date[MANAGEMENT_NUT_VALUE_LENGTH];
-    char ups_temperature[MANAGEMENT_NUT_VALUE_LENGTH];
-    char battery_charge[MANAGEMENT_NUT_VALUE_LENGTH];
-    char battery_runtime[MANAGEMENT_NUT_VALUE_LENGTH];
-    char battery_voltage[MANAGEMENT_NUT_VALUE_LENGTH];
-    char load[MANAGEMENT_NUT_VALUE_LENGTH];
-    char input_voltage[MANAGEMENT_NUT_VALUE_LENGTH];
-    char output_voltage[MANAGEMENT_NUT_VALUE_LENGTH];
-    char ups_power[MANAGEMENT_NUT_VALUE_LENGTH];
-    char ups_realpower[MANAGEMENT_NUT_VALUE_LENGTH];
-    char ups_firmware[MANAGEMENT_NUT_VALUE_LENGTH];
-} ManagementNutSnapshot;
-
-static void management_copy_nut_value(const char *name, char *destination,
-                                      size_t destination_size)
-{
-    const char *value = dstate_getinfo(name);
-    if (value == NULL || *value == '\0')
-    {
-        snprintf(destination, destination_size, "unavailable");
-        return;
-    }
-    snprintf(destination, destination_size, "%s", value);
-}
-
-static void management_collect_nut_snapshot(ManagementNutSnapshot *snapshot)
-{
-    memset(snapshot, 0, sizeof(*snapshot));
-    snapshot->stale = dstate_is_stale() != 0;
-    const char *status = dstate_getinfo("ups.status");
-    snapshot->available = status != NULL && !snapshot->stale;
-    snprintf(snapshot->ups_name, sizeof(snapshot->ups_name), "%s",
-             upsname != NULL && *upsname != '\0' ? upsname : "cyberpower");
-    management_copy_nut_value("device.mfr", snapshot->manufacturer,
-                              sizeof(snapshot->manufacturer));
-    if (strcmp(snapshot->manufacturer, "unavailable") == 0)
-    {
-        management_copy_nut_value("ups.mfr", snapshot->manufacturer,
-                                  sizeof(snapshot->manufacturer));
-    }
-    management_copy_nut_value("device.model", snapshot->model,
-                              sizeof(snapshot->model));
-    if (strcmp(snapshot->model, "unavailable") == 0)
-    {
-        management_copy_nut_value("ups.model", snapshot->model,
-                                  sizeof(snapshot->model));
-    }
-    management_copy_nut_value("device.serial", snapshot->serial,
-                              sizeof(snapshot->serial));
-    if (strcmp(snapshot->serial, "unavailable") == 0)
-    {
-        management_copy_nut_value("ups.serial", snapshot->serial,
-                                  sizeof(snapshot->serial));
-    }
-    management_copy_nut_value("ups.status", snapshot->status,
-                              sizeof(snapshot->status));
-    management_copy_nut_value("battery.type", snapshot->battery_type,
-                              sizeof(snapshot->battery_type));
-    management_copy_nut_value("battery.mfr.date", snapshot->battery_mfr_date,
-                              sizeof(snapshot->battery_mfr_date));
-    management_copy_nut_value("ups.temperature", snapshot->ups_temperature,
-                              sizeof(snapshot->ups_temperature));
-    management_copy_nut_value("battery.charge", snapshot->battery_charge,
-                              sizeof(snapshot->battery_charge));
-    management_copy_nut_value("battery.runtime", snapshot->battery_runtime,
-                              sizeof(snapshot->battery_runtime));
-    management_copy_nut_value("battery.voltage", snapshot->battery_voltage,
-                              sizeof(snapshot->battery_voltage));
-    management_copy_nut_value("ups.load", snapshot->load,
-                              sizeof(snapshot->load));
-    management_copy_nut_value("input.voltage", snapshot->input_voltage,
-                              sizeof(snapshot->input_voltage));
-    management_copy_nut_value("output.voltage", snapshot->output_voltage,
-                              sizeof(snapshot->output_voltage));
-    management_copy_nut_value("ups.power", snapshot->ups_power,
-                              sizeof(snapshot->ups_power));
-    management_copy_nut_value("ups.realpower", snapshot->ups_realpower,
-                              sizeof(snapshot->ups_realpower));
-    management_copy_nut_value("ups.firmware", snapshot->ups_firmware,
-                              sizeof(snapshot->ups_firmware));
-}
-
-typedef struct
-{
-    esp_chip_info_t chip;
-    uint32_t flash_size_bytes;
-    size_t psram_size_bytes;
-    size_t free_internal_heap_bytes;
-    size_t free_psram_bytes;
-    uint32_t minimum_free_heap_bytes;
-    bool chip_temperature_available;
-    float chip_temperature_celsius;
-} ManagementHardwareSnapshot;
-
-static bool management_hardware_initialized;
-static uint32_t management_flash_size_bytes;
-static temperature_sensor_handle_t management_temperature_sensor;
-
-static const char *management_chip_model_name(esp_chip_model_t model)
-{
-    switch (model)
-    {
-    case CHIP_ESP32:
-        return "ESP32";
-    case CHIP_ESP32S2:
-        return "ESP32-S2";
-    case CHIP_ESP32S3:
-        return "ESP32-S3";
-    case CHIP_ESP32C2:
-        return "ESP32-C2";
-    case CHIP_ESP32C3:
-        return "ESP32-C3";
-    case CHIP_ESP32C5:
-        return "ESP32-C5";
-    case CHIP_ESP32C6:
-        return "ESP32-C6";
-    case CHIP_ESP32H2:
-        return "ESP32-H2";
-    case CHIP_ESP32P4:
-        return "ESP32-P4";
-    case CHIP_ESP32C61:
-        return "ESP32-C61";
-    case CHIP_ESP32H21:
-        return "ESP32-H21";
-    case CHIP_ESP32H4:
-        return "ESP32-H4";
-    default:
-        return "unknown";
-    }
-}
-
-static void management_initialize_hardware_diagnostics(void)
-{
-    if (management_hardware_initialized)
-    {
-        return;
-    }
-    management_hardware_initialized = true;
-
-    uint32_t detected_flash_size = 0;
-    if (esp_flash_get_physical_size(NULL, &detected_flash_size) == ESP_OK)
-    {
-        management_flash_size_bytes = detected_flash_size;
-    }
-    else
-    {
-        management_flash_size_bytes = MANAGEMENT_COMPILED_FLASH_SIZE_BYTES;
-        ESP_LOGW(TAG, "Unable to detect physical flash size; using configured size");
-    }
-
-    const temperature_sensor_config_t temperature_configuration =
-        TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
-    esp_err_t result = temperature_sensor_install(&temperature_configuration,
-                                                  &management_temperature_sensor);
-    if (result != ESP_OK)
-    {
-        management_temperature_sensor = NULL;
-        ESP_LOGW(TAG, "Internal chip temperature is unavailable: %s",
-                 esp_err_to_name(result));
-        return;
-    }
-
-    result = temperature_sensor_enable(management_temperature_sensor);
-    if (result != ESP_OK)
-    {
-        ESP_LOGW(TAG, "Unable to enable internal chip temperature: %s",
-                 esp_err_to_name(result));
-        temperature_sensor_uninstall(management_temperature_sensor);
-        management_temperature_sensor = NULL;
-    }
-}
-
-static void management_collect_hardware_snapshot(ManagementHardwareSnapshot *snapshot)
-{
-    memset(snapshot, 0, sizeof(*snapshot));
-    esp_chip_info(&snapshot->chip);
-    snapshot->flash_size_bytes = management_flash_size_bytes != 0
-                                     ? management_flash_size_bytes
-                                     : MANAGEMENT_COMPILED_FLASH_SIZE_BYTES;
-    snapshot->psram_size_bytes = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
-    snapshot->free_internal_heap_bytes =
-        heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-    snapshot->free_psram_bytes =
-        heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    snapshot->minimum_free_heap_bytes = esp_get_minimum_free_heap_size();
-
-    if (management_temperature_sensor != NULL)
-    {
-        float temperature_celsius = 0.0f;
-        if (temperature_sensor_get_celsius(management_temperature_sensor,
-                                            &temperature_celsius) == ESP_OK &&
-            isfinite(temperature_celsius))
-        {
-            snapshot->chip_temperature_available = true;
-            snapshot->chip_temperature_celsius = temperature_celsius;
-        }
-    }
 }
 
 static esp_err_t management_open_nvs(nvs_open_mode_t mode, nvs_handle_t *handle)
@@ -1957,11 +1702,11 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     const uint32_t session_remaining_seconds = management_session_remaining_seconds();
     const bool session_warning = session_remaining_seconds > 0 &&
                                  session_remaining_seconds <= MANAGEMENT_SESSION_WARNING_SECONDS;
-    ManagementNutSnapshot nut_snapshot;
-    management_collect_nut_snapshot(&nut_snapshot);
-    management_initialize_hardware_diagnostics();
-    ManagementHardwareSnapshot hardware_snapshot;
-    management_collect_hardware_snapshot(&hardware_snapshot);
+    ManagementStatusNutSnapshot nut_snapshot;
+    management_status_collect_nut_snapshot(&nut_snapshot);
+    management_status_initialize_hardware_diagnostics();
+    ManagementStatusHardwareSnapshot hardware_snapshot;
+    management_status_collect_hardware_snapshot(&hardware_snapshot);
     char last_update_result[32] = {0};
     if (ota_get_last_result(last_update_result, sizeof(last_update_result)) != ESP_OK)
     {
@@ -2032,7 +1777,7 @@ static esp_err_t management_status_handler(httpd_req_t *request)
                            MANAGEMENT_SESSION_IDLE_SECONDS,
                            session_remaining_seconds,
                            session_warning ? "true" : "false");
-    MANAGEMENT_JSON_STRING(management_chip_model_name(hardware_snapshot.chip.model));
+    MANAGEMENT_JSON_STRING(management_status_chip_model_name(hardware_snapshot.chip.model));
     MANAGEMENT_JSON_APPEND(",\"revision\":%u,\"cores\":%u,\"features\":{",
                            (unsigned int)hardware_snapshot.chip.revision,
                            (unsigned int)hardware_snapshot.chip.cores);
@@ -2046,23 +1791,23 @@ static esp_err_t management_status_handler(httpd_req_t *request)
                            (hardware_snapshot.chip.features & CHIP_FEATURE_IEEE802154) != 0 ? "true" : "false",
                            (hardware_snapshot.chip.features & CHIP_FEATURE_EMB_PSRAM) != 0 ? "true" : "false");
     MANAGEMENT_JSON_APPEND("\"board\":{\"profile\":");
-    MANAGEMENT_JSON_STRING(MANAGEMENT_BOARD_PROFILE);
+    MANAGEMENT_JSON_STRING(hardware_snapshot.board_profile);
     MANAGEMENT_JSON_APPEND(",\"module\":");
-    MANAGEMENT_JSON_STRING(MANAGEMENT_MODULE_PROFILE);
+    MANAGEMENT_JSON_STRING(hardware_snapshot.module_profile);
     MANAGEMENT_JSON_APPEND("},\"flash\":{\"size_bytes\":%lu,\"mode\":",
                            (unsigned long)hardware_snapshot.flash_size_bytes);
-    MANAGEMENT_JSON_STRING(CONFIG_ESPTOOLPY_FLASHMODE);
+    MANAGEMENT_JSON_STRING(hardware_snapshot.flash_mode);
     MANAGEMENT_JSON_APPEND(",\"frequency\":");
-    MANAGEMENT_JSON_STRING(CONFIG_ESPTOOLPY_FLASHFREQ);
+    MANAGEMENT_JSON_STRING(hardware_snapshot.flash_frequency);
     MANAGEMENT_JSON_APPEND("},\"psram\":{\"available\":%s,\"size_bytes\":%lu,\"mode\":",
                            hardware_snapshot.psram_size_bytes > 0 ? "true" : "false",
                            (unsigned long)hardware_snapshot.psram_size_bytes);
-    MANAGEMENT_JSON_STRING(MANAGEMENT_PSRAM_MODE);
+    MANAGEMENT_JSON_STRING(hardware_snapshot.psram_mode);
     MANAGEMENT_JSON_APPEND(",\"frequency_mhz\":%d},\"memory\":{"
                            "\"free_internal_bytes\":%lu,\"free_psram_bytes\":%lu,"
                            "\"minimum_free_bytes\":%lu},\"chip_temperature\":{"
                            "\"available\":%s,\"celsius\":",
-                           MANAGEMENT_PSRAM_SPEED_MHZ,
+                           hardware_snapshot.psram_frequency_mhz,
                            (unsigned long)hardware_snapshot.free_internal_heap_bytes,
                            (unsigned long)hardware_snapshot.free_psram_bytes,
                            (unsigned long)hardware_snapshot.minimum_free_heap_bytes,
@@ -2556,7 +2301,7 @@ esp_err_t management_server_start(void)
         return ESP_OK;
     }
 
-    management_initialize_hardware_diagnostics();
+    management_status_initialize_hardware_diagnostics();
 
     ESP_RETURN_ON_ERROR(management_load_or_create_certificate(), TAG,
                         "Unable to prepare HTTPS certificate");

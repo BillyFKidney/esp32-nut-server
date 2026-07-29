@@ -1,8 +1,14 @@
 # This file was automatically generated for projects
 # without default 'CMakeLists.txt' file.
 
-# Focused ESP32 modules under src/ are included by this component source glob.
+# Keep focused modules explicit because ESP-IDF does not reconfigure a legacy
+# recursive source glob when a new file is added during an incremental build.
 FILE(GLOB_RECURSE app_sources ${CMAKE_SOURCE_DIR}/src/*.*)
+list(APPEND app_sources
+    ${CMAKE_SOURCE_DIR}/src/management-log.c
+    ${CMAKE_SOURCE_DIR}/src/management-status.c
+)
+list(REMOVE_DUPLICATES app_sources)
 
 idf_component_register(
     SRCS ${app_sources} ../lib/af_unix_socket/af_unix_socket.c ../lib/syslog/syslog.c
