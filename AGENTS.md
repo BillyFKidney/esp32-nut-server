@@ -1,123 +1,91 @@
 # ESP32-NUT agent instructions
 
-These instructions apply to the whole repository.
+These repository-wide instructions are a routing page and safety boundary. They
+are intentionally short so a new agent can begin useful work without loading
+the project history.
 
-## Repository identity
+## Fast start
 
-This is a downstream ESP32-S3 port built on the upstream Network UPS Tools
-(NUT) repository. The root retains project entry points, build inputs, legal
-metadata, repository-wide tooling, and compatibility files; application
-procedures and retained upstream narrative documents live under `docs/`.
-See `docs/ESP32_REPOSITORY_LAYOUT.md` before moving tracked files.
+1. Read [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md).
+2. Run `git status --short --branch` and confirm that the file's branch, HEAD,
+   and worktree claims are still current.
+3. Read only the task-specific document selected from the routing table below.
 
-Do not relocate tracked upstream files merely to reduce the number of entries
-shown in an editor. Before moving any tracked file, identify all build and
-documentation references and obtain Project Maintainer approval.
+Stop there unless the task requires another reference. Do **not** preload the
+development plan, milestone Q&A, roles, preflight, or `docs/archive/` during an
+ordinary startup.
 
-## Start here
+## Task routing
 
-The application-facing landing pages are the root `README.md` and
-`README.adoc`; the former is Markdown and the latter is the AsciiDoc
-companion. The repository layout policy is in
-`docs/ESP32_REPOSITORY_LAYOUT.md`. For the current Synology/AdGuard management
-path, use `docs/ESP32_MANAGEMENT_PROXY.md`.
+| Task or question | Read next |
+| --- | --- |
+| Current branch, active scope, next action | [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) |
+| Roadmap, version, or branch boundary | [ESP32_DEVELOPMENT_PLAN.md](docs/ESP32_DEVELOPMENT_PLAN.md) |
+| Locked Operational Management requirement or decision | [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](docs/ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md) |
+| Hardware, LAN, COM, build, flash, OTA, or recovery | [ESP32_PREFLIGHT.md](docs/ESP32_PREFLIGHT.md) |
+| Authority for physical, destructive, GitHub, or external actions | [ESP32_DEVELOPMENT_ROLES.md](docs/ESP32_DEVELOPMENT_ROLES.md) |
+| Security or authorization behavior | [ESP32_SECURITY.md](docs/ESP32_SECURITY.md) |
+| Synology/AdGuard browser access | [ESP32_MANAGEMENT_PROXY.md](docs/ESP32_MANAGEMENT_PROXY.md) |
+| Moving tracked files or changing repository layout | [ESP32_REPOSITORY_LAYOUT.md](docs/ESP32_REPOSITORY_LAYOUT.md) |
+| Detailed downstream port/build notes | [ESP32_README.md](docs/ESP32_README.md) |
+| Historical releases, validation, or superseded guidance | [docs/archive/README.md](docs/archive/README.md) |
 
-Before hardware or implementation work, read:
+The root [README.md](README.md) is the application landing page. The repository
+is a downstream ESP32-S3 port built on the upstream Network UPS Tools source
+and architecture; inherited source, build, legal, and compatibility files are
+not disposable clutter.
 
-1. `docs/ESP32_CURRENT_STATUS.md`
-2. `docs/ESP32_DEVELOPMENT_ROLES.md`
-3. `docs/ESP32_PREFLIGHT.md`
-4. The active milestone document linked from current status
+## Non-negotiable guardrails
 
-Use the role names **Device Operator**, **Project Maintainer**, and **Codex
-Agent**. Uppercase `ADMIN` and `USER` refer only to ESP32-NUT product accounts.
-
-## Working-tree safety
-
-- Treat all existing modifications and untracked files as user-owned until
-  their provenance is established.
-- Use `git status --short --branch`, `git ls-files`, and `git check-ignore`
-  before classifying a file as orphaned, redundant, or generated.
-- Never delete files during cleanup work unless the Project Maintainer
-  explicitly authorizes deletion.
-- Do not use destructive Git commands to discard work.
-- Keep generated ESP-IDF outputs untracked: `build/`, `managed_components/`,
-  `dependencies.lock`, and local `sdkconfig` files.
-- Keep large serial captures and other reproducible diagnostics under
-  `cleanup/artifacts/`; summarize decisive evidence in current status.
-
-## Cleanup policy
-
-Use `cleanup/` only for inactive material:
-
-- `cleanup/artifacts/`: diagnostic captures retained outside normal Git status
-- `cleanup/review/orphan/`: material with no identified active purpose
-- `cleanup/review/redundant/`: duplicate material retained for review
-- `cleanup/delete_recommended/outdated/`: material reviewed as obsolete but not
-  deleted
-
-Preserve a moved item's relative path when practical. Update
-`cleanup/README.md` with the reason, source, destination, date, and whether the
-classification was observed or inferred. Do not move active source,
-configuration, build inputs, or documentation into `cleanup/`.
-
-## ESP32 implementation guardrails
-
+- Treat existing modifications and untracked files as user-owned until their
+  provenance is established. Never discard work with destructive Git commands.
+- Do not delete during cleanup unless the Project Maintainer explicitly
+  authorizes deletion. Preserve inactive material according to
+  [cleanup/README.md](cleanup/README.md).
+- Before moving tracked files, follow the repository-layout policy and obtain
+  Project Maintainer approval. Update every build and documentation reference.
+- Keep generated ESP-IDF state untracked: `build/`, `managed_components/`,
+  `dependencies.lock`, local `sdkconfig`, and machine/editor settings.
 - Target YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8 with ESP-IDF v6.0.2.
-- Keep the existing NUT daemon and driver architecture.
-- UPS access remains read-only until a separate safety review authorizes
-  control operations.
-- Do not restore the unauthenticated development OTA listener on TCP port 8080.
-- Operational management is LAN-only HTTPS on TCP port 443; NUT remains
-  read-only on TCP port 3493.
+- Keep the existing NUT daemon and driver architecture. UPS access remains
+  read-only until a separately reviewed safety model authorizes controls.
+- Preserve LAN-only HTTPS `443`, read-only NUT `3493`, and refusal of the
+  retired unauthenticated `8080` service.
 - Do not perform expensive certificate or HTTPS startup work in the ESP-IDF
-  system event task. Commit `0fcd9e1f9` moved that work after a `sys_evt` stack
-  overflow.
-- Validate changes on the target ESP32-S3 in proportion to their risk before
-  calling them complete.
+  system event task; commit `0fcd9e1f9` records the prior `sys_evt` overflow.
+- Never record passwords, Wi-Fi credentials, cookies, API tokens, private keys,
+  or Authorization headers in source, tracked documentation, logs, or chat.
+- Do not retire a service, remove Agent/operator capability, or transfer a
+  recurring workflow to a human without explicit Project Maintainer approval
+  covering impact, replacement, validation, and rollback.
+- Flashing, OTA, physical reset/recovery, pushing, merging, tagging, releasing,
+  or other external/destructive actions require authority in the roles file and
+  the current user request. Documentation or implementation work alone does not
+  imply that authority.
 
-## Service and workflow continuity
+## Working method
 
-- Do not retire, disable, remove, or make inaccessible any service without
-  explicit Project Maintainer approval that names the service. A security
-  recommendation is not authorization to perform the retirement.
-- Before a change materially alters how the Project Maintainer, Device Operator,
-  or Codex Agent performs development or operations, describe the before/after
-  workflow, lost capabilities, replacement path, new human responsibilities,
-  and rollback plan. Obtain explicit Project Maintainer approval before making
-  the change.
-- Treat loss of Agent access, independent deployment/update capability, or
-  automation—and transfer of a recurring task from the Agent to a human—as a
-  severe workflow change requiring that approval.
-- Sequence replacements before retirements whenever practical. Validate the
-  replacement workflow before removing the previous path unless the Project
-  Maintainer explicitly approves a security-driven emergency cutoff.
+- Keep each branch to one coherent, reviewable acceptance boundary.
+- Prefer network evidence and rediscover current IP/USB coordinates; historical
+  addresses and `/dev/cu.usbmodem*` suffixes are evidence, not current facts.
+- Use one serial-monitor owner. Follow the preflight before touching hardware.
+- Build with the installed ESP-IDF v6.0.2 environment and validate changes on
+  the ESP32-S3 target in proportion to risk before calling them complete.
+- Distinguish **observed**, **inferred**, and **not tested**. Do not turn missing
+  access or an unavailable tool into a device-failure claim.
+- Preserve behavior outside the active slice, especially ADMIN/CSRF boundaries,
+  service ports, read-only UPS access, and rollback/recovery paths.
 
-## Build and hardware workflow
+## Handoff discipline
 
-Use the installed ESP-IDF environment:
+Keep [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) lightweight. Update
+it only with current branch/HEAD/worktree facts, implementation and validation
+state, authorization or blockers, and one exact next action. Put reusable
+procedures in preflight, roadmap scope in the development plan, decisions in
+the milestone/security documents, and completed evidence in `docs/archive/`.
+Archives are reference material and are not part of normal agent startup.
 
-```bash
-. /Users/billyfkidney/.espressif/v6.0.2/esp-idf/export.sh
-idf.py build
-```
-
-Discover `/dev/cu.usbmodem*` at the start of each session. Never hard-code a
-previous USB suffix. Use network checks before claiming the serial port, keep
-only one serial-monitor owner, exit ESP-IDF Monitor with `Ctrl-]`, and verify
-port release with `lsof`.
-
-Flashing, OTA installation, physical recovery, pushing, releasing, or other
-external/destructive actions require the authority described in
-`docs/ESP32_DEVELOPMENT_ROLES.md` and the current user request.
-
-## Documentation and handoff
-
-- Keep `docs/ESP32_CURRENT_STATUS.md` factual and current when repository,
-  firmware, hardware, validation, or next-action state changes.
-- Keep reusable procedures in `docs/ESP32_PREFLIGHT.md`, not in current status.
-- Mark claims as **observed**, **inferred**, or **not tested** where ambiguity
-  matters.
-- Record one exact next action at session end.
-- Never record passwords, Wi-Fi credentials, session cookies, API tokens,
-  private keys, or other secrets in tracked files or chat.
+At session end, report the active branch, HEAD, worktree and remote divergence,
+what changed, validation performed, what was not tested, and the exact next
+action. Do not push, merge, tag, OTA, flash, or release unless explicitly
+requested.

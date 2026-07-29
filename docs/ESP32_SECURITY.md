@@ -100,9 +100,9 @@ is non-expiring until ADMIN deletes it or the fifteen-second physical factory
 reset erases the management NVS namespace. Token issue time is display metadata
 and never an authorization or expiration input.
 
-#### Planned v2.5.0 Wi-Fi management and console tabs
+#### Current Wi-Fi management and console tabs
 
-The planned `v2.5.0` Wi-Fi-management slice adds two narrowly scoped
+The Wi-Fi-management implementation adds two narrowly scoped
 ADMIN-session routes: one for bounded supported-network scanning and one for
 credential staging or reconnect. API tokens and Bearer authentication will not
 authorize either route. State-changing Wi-Fi requests will retain the existing
