@@ -44,7 +44,7 @@ and dependency locks remain untracked.
 | 7 | `wifi-credentials.c` — active/pending credential persistence | Implemented on `feature/wifi-credentials-module`; review pending | ESP-IDF v6.0.2 target build passes; the four `wifi-config` keys, pending-record erase, full namespace erase, and caller zeroization remain unchanged by code-path inspection; connection and reset behavior remain in `wifi.c` |
 | 8 | `wifi-diagnostics.c` — connection diagnostic and read-only DHCP snapshots | Implemented on `feature/wifi-diagnostics-module`; review pending | ESP-IDF v6.0.2 target build passes; message text and DHCP state checks remain unchanged by code-path inspection; retries, timeouts, portal behavior, and recovery remain in `wifi.c` |
 | 9 | `wifi-recovery.c` — BOOT hold thresholds and restart orchestration | Planned | Three-second Wi-Fi reset and fifteen-second factory reset retain exact thresholds and recovery boundary |
-| 10 | `management-routes.c` — route composition after route-by-route behavior inventory | Planned | Paths, methods, status codes, authorization checks, response payload semantics, and registration order remain unchanged |
+| 10 | `management-routes.c` — route composition after route-by-route behavior inventory | Inventory recorded on `feature/management-route-inventory`; code extraction planned | [ESP32_ROUTE_INVENTORY.md](ESP32_ROUTE_INVENTORY.md) records all 17 routes and source-level guards; paths, methods, status codes, authorization checks, response payload semantics, and registration order remain unchanged |
 
 The order is intentionally conservative: logging has no security decision or
 network state; status is read-only; certificate and credential extraction then
@@ -143,6 +143,15 @@ timeout decisions, portal status response composition, connection setup, and
 physical recovery. The diagnostic module must not call `esp_wifi_connect`,
 `esp_wifi_disconnect`, `esp_restart`, or alter event-group state.
 
+### Stage 10: route-composition inventory
+
+[ESP32_ROUTE_INVENTORY.md](ESP32_ROUTE_INVENTORY.md) records the 17 existing
+HTTPS route registrations in their current order, together with source-level
+authorization and CSRF guards. It is documentation only: no handler,
+registration, header, response, or device behavior has been moved. A future
+`management-routes.c` extraction must first complete its target-side acceptance
+matrix and preserve the inventory exactly.
+
 ## Current slice: management log module
 
 The first slice moves the following private state and behavior out of
@@ -183,11 +192,11 @@ traceable for the factory-reset investigation.
 ## Branch and validation rules
 
 - Start each stage from the latest `main` unless a documented dependency is
-  required and explicitly recorded. `feature/wifi-diagnostics-module` is
-  temporarily stacked on the local Stage 7 credential commit, which is itself
-  stacked on the local HTTP-helper, session, credential, certificate, status,
-  and logging commits. Rebase each slice onto the applicable merged `main`
-  before publishing or opening its pull request.
+  required and explicitly recorded. `feature/management-route-inventory` is
+  temporarily stacked on the local Stage 8 diagnostic commit, which is itself
+  stacked on the local Wi-Fi credential, HTTP-helper, session, credential,
+  certificate, status, and logging commits. Rebase each slice onto the
+  applicable merged `main` before publishing or opening its pull request.
 - Use one branch and pull request per stage; do not combine logging, status,
   authentication, certificates, and Wi-Fi recovery in one change.
 - Run `git diff --check` and inspect the complete diff before building.
@@ -201,11 +210,10 @@ traceable for the factory-reset investigation.
 
 ## Next extractions
 
-After Stage 8 is reviewed and merged, do not extract `wifi-recovery.c` until a
+The route inventory is now recorded. Do not extract `wifi-recovery.c` until a
 target-side recovery test plan is approved: it owns physical BOOT input,
-credential erasure, management reset, and restart. The safer next code-mapping
-task is a route-by-route inventory for `management-routes.c`. Any route
-composition slice must leave paths, methods, status codes, authorization calls,
-response payload semantics, and registration order unchanged. The later
-factory-reset slice can then trace UPS-state retention without mixing
-certificate, credential, session, response-helper, or Wi-Fi state changes.
+credential erasure, management reset, and restart. Before a
+`management-routes.c` extraction, execute the route inventory's target-side
+acceptance matrix. The later factory-reset slice can then trace UPS-state
+retention without mixing certificate, credential, session, response-helper, or
+Wi-Fi state changes.

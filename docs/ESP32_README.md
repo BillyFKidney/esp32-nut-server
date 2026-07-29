@@ -322,6 +322,7 @@ src/
 └── [other NUT files]   - Standard NUT components
 
 docs/
+├── ESP32_ROUTE_INVENTORY.md - HTTPS route refactoring acceptance baseline
 └── ESP32_SECURITY.md   - Security documentation
 ```
 

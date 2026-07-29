@@ -16,13 +16,13 @@ work; hardware and LAN state were not checked.**
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `feature/wifi-diagnostics-module` |
+| Active branch | `feature/management-route-inventory` |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
-| Branch base | Temporarily stacked on the local `feature/wifi-credentials-module` commit, which is stacked on the local HTTP-helper, session, credential, certificate, status, and logging commits; rebase the reviewed slices onto merged `main` before publishing; live Git is authoritative |
+| Branch base | Temporarily stacked on the local `feature/wifi-diagnostics-module` commit, which is stacked on the local Wi-Fi credential, HTTP-helper, session, credential, certificate, status, and logging commits; rebase the reviewed slices onto merged `main` before publishing; live Git is authoritative |
 | Remote branch | No upstream is configured for the active feature branch |
-| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, and Wi-Fi credential extractions are locally committed; Wi-Fi diagnostics and read-only DHCP snapshot extraction is implemented on this stacked feature branch and target build passed; no factory-reset behavior has been changed |
-| Worktree scope | `wifi-diagnostics.c`/`wifi-diagnostics.h`, explicit component registration, Wi-Fi caller updates, and modular-refactoring documentation are the active scope |
+| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, and Wi-Fi diagnostic extractions are locally committed and target builds passed; route-composition inventory documentation is the active scope; no factory-reset behavior has been changed |
+| Worktree scope | `ESP32_ROUTE_INVENTORY.md` and modular-refactoring documentation only; no route or device behavior is changed |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
@@ -30,15 +30,13 @@ work; hardware and LAN state were not checked.**
 | Device coordinates | Not checked. Rediscover the IP address and `/dev/cu.usbmodem*` path before hardware work; historical values are not current facts |
 | Authorization | No flash, OTA, factory reset, push, merge, tag, release, or other external action is authorized by this handoff |
 
-## Active slice: Wi-Fi diagnostics and read-only DHCP snapshots
+## Active slice: route-composition inventory only
 
-The active branch moves the user-facing connection diagnostic, its locking, and
-the existing read-only DHCP snapshot formatting from `src/wifi.c` into
-`wifi-diagnostics.c`. It preserves the message strings and DHCP state checks;
-the station interface is passed explicitly instead of read from a module-global
-variable. `wifi.c` remains responsible for connection/retry decisions, DHCP
-startup, portal behavior, BOOT hold thresholds, restart orchestration, and
-factory-reset coordination.
+The active branch records the existing HTTPS route registration order, method,
+path, and source-level authorization/CSRF boundary in
+[ESP32_ROUTE_INVENTORY.md](ESP32_ROUTE_INVENTORY.md). It makes no source-code,
+route, NVS, Wi-Fi, HTTPS, or device-behavior change. Future route composition
+must use this inventory as its acceptance baseline.
 
 This must not change HTTPS `443`, NUT `3493`, refused `8080`, ADMIN/CSRF,
 token, certificate, Wi-Fi, or factory-reset behavior.
@@ -47,9 +45,9 @@ The staged extraction sequence and later management/Wi-Fi boundaries are in
 [ESP32_REFACTORING_PLAN.md](ESP32_REFACTORING_PLAN.md).
 
 This is temporarily a stacked local branch based on the committed logging,
-status, certificate, credential, session, HTTP-helper, and Wi-Fi credential
-extractions. Review and merge each preceding slice, then rebase this branch
-onto the merged `main` before publishing it.
+status, certificate, credential, session, HTTP-helper, Wi-Fi credential, and
+Wi-Fi diagnostic extractions. Review and merge each preceding slice, then
+rebase this branch onto the merged `main` before publishing it.
 
 ## Factory-reset slice remains separate
 
@@ -101,17 +99,16 @@ must not be presented as current.
 
 ## Exact next action
 
-Review the focused local Wi-Fi diagnostic-extraction commit on
-`feature/wifi-diagnostics-module`. The target build with ESP-IDF v6.0.2
-passed after explicit registration of `management-log.c`,
-`management-status.c`, `management-certificates.c`,
-`management-credentials.c`, `management-session.c`, and `management-http.c`;
-and `wifi-credentials.c` and `wifi-diagnostics.c`; no host test harness is
-configured for this component. Do not publish this stacked branch before the
-preceding slices are reviewed, merged, and rebased onto `main`. After the
-modular slices are reviewed/merged, resume the separate factory-reset
-investigation by tracing every UPS field exposed by the authenticated status
-response back through NUT dstate, runtime caches, and filesystem persistence.
+Review the local route-inventory commit on
+`feature/management-route-inventory`, then complete a target-side HTTPS
+acceptance plan before extracting route composition or physical recovery. The
+ESP-IDF v6.0.2 target build passed for the preceding logging, status,
+certificate, credential, session, HTTP-helper, Wi-Fi credential, and Wi-Fi
+diagnostic modules; no host test harness is configured for this component. Do
+not publish this stacked branch before the preceding slices are reviewed,
+merged, and rebased onto `main`. The separate factory-reset investigation still
+requires tracing every UPS field exposed by the authenticated status response
+back through NUT dstate, runtime caches, and filesystem persistence.
 
 ## Read only when needed
 

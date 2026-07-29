@@ -81,7 +81,9 @@ in `wifi.c`. The active follow-on branch is
 `feature/wifi-diagnostics-module`, which isolates only the user-facing
 connection diagnostic and read-only DHCP snapshot formatting while retaining
 connection/retry decisions, DHCP startup, portal behavior, BOOT recovery, and
-factory-reset coordination in `wifi.c`.
+factory-reset coordination in `wifi.c`. The active documentation follow-on
+branch is `feature/management-route-inventory`, which records the route-level
+acceptance baseline before any handler or registration refactor.
 
 ## Target platform
 
