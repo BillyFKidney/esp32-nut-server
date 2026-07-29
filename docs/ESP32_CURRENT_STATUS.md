@@ -23,7 +23,7 @@ hardware and LAN state were not checked during this documentation-only work.**
 | Remote branch | No upstream is configured for the active feature branch |
 | Implementation state | No firmware implementation commit exists on this branch yet |
 | Worktree scope | The startup-context optimization is merged; no firmware source or build input was changed by that work |
-| Published baseline | `v2.7.0`; `main` contains three documentation commits after the tag |
+| Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
 | Required services | LAN-only HTTPS `443`; read-only NUT `3493`; retired unauthenticated `8080` remains refused |
