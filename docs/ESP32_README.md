@@ -314,6 +314,7 @@ src/
 ├── management-session.c - ADMIN/setup cookies, CSRF, timeout, and login throttling
 ├── management-status.c - read-only NUT and hardware status snapshots
 ├── wifi.c              - Wi-Fi orchestration and recovery coordination
+├── wifi-credentials.c  - active/pending Wi-Fi NVS credential records
 ├── drivers/
 │   ├── espusb.c        - ESP32 USB driver backend
 │   └── espusb.h        - USB driver header

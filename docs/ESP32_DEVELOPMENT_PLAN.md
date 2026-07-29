@@ -73,7 +73,11 @@ follow-on branch is `feature/management-http-module`, which isolates shared
 defensive response headers, HTML/JSON/redirect output mechanics, bounded JSON
 construction, and bounded URL-form parsing while retaining every route,
 authorization decision, field semantic, and response status choice in
-`management.c`.
+`management.c`. The active follow-on branch is
+`feature/wifi-credentials-module`, which isolates only active and pending
+Wi-Fi record persistence while retaining NVS initialization, connection and
+retry behavior, portal behavior, BOOT recovery, and factory-reset coordination
+in `wifi.c`.
 
 ## Target platform
 

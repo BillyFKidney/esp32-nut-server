@@ -30,13 +30,9 @@
 #include "nvs_flash.h"
 #include "management.h"
 #include "time_config.h"
+#include "wifi-credentials.h"
 #include "wifi-portal.h"
 
-#define WIFI_CONFIG_NAMESPACE "wifi-config"
-#define WIFI_SSID_KEY "ssid"
-#define WIFI_PASSWORD_KEY "password"
-#define WIFI_PENDING_SSID_KEY "pending-ssid"
-#define WIFI_PENDING_PASSWORD_KEY "pending-pass"
 #define WIFI_AP_INTERFACE_KEY "WIFI_AP_DEF"
 #define WIFI_AP_CHANNEL 1
 #define WIFI_AP_MAX_CONNECTIONS 4
@@ -61,13 +57,13 @@
 #define WIFI_FAILED_BIT BIT1
 #define WIFI_PORTAL_STARTED_BIT BIT2
 
-static const char *TAG = "nut-wifi";
+_Static_assert(WIFI_CREDENTIALS_SSID_CAPACITY == WIFI_MANAGEMENT_SSID_MAX_LENGTH + 1U,
+               "Wi-Fi credential SSID storage must match the management API limit");
+_Static_assert(WIFI_CREDENTIALS_PASSWORD_CAPACITY ==
+                   WIFI_MANAGEMENT_PASSWORD_MAX_LENGTH + 1U,
+               "Wi-Fi credential password storage must match the management API limit");
 
-typedef struct
-{
-    char ssid[33];
-    char password[64];
-} WifiCredentials;
+static const char *TAG = "nut-wifi";
 
 typedef struct
 {
@@ -235,132 +231,6 @@ static void nvs_initialize(void)
         result = nvs_flash_init();
     }
     ESP_ERROR_CHECK(result);
-}
-
-static bool wifi_credentials_load(WifiCredentials *credentials)
-{
-    nvs_handle_t handle;
-    if (nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READONLY, &handle) != ESP_OK)
-    {
-        return false;
-    }
-
-    size_t ssid_length = sizeof(credentials->ssid);
-    size_t password_length = sizeof(credentials->password);
-    const esp_err_t ssid_result = nvs_get_str(handle, WIFI_SSID_KEY, credentials->ssid, &ssid_length);
-    const esp_err_t password_result = nvs_get_str(handle, WIFI_PASSWORD_KEY, credentials->password, &password_length);
-    nvs_close(handle);
-
-    return ssid_result == ESP_OK && password_result == ESP_OK && credentials->ssid[0] != '\0';
-}
-
-static bool wifi_pending_credentials_load(WifiCredentials *credentials)
-{
-    nvs_handle_t handle;
-    if (nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READONLY, &handle) != ESP_OK)
-    {
-        return false;
-    }
-
-    size_t ssid_length = sizeof(credentials->ssid);
-    size_t password_length = sizeof(credentials->password);
-    const esp_err_t ssid_result = nvs_get_str(handle, WIFI_PENDING_SSID_KEY, credentials->ssid, &ssid_length);
-    const esp_err_t password_result = nvs_get_str(handle, WIFI_PENDING_PASSWORD_KEY, credentials->password, &password_length);
-    nvs_close(handle);
-
-    return ssid_result == ESP_OK && password_result == ESP_OK && credentials->ssid[0] != '\0';
-}
-
-static esp_err_t wifi_credentials_save(const WifiCredentials *credentials)
-{
-    nvs_handle_t handle;
-    esp_err_t result = nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
-    if (result != ESP_OK)
-    {
-        return result;
-    }
-
-    result = nvs_set_str(handle, WIFI_SSID_KEY, credentials->ssid);
-    if (result == ESP_OK)
-    {
-        result = nvs_set_str(handle, WIFI_PASSWORD_KEY, credentials->password);
-    }
-    if (result == ESP_OK)
-    {
-        result = nvs_commit(handle);
-    }
-    nvs_close(handle);
-    return result;
-}
-
-static esp_err_t wifi_pending_credentials_save(const WifiCredentials *credentials)
-{
-    nvs_handle_t handle;
-    esp_err_t result = nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
-    if (result != ESP_OK)
-    {
-        return result;
-    }
-
-    result = nvs_set_str(handle, WIFI_PENDING_SSID_KEY, credentials->ssid);
-    if (result == ESP_OK)
-    {
-        result = nvs_set_str(handle, WIFI_PENDING_PASSWORD_KEY, credentials->password);
-    }
-    if (result == ESP_OK)
-    {
-        result = nvs_commit(handle);
-    }
-    nvs_close(handle);
-    return result;
-}
-
-static esp_err_t wifi_pending_credentials_erase(void)
-{
-    nvs_handle_t handle;
-    esp_err_t result = nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
-    if (result != ESP_OK)
-    {
-        return result;
-    }
-
-    result = nvs_erase_key(handle, WIFI_PENDING_SSID_KEY);
-    if (result == ESP_ERR_NVS_NOT_FOUND)
-    {
-        result = ESP_OK;
-    }
-    if (result == ESP_OK)
-    {
-        result = nvs_erase_key(handle, WIFI_PENDING_PASSWORD_KEY);
-        if (result == ESP_ERR_NVS_NOT_FOUND)
-        {
-            result = ESP_OK;
-        }
-    }
-    if (result == ESP_OK)
-    {
-        result = nvs_commit(handle);
-    }
-    nvs_close(handle);
-    return result;
-}
-
-static esp_err_t wifi_credentials_erase(void)
-{
-    nvs_handle_t handle;
-    esp_err_t result = nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
-    if (result != ESP_OK)
-    {
-        return result;
-    }
-
-    result = nvs_erase_all(handle);
-    if (result == ESP_OK)
-    {
-        result = nvs_commit(handle);
-    }
-    nvs_close(handle);
-    return result;
 }
 
 static void wifi_recovery_task(void *argument)

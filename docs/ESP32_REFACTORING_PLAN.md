@@ -41,7 +41,7 @@ and dependency locks remain untracked.
 | 4 | `management-credentials.c` — ADMIN credential storage, PBKDF2 verification, and legacy migration | Implemented on `feature/management-credentials-module`; review pending | ESP-IDF v6.0.2 target build passes; setup, login, password change, migration, and factory-reset credential erasure retain current outcomes by code-path inspection |
 | 5 | `management-session.c` — session cookies, setup cookies, idle timeout, CSRF, and login throttling | Implemented on `feature/management-session-module`; review pending | ESP-IDF v6.0.2 target build passes; existing ADMIN/CSRF, timeout, and cooldown behavior remains unchanged by code-path inspection; no token or password disclosure |
 | 6 | `management-http.c` — shared response helpers, JSON utilities, and bounded form handling | Implemented on `feature/management-http-module`; review pending | ESP-IDF v6.0.2 target build passes; headers, content types, Content Security Policy, body limit, decoding, and zeroization remain unchanged by code-path inspection; routes and authorization remain in `management.c` |
-| 7 | `wifi-credentials.c` — active/pending credential persistence and zeroization | Planned | Pending validation, fallback, NVS keys, and factory-reset Wi-Fi erase behavior remain unchanged |
+| 7 | `wifi-credentials.c` — active/pending credential persistence | Implemented on `feature/wifi-credentials-module`; review pending | ESP-IDF v6.0.2 target build passes; the four `wifi-config` keys, pending-record erase, full namespace erase, and caller zeroization remain unchanged by code-path inspection; connection and reset behavior remain in `wifi.c` |
 | 8 | `wifi-diagnostics.c` — connection state, DHCP snapshots, and diagnostic messages | Planned | Status/portal diagnostics remain accurate and bounded; no retry or timeout changes |
 | 9 | `wifi-recovery.c` — BOOT hold thresholds and restart orchestration | Planned | Three-second Wi-Fi reset and fifteen-second factory reset retain exact thresholds and recovery boundary |
 | 10 | `management-routes.c` — route composition after route-by-route behavior inventory | Planned | Paths, methods, status codes, authorization checks, response payload semantics, and registration order remain unchanged |
@@ -115,6 +115,21 @@ composition remains a distinct later stage because it requires a route-by-route
 acceptance inventory. No password, cookie, CSRF value, token, or Authorization
 header is logged or documented.
 
+### Stage 7: Wi-Fi active and pending credential persistence
+
+`wifi-credentials.c` exclusively owns the existing `wifi-config` NVS namespace
+and its four records: active `ssid`/`password` and pending `pending-ssid`/
+`pending-pass`. It preserves the active/pending record format, NVS commit
+points, idempotent pending-key erase handling, and full namespace erase used by
+the physical Wi-Fi reset. Callers continue to zeroize their own credential
+buffers after use.
+
+`wifi.c` retains global NVS initialization, user-input validation, pending
+record staging and restart scheduling, pending-record removal before testing,
+promotion after connection success, fallback to the active network, portal
+behavior, connection retries, BOOT thresholds, and factory-reset coordination.
+No SSID, password, or credential record is logged or documented.
+
 ## Current slice: management log module
 
 The first slice moves the following private state and behavior out of
@@ -155,11 +170,11 @@ traceable for the factory-reset investigation.
 ## Branch and validation rules
 
 - Start each stage from the latest `main` unless a documented dependency is
-  required and explicitly recorded. `feature/management-http-module` is
-  temporarily stacked on the local Stage 5 session commit, which is itself
-  stacked on the local credential, certificate, status, and logging commits.
-  Rebase each slice onto the applicable merged `main` before publishing or
-  opening its pull request.
+  required and explicitly recorded. `feature/wifi-credentials-module` is
+  temporarily stacked on the local Stage 6 HTTP-helper commit, which is itself
+  stacked on the local session, credential, certificate, status, and logging
+  commits. Rebase each slice onto the applicable merged `main` before
+  publishing or opening its pull request.
 - Use one branch and pull request per stage; do not combine logging, status,
   authentication, certificates, and Wi-Fi recovery in one change.
 - Run `git diff --check` and inspect the complete diff before building.
@@ -173,10 +188,11 @@ traceable for the factory-reset investigation.
 
 ## Next extractions
 
-After Stage 6 is reviewed and merged, perform a route-by-route inventory before
-choosing either the planned `management-routes.c` extraction or the separate
-Wi-Fi credential boundary. Any route-composition slice must leave paths,
-methods, status codes, authorization calls, response payload semantics, and
-registration order unchanged. The later factory-reset slice can then trace
-UPS-state retention without mixing certificate, credential, session, or
-response-helper changes.
+After Stage 7 is reviewed and merged, map the Wi-Fi diagnostic boundary before
+choosing either `wifi-diagnostics.c` or the planned `management-routes.c`
+extraction. Any route-composition slice must leave paths, methods, status
+codes, authorization calls, response payload semantics, and registration order
+unchanged. Any diagnostic slice must leave connection retries, portal behavior,
+and recovery thresholds unchanged. The later factory-reset slice can then trace
+UPS-state retention without mixing certificate, credential, session,
+response-helper, or Wi-Fi record changes.

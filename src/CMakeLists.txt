@@ -11,6 +11,7 @@ list(APPEND app_sources
     ${CMAKE_SOURCE_DIR}/src/management-log.c
     ${CMAKE_SOURCE_DIR}/src/management-session.c
     ${CMAKE_SOURCE_DIR}/src/management-status.c
+    ${CMAKE_SOURCE_DIR}/src/wifi-credentials.c
 )
 list(REMOVE_DUPLICATES app_sources)
 
