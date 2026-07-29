@@ -43,8 +43,9 @@ and dependency locks remain untracked.
 | 6 | `management-http.c` — shared response helpers, JSON utilities, and bounded form handling | Implemented on `feature/management-http-module`; review pending | ESP-IDF v6.0.2 target build passes; headers, content types, Content Security Policy, body limit, decoding, and zeroization remain unchanged by code-path inspection; routes and authorization remain in `management.c` |
 | 7 | `wifi-credentials.c` — active/pending credential persistence | Implemented on `feature/wifi-credentials-module`; review pending | ESP-IDF v6.0.2 target build passes; the four `wifi-config` keys, pending-record erase, full namespace erase, and caller zeroization remain unchanged by code-path inspection; connection and reset behavior remain in `wifi.c` |
 | 8 | `wifi-diagnostics.c` — connection diagnostic and read-only DHCP snapshots | Implemented on `feature/wifi-diagnostics-module`; review pending | ESP-IDF v6.0.2 target build passes; message text and DHCP state checks remain unchanged by code-path inspection; retries, timeouts, portal behavior, and recovery remain in `wifi.c` |
-| 9 | `wifi-recovery.c` — BOOT hold thresholds and restart orchestration | Planned | Three-second Wi-Fi reset and fifteen-second factory reset retain exact thresholds and recovery boundary |
-| 10 | `management-routes.c` — route composition after route-by-route behavior inventory | Inventory recorded on `feature/management-route-inventory`; code extraction planned | [ESP32_ROUTE_INVENTORY.md](ESP32_ROUTE_INVENTORY.md) records all 17 routes and source-level guards; paths, methods, status codes, authorization checks, response payload semantics, and registration order remain unchanged |
+| 9 | `wifi-provisioning-web.c` — captive-portal HTTP routes, form decode, JSON responses, and route registration | Implemented on `feature/wifi-provisioning-web-module`; review pending | ESP-IDF v6.0.2 target build passes; portal methods, paths, response headers, response text, body limit, credential staging, and restart handoff remain unchanged by code-path inspection |
+| 10 | `wifi-recovery.c` — BOOT hold thresholds and restart orchestration | Planned | Three-second Wi-Fi reset and fifteen-second factory reset retain exact thresholds and recovery boundary |
+| 11 | `management-routes.c` — route composition after route-by-route behavior inventory | Inventory recorded on `feature/management-route-inventory`; code extraction planned | [ESP32_ROUTE_INVENTORY.md](ESP32_ROUTE_INVENTORY.md) records all 17 routes and source-level guards; paths, methods, status codes, authorization checks, response payload semantics, and registration order remain unchanged |
 
 The order is intentionally conservative: logging has no security decision or
 network state; status is read-only; certificate and credential extraction then
@@ -143,7 +144,30 @@ timeout decisions, portal status response composition, connection setup, and
 physical recovery. The diagnostic module must not call `esp_wifi_connect`,
 `esp_wifi_disconnect`, `esp_restart`, or alter event-group state.
 
-### Stage 10: route-composition inventory
+### Stage 9: Wi-Fi provisioning web
+
+`wifi-provisioning-web.c` owns the existing temporary captive-portal HTTP
+surface only: shared portal response headers, JSON escaping, bounded
+`application/x-www-form-urlencoded` decoding, network-list serialization,
+credential-stage form handling, and registration of the four existing routes.
+It preserves `GET /`, `GET /api/networks`, `POST /api/configure`, and `GET
+/api/status`, including their status codes, response text, 256-byte request-body
+limit, cache/content-security headers, and portal-only HTTP service scope.
+
+`wifi.c` retains Wi-Fi radio initialization, station connection and retry state,
+active/pending credential lifecycle, BOOT-button recovery, SoftAP setup,
+captive-DNS lifecycle, portal scheduling, and HTTP-server handle ownership.
+The focused web module receives only the existing connection-request flag and a
+restart-scheduling callback; it does not decide connection retries, erase
+credentials, configure the AP/DNS service, or invoke factory reset.
+
+Target acceptance requires intentionally entering the temporary portal on a
+non-production device or during an explicitly approved recovery session, then
+checking the four routes. Do not submit real Wi-Fi credentials merely to test
+this refactor; use invalid input or a separately authorized credential-staging
+test.
+
+### Stage 11: route-composition inventory
 
 [ESP32_ROUTE_INVENTORY.md](ESP32_ROUTE_INVENTORY.md) records the 17 existing
 HTTPS route registrations in their current order, together with source-level
@@ -189,14 +213,36 @@ size limit, and error response remain in `src/management.c`. This keeps the
 ADMIN boundary unchanged while making the runtime data sources independently
 traceable for the factory-reset investigation.
 
+## Current slice: Wi-Fi provisioning web module
+
+This slice moves the temporary captive-portal web handling out of `src/wifi.c`:
+
+- common portal response headers and JSON response mechanics;
+- bounded JSON escaping and URL-form decoding;
+- the portal root, network-list, status, and credential-configuration
+  handlers; and
+- explicit registration of those four temporary HTTP routes.
+
+The dedicated interface is
+[include/wifi-provisioning-web.h](../include/wifi-provisioning-web.h). The
+orchestrator supplies its existing connection-request state and restart task
+through a narrow context; neither Wi-Fi radio state nor the lifetime of the
+temporary HTTP service moves out of `wifi.c`. The new source is explicitly
+listed in `src/CMakeLists.txt` so an incremental ESP-IDF build includes it.
+
+No provisioning route, portal header, response text, request-body limit,
+credential-validation rule, or connection/recovery behavior is intentionally
+changed. The module does not log credentials.
+
 ## Branch and validation rules
 
 - Start each stage from the latest `main` unless a documented dependency is
-  required and explicitly recorded. `feature/management-route-inventory` is
-  temporarily stacked on the local Stage 8 diagnostic commit, which is itself
-  stacked on the local Wi-Fi credential, HTTP-helper, session, credential,
-  certificate, status, and logging commits. Rebase each slice onto the
-  applicable merged `main` before publishing or opening its pull request.
+  required and explicitly recorded. `feature/wifi-provisioning-web-module` is
+  temporarily stacked on the local route-inventory and Stage 8 diagnostic
+  commits, which are themselves stacked on the local Wi-Fi credential,
+  HTTP-helper, session, credential, certificate, status, and logging commits.
+  Rebase each slice onto the applicable merged `main` before publishing or
+  opening its pull request.
 - Use one branch and pull request per stage; do not combine logging, status,
   authentication, certificates, and Wi-Fi recovery in one change.
 - Run `git diff --check` and inspect the complete diff before building.
@@ -210,8 +256,10 @@ traceable for the factory-reset investigation.
 
 ## Next extractions
 
-The route inventory is now recorded. Do not extract `wifi-recovery.c` until a
-target-side recovery test plan is approved: it owns physical BOOT input,
+The Wi-Fi provisioning web module is locally implemented and built, but still
+needs focused temporary-portal acceptance on a non-production device or during
+an explicitly approved recovery session. Do not extract `wifi-recovery.c`
+until a target-side recovery test plan is approved: it owns physical BOOT input,
 credential erasure, management reset, and restart. Before a
 `management-routes.c` extraction, execute the route inventory's target-side
 acceptance matrix. The later factory-reset slice can then trace UPS-state

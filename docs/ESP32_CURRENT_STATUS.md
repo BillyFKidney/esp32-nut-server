@@ -16,38 +16,42 @@ work; hardware and LAN state were not checked.**
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `feature/management-route-inventory` |
+| Active branch | `feature/wifi-provisioning-web-module` |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
-| Branch base | Temporarily stacked on the local `feature/wifi-diagnostics-module` commit, which is stacked on the local Wi-Fi credential, HTTP-helper, session, credential, certificate, status, and logging commits; rebase the reviewed slices onto merged `main` before publishing; live Git is authoritative |
+| Branch base | Temporarily stacked on the local route-inventory and Wi-Fi diagnostic commits, which are stacked on the local Wi-Fi credential, HTTP-helper, session, credential, certificate, status, and logging commits; rebase reviewed slices onto merged `main` before publishing; live Git is authoritative |
 | Remote branch | No upstream is configured for the active feature branch |
-| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, and Wi-Fi diagnostic extractions are locally committed and target builds passed; route-composition inventory documentation is the active scope; no factory-reset behavior has been changed |
-| Worktree scope | `ESP32_ROUTE_INVENTORY.md` and modular-refactoring documentation only; no route or device behavior is changed |
+| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, and route-inventory slices are locally committed and target builds passed. The active worktree isolates the temporary Wi-Fi provisioning web surface; its target build has passed, while target portal acceptance remains pending. No factory-reset behavior has been changed |
+| Worktree scope | `wifi-provisioning-web.c`, its focused public interface, explicit component registration, and modular-refactoring documentation. Temporary portal behavior is moved without intentionally changing routes, credentials, Wi-Fi recovery, HTTPS, or device behavior |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
 | Required services | LAN-only HTTPS `443`; read-only NUT `3493`; retired unauthenticated `8080` remains refused |
 | Device coordinates | Not checked. Rediscover the IP address and `/dev/cu.usbmodem*` path before hardware work; historical values are not current facts |
-| Authorization | No flash, OTA, factory reset, push, merge, tag, release, or other external action is authorized by this handoff |
+| Authorization | No flash, OTA, factory reset, merge, tag, release, or other external action is authorized by this handoff. Do not publish this refactor branch without a separate request |
 
-## Active slice: route-composition inventory only
+## Active slice: Wi-Fi provisioning web module
 
-The active branch records the existing HTTPS route registration order, method,
-path, and source-level authorization/CSRF boundary in
-[ESP32_ROUTE_INVENTORY.md](ESP32_ROUTE_INVENTORY.md). It makes no source-code,
-route, NVS, Wi-Fi, HTTPS, or device-behavior change. Future route composition
-must use this inventory as its acceptance baseline.
+The active branch moves the temporary captive-portal HTTP handlers, common
+portal response helpers, bounded form decoding, JSON construction, and route
+registration from `src/wifi.c` into `src/wifi-provisioning-web.c`. It preserves
+the four existing portal endpoints and lets `wifi.c` retain Wi-Fi radio state,
+credential lifecycle, AP/DNS lifecycle, physical recovery, portal scheduling,
+and HTTP server-handle ownership.
 
 This must not change HTTPS `443`, NUT `3493`, refused `8080`, ADMIN/CSRF,
-token, certificate, Wi-Fi, or factory-reset behavior.
+token, certificate, credential validation/staging, Wi-Fi connection/recovery,
+or factory-reset behavior. The focused module receives only the existing
+connection-request flag and restart callback; it does not make connection or
+reset decisions.
 
 The staged extraction sequence and later management/Wi-Fi boundaries are in
 [ESP32_REFACTORING_PLAN.md](ESP32_REFACTORING_PLAN.md).
 
-This is temporarily a stacked local branch based on the committed logging,
-status, certificate, credential, session, HTTP-helper, Wi-Fi credential, and
-Wi-Fi diagnostic extractions. Review and merge each preceding slice, then
-rebase this branch onto the merged `main` before publishing it.
+This is temporarily a stacked local branch based on the route-inventory,
+logging, status, certificate, credential, session, HTTP-helper, Wi-Fi
+credential, and Wi-Fi diagnostic slices. Review and merge each preceding slice,
+then rebase this branch onto the merged `main` before publishing it.
 
 ## Factory-reset slice remains separate
 
@@ -99,16 +103,17 @@ must not be presented as current.
 
 ## Exact next action
 
-Review the local route-inventory commit on
-`feature/management-route-inventory`, then complete a target-side HTTPS
-acceptance plan before extracting route composition or physical recovery. The
-ESP-IDF v6.0.2 target build passed for the preceding logging, status,
-certificate, credential, session, HTTP-helper, Wi-Fi credential, and Wi-Fi
-diagnostic modules; no host test harness is configured for this component. Do
-not publish this stacked branch before the preceding slices are reviewed,
-merged, and rebased onto `main`. The separate factory-reset investigation still
-requires tracing every UPS field exposed by the authenticated status response
-back through NUT dstate, runtime caches, and filesystem persistence.
+Review the local Wi-Fi provisioning web-module diff on
+`feature/wifi-provisioning-web-module`, then perform temporary-portal target
+acceptance only on a non-production device or during an explicitly approved
+recovery session. The ESP-IDF v6.0.2 target build passed for this module and
+the preceding logging, status, certificate, credential, session, HTTP-helper,
+Wi-Fi credential, Wi-Fi diagnostic, and route-inventory slices; no host test
+harness is configured for this component. Do not publish this stacked branch
+before the preceding slices are reviewed, merged, and rebased onto `main`. The
+separate factory-reset investigation still requires tracing every UPS field
+exposed by the authenticated status response back through NUT dstate, runtime
+caches, and filesystem persistence.
 
 ## Read only when needed
 
