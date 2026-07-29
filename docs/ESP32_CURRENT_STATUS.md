@@ -16,13 +16,13 @@ work; hardware and LAN state were not checked.**
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `feature/management-session-module` |
+| Active branch | `feature/management-http-module` |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
-| Branch base | Temporarily stacked on the local `feature/management-credentials-module` commit, which is stacked on the local certificate, status, and logging commits; rebase the reviewed slices onto merged `main` before publishing; live Git is authoritative |
+| Branch base | Temporarily stacked on the local `feature/management-session-module` commit, which is stacked on the local credential, certificate, status, and logging commits; rebase the reviewed slices onto merged `main` before publishing; live Git is authoritative |
 | Remote branch | No upstream is configured for the active feature branch |
-| Implementation state | Logging, read-only status, HTTPS certificate/key lifecycle, and ADMIN credential extractions are locally committed; ADMIN session/CSRF/cooldown extraction is implemented on this stacked feature branch and target build passed; no factory-reset behavior has been changed |
-| Worktree scope | `management-session.c`/`management-session.h`, explicit component registration, HTTPS-route caller updates, and modular-refactoring documentation are the active scope |
+| Implementation state | Logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, and ADMIN session/CSRF extractions are locally committed; shared HTTP response and bounded form-handling extraction is implemented on this stacked feature branch and target build passed; no factory-reset behavior has been changed |
+| Worktree scope | `management-http.c`/`management-http.h`, explicit component registration, HTTPS-route caller updates, and modular-refactoring documentation are the active scope |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
@@ -30,15 +30,16 @@ work; hardware and LAN state were not checked.**
 | Device coordinates | Not checked. Rediscover the IP address and `/dev/cu.usbmodem*` path before hardware work; historical values are not current facts |
 | Authorization | No flash, OTA, factory reset, push, merge, tag, release, or other external action is authorized by this handoff |
 
-## Active slice: ADMIN session and CSRF state
+## Active slice: shared HTTPS response and bounded form handling
 
-The active branch moves ADMIN session cookies, first-run setup cookies, CSRF
-validation, constant-time comparisons, idle timeout, and login throttling from
-`src/management.c` into `management-session.c`. The module preserves existing
-cookie attributes, token lengths, setup-cookie lifetime, session timeout,
-warning threshold, and failed-login cooldown. `management.c` remains
-responsible for HTTPS routes, form parsing, response status codes, bearer-token
-checks, credential migration handling, and factory-reset orchestration.
+The active branch moves the existing defensive response headers, HTML/JSON/
+redirect send helpers, bounded JSON builders, and bounded URL-form body read/
+decode helpers from `src/management.c` into `management-http.c`. It preserves
+the existing headers, content types, Content Security Policy, body-size limit,
+zeroization of copied form bodies, and decoding behavior. `management.c`
+remains responsible for route paths and methods, authorization/CSRF decisions,
+field semantics, status-code selection, bearer-token checks, credential
+migration handling, and factory-reset orchestration.
 
 This must not change HTTPS `443`, NUT `3493`, refused `8080`, ADMIN/CSRF,
 token, certificate, Wi-Fi, or factory-reset behavior.
@@ -47,7 +48,7 @@ The staged extraction sequence and later management/Wi-Fi boundaries are in
 [ESP32_REFACTORING_PLAN.md](ESP32_REFACTORING_PLAN.md).
 
 This is temporarily a stacked local branch based on the committed logging,
-status, certificate, and credential extractions. Review and merge each
+status, certificate, credential, and session extractions. Review and merge each
 preceding slice, then rebase this branch onto the merged `main` before
 publishing it.
 
@@ -101,16 +102,17 @@ must not be presented as current.
 
 ## Exact next action
 
-Review the focused local session-extraction commit on
-`feature/management-session-module`. The target build with ESP-IDF v6.0.2
+Review the focused local HTTP-helper extraction commit on
+`feature/management-http-module`. The target build with ESP-IDF v6.0.2
 passed after explicit registration of `management-log.c`,
 `management-status.c`, `management-certificates.c`,
-`management-credentials.c`, and `management-session.c`; no host test harness
-is configured for this component. Do not publish this stacked branch before the
-preceding slices are reviewed, merged, and rebased onto `main`. After the
-modular slices are reviewed/merged, resume the separate factory-reset
-investigation by tracing every UPS field exposed by the authenticated status
-response back through NUT dstate, runtime caches, and filesystem persistence.
+`management-credentials.c`, `management-session.c`, and `management-http.c`;
+no host test harness is configured for this component. Do not publish this
+stacked branch before the preceding slices are reviewed, merged, and rebased
+onto `main`. After the modular slices are reviewed/merged, resume the separate
+factory-reset investigation by tracing every UPS field exposed by the
+authenticated status response back through NUT dstate, runtime caches, and
+filesystem persistence.
 
 ## Read only when needed
 

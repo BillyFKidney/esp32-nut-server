@@ -40,10 +40,11 @@ and dependency locks remain untracked.
 | 3 | `management-certificates.c` — certificate/key loading, generation, and NVS persistence | Implemented on `feature/management-certificates-module`; review pending | ESP-IDF v6.0.2 target build passes; HTTPS startup receives the same material through `management-certificates.h`; missing/incomplete blobs still regenerate; private key handling remains zeroized |
 | 4 | `management-credentials.c` — ADMIN credential storage, PBKDF2 verification, and legacy migration | Implemented on `feature/management-credentials-module`; review pending | ESP-IDF v6.0.2 target build passes; setup, login, password change, migration, and factory-reset credential erasure retain current outcomes by code-path inspection |
 | 5 | `management-session.c` — session cookies, setup cookies, idle timeout, CSRF, and login throttling | Implemented on `feature/management-session-module`; review pending | ESP-IDF v6.0.2 target build passes; existing ADMIN/CSRF, timeout, and cooldown behavior remains unchanged by code-path inspection; no token or password disclosure |
-| 6 | `management-http.c` / route composition — shared response helpers, form parsing, and route registration | Planned | All existing routes retain method, path, status, headers, and authorization boundary |
+| 6 | `management-http.c` — shared response helpers, JSON utilities, and bounded form handling | Implemented on `feature/management-http-module`; review pending | ESP-IDF v6.0.2 target build passes; headers, content types, Content Security Policy, body limit, decoding, and zeroization remain unchanged by code-path inspection; routes and authorization remain in `management.c` |
 | 7 | `wifi-credentials.c` — active/pending credential persistence and zeroization | Planned | Pending validation, fallback, NVS keys, and factory-reset Wi-Fi erase behavior remain unchanged |
 | 8 | `wifi-diagnostics.c` — connection state, DHCP snapshots, and diagnostic messages | Planned | Status/portal diagnostics remain accurate and bounded; no retry or timeout changes |
 | 9 | `wifi-recovery.c` — BOOT hold thresholds and restart orchestration | Planned | Three-second Wi-Fi reset and fifteen-second factory reset retain exact thresholds and recovery boundary |
+| 10 | `management-routes.c` — route composition after route-by-route behavior inventory | Planned | Paths, methods, status codes, authorization checks, response payload semantics, and registration order remain unchanged |
 
 The order is intentionally conservative: logging has no security decision or
 network state; status is read-only; certificate and credential extraction then
@@ -98,6 +99,22 @@ the ADMIN boundary unchanged while making the mutable state independently
 traceable. No cookie, CSRF value, password, token, or Authorization header is
 logged or documented.
 
+### Stage 6: shared HTTPS response and bounded form handling
+
+`management-http.c` exclusively owns the existing defensive response headers,
+HTML/JSON/redirect send mechanics, Content Security Policy, bounded JSON
+appending and escaping, and bounded `application/x-www-form-urlencoded` body
+read and decode helpers. It preserves the existing 640-byte body limit, timeout
+and size errors, URL-decoding behavior, and zeroization of the temporary copied
+form body.
+
+`management.c` retains each route handler, route path and method, response
+status selection, authorization and CSRF decision, form-field semantics,
+bearer-token handling, JSON field order, and route registration. Route
+composition remains a distinct later stage because it requires a route-by-route
+acceptance inventory. No password, cookie, CSRF value, token, or Authorization
+header is logged or documented.
+
 ## Current slice: management log module
 
 The first slice moves the following private state and behavior out of
@@ -138,11 +155,11 @@ traceable for the factory-reset investigation.
 ## Branch and validation rules
 
 - Start each stage from the latest `main` unless a documented dependency is
-  required and explicitly recorded. `feature/management-session-module` is
-  temporarily stacked on the local Stage 4 credentials commit, which is itself
-  stacked on the local certificate, status, and logging commits. Rebase each
-  slice onto the applicable merged `main` before publishing or opening its pull
-  request.
+  required and explicitly recorded. `feature/management-http-module` is
+  temporarily stacked on the local Stage 5 session commit, which is itself
+  stacked on the local credential, certificate, status, and logging commits.
+  Rebase each slice onto the applicable merged `main` before publishing or
+  opening its pull request.
 - Use one branch and pull request per stage; do not combine logging, status,
   authentication, certificates, and Wi-Fi recovery in one change.
 - Run `git diff --check` and inspect the complete diff before building.
@@ -156,9 +173,10 @@ traceable for the factory-reset investigation.
 
 ## Next extractions
 
-After Stage 5 is reviewed and merged, the recommended next slice is
-`management-http.c` / route composition. It should move only shared response
-helpers, form parsing, and route registration while leaving paths, methods,
-status codes, and authorization calls unchanged. The later factory-reset slice
-can then trace UPS-state retention without mixing certificate, credential, or
-session changes.
+After Stage 6 is reviewed and merged, perform a route-by-route inventory before
+choosing either the planned `management-routes.c` extraction or the separate
+Wi-Fi credential boundary. Any route-composition slice must leave paths,
+methods, status codes, authorization calls, response payload semantics, and
+registration order unchanged. The later factory-reset slice can then trace
+UPS-state retention without mixing certificate, credential, session, or
+response-helper changes.
