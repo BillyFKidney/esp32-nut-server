@@ -33,14 +33,14 @@ routing table calls for them.
 | File | Lines | Bytes | Estimated tokens |
 | --- | ---: | ---: | ---: |
 | `AGENTS.md` | 91 | 5,422 | 1,356 |
-| `docs/ESP32_CURRENT_STATUS.md` | 106 | 5,863 | 1,466 |
-| **Total** | **197** | **11,285** | **2,821** |
+| `docs/ESP32_CURRENT_STATUS.md` | 106 | 5,899 | 1,475 |
+| **Total** | **197** | **11,321** | **2,830** |
 
 Compared with the former six-file startup prompt, the default context is
-**163,275 bytes smaller (93.5%)** and saves approximately **40,819 tokens**.
+**163,239 bytes smaller (93.5%)** and saves approximately **40,810 tokens**.
 
-The status file itself fell from **101,910 bytes to 5,863 bytes**, a reduction
-of **96,047 bytes (94.2%)**. Its line count fell from **1,595 to 106**.
+The status file itself fell from **101,910 bytes to 5,899 bytes**, a reduction
+of **96,011 bytes (94.2%)**. Its line count fell from **1,595 to 106**.
 
 ### Same six files, after slimming
 
@@ -50,14 +50,14 @@ loads all six documents.
 | File | Before bytes | After bytes | Reduction |
 | --- | ---: | ---: | ---: |
 | `AGENTS.md` | 5,585 | 5,422 | 163 (2.9%) |
-| `docs/ESP32_CURRENT_STATUS.md` | 101,910 | 5,863 | 96,047 (94.2%) |
+| `docs/ESP32_CURRENT_STATUS.md` | 101,910 | 5,899 | 96,011 (94.2%) |
 | `docs/ESP32_DEVELOPMENT_PLAN.md` | 29,121 | 19,187 | 9,934 (34.1%) |
 | `docs/ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md` | 21,381 | 17,726 | 3,655 (17.1%) |
 | `docs/ESP32_DEVELOPMENT_ROLES.md` | 7,847 | 7,847 | Unchanged; now conditional |
 | `docs/ESP32_PREFLIGHT.md` | 8,716 | 8,716 | Unchanged; now conditional |
-| **Total** | **174,560** | **64,761** | **109,799 (62.9%)** |
+| **Total** | **174,560** | **64,797** | **109,763 (62.9%)** |
 
-The same-six-file token estimate falls from approximately **43,640 to 16,190**.
+The same-six-file token estimate falls from approximately **43,640 to 16,199**.
 
 ## Preservation result
 
