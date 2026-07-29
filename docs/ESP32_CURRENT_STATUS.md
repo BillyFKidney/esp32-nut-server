@@ -13,23 +13,25 @@ the former 101 KB status file is preserved in
 
 **Repository state and development-target smoke evidence were rechecked on
 2026-07-29. This file records only current handoff facts; the complete target
-evidence is preserved in [2026-07-29 target candidate smoke validation](archive/2026-07-29-target-candidate-smoke-validation.md).**
+evidence is preserved in [2026-07-29 target candidate smoke validation](archive/2026-07-29-target-candidate-smoke-validation.md). The compact
+[64k-agent handoff](ESP32_64K_AGENT_HANDOFF.md) is the preferred continuation
+packet for a context-limited agent.**
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `feature/management-auth-routes` |
+| Active branch | `docs/64k-agent-handoff` (documentation preparation branch) |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
-| Branch base | Stacked on the local `feature/management-pages-module` slice, which is stacked on the local `feature/ota-check-image-identity` slice and then the local `candidate/wifi-provisioning-web-header-limit` integration candidate. That candidate combines the Wi-Fi provisioning-web extraction and the request-header-limit fix, and remains stacked on the local route-inventory, Wi-Fi diagnostic, Wi-Fi credential, HTTP-helper, session, credential, certificate, status, and logging slices. Rebase reviewed slices onto merged `main` before publishing; live Git is authoritative |
+| Branch base | Documentation branch based on the canonical local code base `feature/management-auth-routes` at `fffbf96a3`; rebase reviewed code slices onto merged `main` before publishing; live Git is authoritative |
 | Remote branch | No upstream is configured for the active feature branch |
-| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, route-inventory, and temporary Wi-Fi provisioning-web slices are locally committed and target builds passed. The checked-image identity behavior has target acceptance: the authenticated Update Firmware page reported the checked local image as `v2.7.0-23-g0d2776aaf`. The management-page and ADMIN-route slices both build locally; target behavior remains untested for those refactors |
-| Worktree scope | First-run setup, sign-in, legacy `/login` redirect, and ADMIN password-change handlers have moved from `src/management.c` into a focused `src/management-auth-routes.c` module. Credential persistence, session state, and page rendering remain in their focused modules; server startup, route paths/methods/order, and non-auth routes remain in `management.c` |
+| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, route-inventory, temporary Wi-Fi provisioning-web, page-rendering, and ADMIN-route slices are locally committed and target builds passed. The Project Maintainer installed `v2.7.0-25-gfffbf96a3`; authenticated dashboard smoke evidence showed Wi-Fi connected, NUT health `ok`, and UPS status `OL` |
+| Worktree scope | This documentation branch adds the compact 64k-agent continuation packet. The canonical code base retains page rendering and setup/login/password handlers in focused modules; server startup, route paths/methods/order, authorization helpers, logout, status response assembly, token routes, time, OTA, Wi-Fi management routes, and factory-reset coordination remain to be handled in separate slices |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
 | Required services | LAN-only HTTPS `443`; read-only NUT `3493`; retired unauthenticated `8080` remains refused |
 | Device coordinates | **Observed:** the development-console FQDN was used for browser OTA and current DNS resolved it to `192.168.40.10`. Treat that as the management-proxy address; rediscover the direct ESP32 address and any `/dev/cu.usbmodem*` path before direct hardware work |
-| Authorization | The Project Maintainer completed the checked-image identity browser test. No additional flash, OTA installation, factory reset, push, merge, tag, or release is authorized by this handoff |
+| Authorization | The Project Maintainer completed the latest firmware installation and smoke test. No additional flash, OTA installation, factory reset, push, merge, tag, or release is authorized by this documentation handoff |
 
 ## Recent target acceptance: checked-image identity
 
@@ -67,7 +69,7 @@ except for the private page-buffer symbol. This is deliberately before route
 composition: page markup is a cohesive non-routing boundary, while route
 extraction still requires the recorded route-by-route acceptance matrix.
 
-## Active slice: ADMIN route handlers
+## Completed slice: ADMIN route handlers
 
 `management-auth-routes.c` owns the existing `POST /setup`, `GET /login`,
 `POST /login`, and `POST /api/v1/admin/password` handlers. The route paths,
@@ -78,11 +80,13 @@ route-registration order; it only references the focused module's handler
 symbols for these four routes.
 
 Source comparison confirms the moved handler bodies are unchanged except for
-their exported function names, and the local ESP-IDF v6.0.2 build passes. This
-slice requires later explicit browser validation of setup, login failure,
-login cooldown, password change, and logout behavior before it can claim
-target acceptance. No credentials, cookies, tokens, or Authorization headers
-are recorded in this handoff.
+their exported function names, and the local ESP-IDF v6.0.2 build passes. The
+Project Maintainer subsequently installed the resulting build and observed the
+authenticated dashboard, Wi-Fi, USB UPS, and NUT service operating normally.
+This is smoke evidence only; setup, login failure, login cooldown, password
+change, logout, and the complete route matrix remain separately untested. No
+credentials, cookies, tokens, or Authorization headers are recorded in this
+handoff.
 
 ## Stacked prerequisite: Wi-Fi provisioning web module
 
@@ -157,17 +161,14 @@ must not be presented as current.
 
 ## Exact next action
 
-Review and commit `feature/management-auth-routes`. Keep browser validation
-separate until an explicit non-install browser test or a later OTA authorization
-is provided. The recommended next extraction is a separate branch for one
-focused non-auth route family, beginning with a source-level boundary review
-rather than moving all route registrations at once. Temporary-portal target
-acceptance remains separate and requires a non-production device or an
-explicitly approved recovery session. Do not publish this stacked branch before
-the preceding slices are reviewed, merged, and rebased onto `main`. The
-separate factory-reset investigation still requires tracing every UPS field
-exposed by the authenticated status response back through NUT dstate, runtime
-caches, and filesystem persistence.
+Use [ESP32_64K_AGENT_HANDOFF.md](ESP32_64K_AGENT_HANDOFF.md), create
+`feature/management-authorization-module` from `fffbf96a3`, and extract only the
+four shared authorization helpers. Build and review that slice locally. Do not
+publish this documentation branch or the code branch before the preceding
+slices are reviewed, merged, and rebased onto `main`. The separate factory-reset
+investigation still requires tracing every UPS field exposed by the
+authenticated status response back through NUT dstate, runtime caches, and
+filesystem persistence.
 
 ## Read only when needed
 

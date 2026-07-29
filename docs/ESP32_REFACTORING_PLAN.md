@@ -70,13 +70,14 @@ out of `management.c`.
 | OTA body handling, image verification, descriptor identity, boot selection, and restart coordination | `ota.c` | Complete focused boundary | Management routes retain ADMIN/CSRF/content-type checks and response policy; a separate `management-ota.c` is not currently needed |
 | Common HTTP headers, HTML/JSON/redirect responses, JSON utilities, and bounded form handling | `management-http.c` | Complete | It is not an HTML-template module and does not own route decisions |
 | Setup, login, cooldown, and authenticated administration page rendering | `management-pages.c` | Implemented on `feature/management-pages-module`; ESP-IDF v6.0.2 build passed; target behavior not yet tested for this refactor | Root-page ADMIN/session/CSRF decisions remain in `management.c`; the page module does not own route handlers or policy |
-| Setup/login/password route handlers | `management-auth-routes.c` | Implemented on `feature/management-auth-routes`; ESP-IDF v6.0.2 build passed; target behavior not yet tested for this refactor | Root-page authorization, logout, server startup, route order, and all non-auth routes remain in `management.c` |
-| Wi-Fi, token, and time route handlers | Future focused route modules only where a cohesive boundary remains | Planned | Current behavior remains in `management.c` until separately reviewed |
+| Setup/login/password route handlers | `management-auth-routes.c` | Implemented on `feature/management-auth-routes`; ESP-IDF v6.0.2 build passed; development-device smoke test passed after installation | Root-page authorization, logout, server startup, route order, and all non-auth routes remain in `management.c` |
+| Shared authorization helpers | `management-authorization.c` | Next planned slice from `fffbf96a3` | Preserve session gates, bearer scope, unauthorized responses, header zeroization, and activity semantics exactly |
+| Session, time, status, token, OTA, and Wi-Fi route handlers | Separate focused route modules | Planned | Extract one route family per branch after source and target acceptance review |
 | Final route composition | `management-routes.c` and/or `management-server.c` | Planned after route acceptance matrix | Preserve route order, headers, authorization, and endpoint semantics exactly |
 
-The next completed page-rendering extraction will reduce `management.c` without
-moving security decisions. It is intentionally safer than extracting setup or
-login routes immediately after the request-header-limit recovery work.
+The completed page-rendering and ADMIN-route extractions reduce `management.c`
+without changing security decisions. The next planned boundary is the shared
+authorization helper module, followed by separate route-family slices.
 
 ### Current management page-rendering slice
 
@@ -240,7 +241,7 @@ registration, header, response, or device behavior has been moved. A future
 `management-routes.c` extraction must first complete its target-side acceptance
 matrix and preserve the inventory exactly.
 
-## Current slice: management log module
+## Completed extraction summary: management log module
 
 The first slice moves the following private state and behavior out of
 `src/management.c`:
@@ -260,7 +261,7 @@ registration was rechecked by the target build.
 No route, response field, log capacity, timestamp format, or persistence
 behavior is intentionally changed.
 
-## Current slice: management status module
+## Completed extraction summary: management status module
 
 The second slice moves only read-only state collection out of
 `src/management.c`:
@@ -277,7 +278,7 @@ size limit, and error response remain in `src/management.c`. This keeps the
 ADMIN boundary unchanged while making the runtime data sources independently
 traceable for the factory-reset investigation.
 
-## Current slice: Wi-Fi provisioning web module
+## Completed extraction summary: Wi-Fi provisioning web module
 
 This slice moves the temporary captive-portal web handling out of `src/wifi.c`:
 
@@ -297,6 +298,21 @@ listed in `src/CMakeLists.txt` so an incremental ESP-IDF build includes it.
 No provisioning route, portal header, response text, request-body limit,
 credential-validation rule, or connection/recovery behavior is intentionally
 changed. The module does not log credentials.
+
+## 64k-agent continuation boundary
+
+The compact [ESP32_64K_AGENT_HANDOFF.md](ESP32_64K_AGENT_HANDOFF.md) is the
+preferred startup packet for a context-limited agent. The canonical continuation
+base is the locally installed development-device commit `fffbf96a3` on
+`feature/management-auth-routes`; the older `feature/management-route-inventory`
+checkout is an ancestor and is not the next code base by default.
+
+The next code slice is intentionally narrow: move the four shared authorization
+helpers from `management.c` into `management-authorization.c`. Do not combine
+that work with route registration, route-handler movement, factory reset, Wi-Fi
+recovery, or behavior changes. The development device has already received and
+smoke-tested the current build, so local compilation is the next validation
+boundary; no device action is implied.
 
 ## Branch and validation rules
 
