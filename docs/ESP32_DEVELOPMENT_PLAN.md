@@ -77,7 +77,11 @@ authorization decision, field semantic, and response status choice in
 `feature/wifi-credentials-module`, which isolates only active and pending
 Wi-Fi record persistence while retaining NVS initialization, connection and
 retry behavior, portal behavior, BOOT recovery, and factory-reset coordination
-in `wifi.c`.
+in `wifi.c`. The active follow-on branch is
+`feature/wifi-diagnostics-module`, which isolates only the user-facing
+connection diagnostic and read-only DHCP snapshot formatting while retaining
+connection/retry decisions, DHCP startup, portal behavior, BOOT recovery, and
+factory-reset coordination in `wifi.c`.
 
 ## Target platform
 

@@ -31,6 +31,7 @@
 #include "management.h"
 #include "time_config.h"
 #include "wifi-credentials.h"
+#include "wifi-diagnostics.h"
 #include "wifi-portal.h"
 
 #define WIFI_AP_INTERFACE_KEY "WIFI_AP_DEF"
@@ -46,7 +47,6 @@
 #define WIFI_MANAGEMENT_TASK_STACK_SIZE 12288
 #define WIFI_SCAN_RESULT_LIMIT WIFI_MANAGEMENT_SCAN_RESULT_LIMIT
 #define WIFI_REQUEST_BODY_LIMIT 256
-#define WIFI_CONNECTION_DIAGNOSTIC_LENGTH 192
 #define WIFI_BOOT_BUTTON GPIO_NUM_0
 #define WIFI_BOOT_RESET_HOLD_MS 3000
 #define WIFI_BOOT_FACTORY_RESET_HOLD_MS 15000
@@ -65,15 +65,6 @@ _Static_assert(WIFI_CREDENTIALS_PASSWORD_CAPACITY ==
 
 static const char *TAG = "nut-wifi";
 
-typedef struct
-{
-    struct netif *network_interface;
-    bool available;
-    bool offer_received;
-    uint8_t state;
-    uint8_t tries;
-} WifiDhcpSnapshot;
-
 static EventGroupHandle_t wifi_event_group;
 static esp_netif_t *station_network_interface;
 static esp_netif_t *access_point_network_interface;
@@ -85,7 +76,6 @@ static bool portal_start_scheduled;
 static bool management_start_scheduled;
 static unsigned int connection_retry_count;
 static bool station_associated;
-static char connection_diagnostic[WIFI_CONNECTION_DIAGNOSTIC_LENGTH];
 static portMUX_TYPE wifi_state_lock = portMUX_INITIALIZER_UNLOCKED;
 static SemaphoreHandle_t wifi_management_scan_lock;
 
@@ -112,114 +102,6 @@ static void wifi_start_management_task(void *argument)
     management_start_scheduled = false;
     taskEXIT_CRITICAL(&wifi_state_lock);
     vTaskDelete(NULL);
-}
-
-static void wifi_set_connection_diagnostic(const char *message)
-{
-    taskENTER_CRITICAL(&wifi_state_lock);
-    snprintf(connection_diagnostic, sizeof(connection_diagnostic), "%s", message);
-    taskEXIT_CRITICAL(&wifi_state_lock);
-}
-
-static void wifi_get_connection_diagnostic(char *destination, size_t destination_size)
-{
-    taskENTER_CRITICAL(&wifi_state_lock);
-    snprintf(destination, destination_size, "%s", connection_diagnostic);
-    taskEXIT_CRITICAL(&wifi_state_lock);
-}
-
-static const char *wifi_dhcp_state_name(uint8_t state)
-{
-    switch (state)
-    {
-        case DHCP_STATE_REQUESTING:
-            return "REQUESTING";
-        case DHCP_STATE_INIT:
-            return "INIT";
-        case DHCP_STATE_REBOOTING:
-            return "REBOOTING";
-        case DHCP_STATE_REBINDING:
-            return "REBINDING";
-        case DHCP_STATE_RENEWING:
-            return "RENEWING";
-        case DHCP_STATE_SELECTING:
-            return "SELECTING";
-        case DHCP_STATE_INFORMING:
-            return "INFORMING";
-        case DHCP_STATE_CHECKING:
-            return "CHECKING";
-        case DHCP_STATE_BOUND:
-            return "BOUND";
-        case DHCP_STATE_BACKING_OFF:
-            return "BACKING_OFF";
-        case DHCP_STATE_OFF:
-        default:
-            return "OFF";
-    }
-}
-
-static void wifi_capture_dhcp_snapshot_callback(void *argument)
-{
-    WifiDhcpSnapshot *snapshot = argument;
-    const struct dhcp *dhcp = netif_dhcp_data(snapshot->network_interface);
-    if (dhcp == NULL)
-    {
-        return;
-    }
-
-    snapshot->available = true;
-    snapshot->state = dhcp->state;
-    snapshot->tries = dhcp->tries;
-    snapshot->offer_received = !ip4_addr_isany_val(dhcp->offered_ip_addr);
-}
-
-static void wifi_capture_dhcp_diagnostic(void)
-{
-    WifiDhcpSnapshot snapshot = {
-        .network_interface = (struct netif *)esp_netif_get_netif_impl(station_network_interface),
-    };
-    if (snapshot.network_interface == NULL ||
-        tcpip_callback_wait(wifi_capture_dhcp_snapshot_callback, &snapshot) != ERR_OK)
-    {
-        wifi_set_connection_diagnostic("Wi-Fi associated, but the DHCP client state could not be inspected.");
-        return;
-    }
-
-    if (!snapshot.available)
-    {
-        wifi_set_connection_diagnostic("Wi-Fi associated, but the DHCP client was not running.");
-        return;
-    }
-
-    if ((snapshot.state == DHCP_STATE_SELECTING || snapshot.state == DHCP_STATE_BACKING_OFF) &&
-        !snapshot.offer_received)
-    {
-        char message[WIFI_CONNECTION_DIAGNOSTIC_LENGTH];
-        snprintf(message, sizeof(message),
-                 "Wi-Fi associated, but no DHCP offer was received (%s after %u attempts).",
-                 wifi_dhcp_state_name(snapshot.state), snapshot.tries);
-        wifi_set_connection_diagnostic(message);
-        return;
-    }
-
-    if (snapshot.state == DHCP_STATE_REQUESTING && snapshot.offer_received)
-    {
-        wifi_set_connection_diagnostic("A DHCP offer was received, but its lease acknowledgement did not arrive.");
-        return;
-    }
-
-    if (snapshot.state == DHCP_STATE_CHECKING && snapshot.offer_received)
-    {
-        wifi_set_connection_diagnostic("A DHCP acknowledgement was received; the offered address is being checked for a conflict.");
-        return;
-    }
-
-    char message[WIFI_CONNECTION_DIAGNOSTIC_LENGTH];
-    snprintf(message, sizeof(message),
-             "Wi-Fi associated, but DHCP did not complete (state %s, %u attempts, offer %s).",
-             wifi_dhcp_state_name(snapshot.state), snapshot.tries,
-             snapshot.offer_received ? "received" : "not received");
-    wifi_set_connection_diagnostic(message);
 }
 
 static void nvs_initialize(void)
@@ -1077,7 +959,7 @@ static bool wifi_connect_with_timeout(const WifiCredentials *credentials,
 
     if (station_associated)
     {
-        wifi_capture_dhcp_diagnostic();
+        wifi_diagnostics_capture_dhcp(station_network_interface);
     }
     else if ((bits & WIFI_FAILED_BIT) == 0)
     {
