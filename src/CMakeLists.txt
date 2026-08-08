@@ -13,6 +13,7 @@ list(APPEND app_sources
     ${CMAKE_SOURCE_DIR}/src/management-pages.c
     ${CMAKE_SOURCE_DIR}/src/management-session.c
     ${CMAKE_SOURCE_DIR}/src/management-status.c
+    ${CMAKE_SOURCE_DIR}/src/management-authorization.c
     ${CMAKE_SOURCE_DIR}/src/wifi-credentials.c
     ${CMAKE_SOURCE_DIR}/src/wifi-diagnostics.c
     ${CMAKE_SOURCE_DIR}/src/wifi-provisioning-web.c

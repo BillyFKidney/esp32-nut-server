@@ -7,6 +7,7 @@
 #include "management-pages.h"
 #include "management-session.h"
 #include "management-status.h"
+#include "management-authorization.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -54,64 +55,6 @@ static esp_err_t management_open_nvs(nvs_open_mode_t mode, nvs_handle_t *handle)
     return nvs_open(MANAGEMENT_NAMESPACE, mode, handle);
 }
 
-static bool management_require_session(httpd_req_t *request)
-{
-    if (management_session_is_authorized(request, true))
-    {
-        return true;
-    }
-    management_send_json(request, "401 Unauthorized",
-                         "{\"error\":\"ADMIN authentication is required.\"}");
-    return false;
-}
-
-static bool management_require_session_without_activity(httpd_req_t *request)
-{
-    if (management_session_is_authorized(request, false))
-    {
-        return true;
-    }
-    management_send_json(request, "401 Unauthorized",
-                         "{\"error\":\"ADMIN authentication is required.\"}");
-    return false;
-}
-
-static bool management_bearer_is_authorized(httpd_req_t *request,
-                                             uint32_t required_scope)
-{
-    static const char prefix[] = "Bearer ";
-    const size_t expected_length = sizeof(prefix) - 1U + API_TOKEN_VALUE_LENGTH;
-    const size_t header_length =
-        httpd_req_get_hdr_value_len(request, "Authorization");
-    if (header_length != expected_length)
-    {
-        return false;
-    }
-
-    char authorization[sizeof(prefix) - 1U + API_TOKEN_VALUE_LENGTH + 1U];
-    if (httpd_req_get_hdr_value_str(request, "Authorization", authorization,
-                                    sizeof(authorization)) != ESP_OK)
-    {
-        mbedtls_platform_zeroize(authorization, sizeof(authorization));
-        return false;
-    }
-    const bool authorized =
-        strncmp(authorization, prefix, sizeof(prefix) - 1U) == 0 &&
-        api_tokens_authorize(authorization + sizeof(prefix) - 1U,
-                             required_scope);
-    mbedtls_platform_zeroize(authorization, sizeof(authorization));
-    return authorized;
-}
-
-static esp_err_t management_send_bearer_unauthorized(httpd_req_t *request)
-{
-    httpd_resp_set_hdr(
-        request, "WWW-Authenticate",
-        "Bearer realm=\"ESP32-NUT Agent OTA\", scope=\"ota.install\"");
-    return management_send_json(
-        request, "401 Unauthorized",
-        "{\"error\":\"A valid API token with ota.install scope is required.\"}");
-}
 
 static esp_err_t management_root_handler(httpd_req_t *request)
 {
@@ -189,7 +132,7 @@ static const char *management_wifi_security_name(uint8_t authmode)
 
 static esp_err_t management_wifi_scan_handler(httpd_req_t *request)
 {
-    if (!management_require_session(request))
+    if (!management_require_session(request, true))
     {
         return ESP_OK;
     }
@@ -545,7 +488,7 @@ static esp_err_t management_session_activity_handler(httpd_req_t *request)
 
 static esp_err_t management_token_list_handler(httpd_req_t *request)
 {
-    if (!management_require_session(request))
+    if (!management_require_session(request, true))
     {
         return ESP_OK;
     }
