@@ -19,13 +19,13 @@ packet for a context-limited agent.**
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `main` |
+| Active branch | Resolve from live Git; the current local repair branch is `fix/ota-upload-diagnostics` |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
 | Branch base | `main` contains the merged refactoring stack and 64k-agent handoff from PR #33, the handoff alignment from PR #34, and the shared management authorization boundary from PR #35; live Git is authoritative |
 | Remote branch | `origin/main` is the canonical remote baseline |
-| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, route-inventory, temporary Wi-Fi provisioning-web, page-rendering, ADMIN-route, and shared authorization slices are merged; their recorded local ESP-IDF builds passed. The session-route extraction is implemented on the active feature branch and its local ESP-IDF build passed; target testing is pending. The Project Maintainer installed `v2.7.0-25-gfffbf96a3`; authenticated dashboard smoke evidence showed Wi-Fi connected, NUT health `ok`, and UPS status `OL` |
-| Worktree scope | `feature/management-session-routes` extracts only the existing logout and session-activity handlers. `management.c` retains HTTPS startup, the exact route definitions and registration order, and all other route families |
+| Implementation state | The stacked session-route, time-form, refresh-control, and production NUT logging changes are locally built. The deployed build rejected a locally valid ESP-IDF application image through both ADMIN OTA actions; the focused repair distinguishes receive, write, validation, and boot-selection failures and pauses status polling during transfers. The repair's ESP-IDF v6.0.2 build passed; target testing remains pending. |
+| Worktree scope | `fix/ota-upload-diagnostics` changes only the management OTA transfer boundary and its directly related browser polling behavior. It preserves the existing HTTPS, ADMIN/CSRF, inactive-slot, and reboot rules. |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
@@ -174,13 +174,12 @@ must not be presented as current.
 
 ## Exact next action
 
-The Project Maintainer should target-test the locally built
-`feature/management-session-routes` firmware: an authenticated logout must
-clear and expire the ADMIN session, and session activity must retain its exact
-CSRF rejection and remaining-session/warning response. Record the observed
-result before authorizing publication. The separate factory-reset investigation
-still requires tracing every UPS field exposed by the authenticated status
-response back through NUT dstate, runtime caches, and filesystem persistence.
+Complete the local ESP-IDF v6.0.2 build of `fix/ota-upload-diagnostics`. Because
+the deployed OTA path rejects the repair artifact, obtain separate authority
+before installing it through the serial recovery path; then target-test Check
+Firmware and Install Firmware with automatic status refresh enabled and
+disabled. Record the exact response and confirm that Check does not select the
+image for boot or restart the device.
 
 ## Read only when needed
 

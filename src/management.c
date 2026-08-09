@@ -872,6 +872,8 @@ esp_err_t management_server_start(void)
      * portal retains its smaller default.
      */
     configuration.httpd.max_req_hdr_len = MANAGEMENT_HTTPS_REQUEST_HEADER_LIMIT;
+    /* Allow a bounded idle interval while a browser streams a large OTA image. */
+    configuration.httpd.recv_wait_timeout = 15;
     configuration.httpd.max_open_sockets = 4;
     configuration.httpd.max_uri_handlers = MANAGEMENT_HTTPS_ROUTE_CAPACITY;
     configuration.httpd.lru_purge_enable = true;
