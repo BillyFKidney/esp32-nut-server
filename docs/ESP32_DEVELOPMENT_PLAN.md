@@ -53,37 +53,15 @@ invariants, and validation rules are recorded in
 consume a release version by itself and must not blur the acceptance boundary
 of the active UPS-state or factory-reset slices.
 
-The first branch is `feature/management-log-module`, which isolates bounded
-in-memory management log capture and status-response serialization. The second
-branch is `feature/management-status-module`, which isolates only read-only NUT
-and hardware snapshots while retaining the authenticated route and JSON
-assembly in `management.c`. The active follow-on branch is
-`feature/management-certificates-module`, which isolates the persisted
-self-signed HTTPS certificate and private-key lifecycle while keeping HTTPS
-startup and routing in `management.c`. The active follow-on branch is
-`feature/management-credentials-module`, which isolates ADMIN credential
-storage, PBKDF2 verification, and legacy migration while retaining routes,
-sessions/CSRF, throttling, and factory-reset orchestration in `management.c`.
-The active follow-on branch is `feature/management-session-module`, which
-isolates ADMIN and setup cookies, CSRF validation, idle expiry, and login
-throttling while retaining routes, response policy, bearer-token checks, and
-factory-reset orchestration in `management.c`. Wi-Fi recovery remains a
-separate later boundary because it carries physical-recovery risk. The active
-follow-on branch is `feature/management-http-module`, which isolates shared
-defensive response headers, HTML/JSON/redirect output mechanics, bounded JSON
-construction, and bounded URL-form parsing while retaining every route,
-authorization decision, field semantic, and response status choice in
-`management.c`. The active follow-on branch is
-`feature/wifi-credentials-module`, which isolates only active and pending
-Wi-Fi record persistence while retaining NVS initialization, connection and
-retry behavior, portal behavior, BOOT recovery, and factory-reset coordination
-in `wifi.c`. The active follow-on branch is
-`feature/wifi-diagnostics-module`, which isolates only the user-facing
-connection diagnostic and read-only DHCP snapshot formatting while retaining
-connection/retry decisions, DHCP startup, portal behavior, BOOT recovery, and
-factory-reset coordination in `wifi.c`. The active documentation follow-on
-branch is `feature/management-route-inventory`, which records the route-level
-acceptance baseline before any handler or registration refactor.
+The completed work isolates management logging, status snapshots, certificate
+material, credentials, sessions, HTTP helpers, pages, authorization, all
+management handler families, and route composition, plus Wi-Fi credential,
+diagnostic, and provisioning-web boundaries. The local
+`feature/management-route-families` branch completed status, time, token,
+Wi-Fi, OTA, and route-composition extraction builds. `management.c` remains
+the HTTPS/root-policy/factory-reset orchestration boundary. Complete review,
+clean build, and authorized target validation before beginning the separately
+scoped v2.7.1 factory-reset work.
 
 ## Target platform
 

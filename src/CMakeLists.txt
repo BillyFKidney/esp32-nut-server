@@ -14,6 +14,12 @@ list(APPEND app_sources
     ${CMAKE_SOURCE_DIR}/src/management-session.c
     ${CMAKE_SOURCE_DIR}/src/management-session-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-status.c
+    ${CMAKE_SOURCE_DIR}/src/management-status-routes.c
+    ${CMAKE_SOURCE_DIR}/src/management-time-routes.c
+    ${CMAKE_SOURCE_DIR}/src/management-token-routes.c
+    ${CMAKE_SOURCE_DIR}/src/management-wifi-routes.c
+    ${CMAKE_SOURCE_DIR}/src/management-ota-routes.c
+    ${CMAKE_SOURCE_DIR}/src/management-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-authorization.c
     ${CMAKE_SOURCE_DIR}/src/wifi-credentials.c
     ${CMAKE_SOURCE_DIR}/src/wifi-diagnostics.c

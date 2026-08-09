@@ -45,7 +45,12 @@ and dependency locks remain untracked.
 | 8 | `wifi-diagnostics.c` — connection diagnostic and read-only DHCP snapshots | Implemented on `feature/wifi-diagnostics-module`; review pending | ESP-IDF v6.0.2 target build passes; message text and DHCP state checks remain unchanged by code-path inspection; retries, timeouts, portal behavior, and recovery remain in `wifi.c` |
 | 9 | `wifi-provisioning-web.c` — captive-portal HTTP routes, form decode, JSON responses, and route registration | Implemented on `feature/wifi-provisioning-web-module`; target smoke validation partially passed; review pending | ESP-IDF v6.0.2 target build passes. The combined local candidate was installed through the authenticated browser OTA path, rebooted, and accepted an existing ADMIN password; temporary portal endpoints remain untested because the configured development board was not deliberately placed into recovery mode |
 | 10 | `wifi-recovery.c` — BOOT hold thresholds and restart orchestration | Planned | Three-second Wi-Fi reset and fifteen-second factory reset retain exact thresholds and recovery boundary |
-| 11 | `management-routes.c` — route composition after route-by-route behavior inventory | Inventory recorded on `feature/management-route-inventory`; code extraction planned | [ESP32_ROUTE_INVENTORY.md](ESP32_ROUTE_INVENTORY.md) records all 17 routes and source-level guards; paths, methods, status codes, authorization checks, response payload semantics, and registration order remain unchanged |
+| 11a | `management-status-routes.c` — authenticated status response assembly | Implemented on `feature/management-route-families`; ESP-IDF v6.0.2 build passed | Preserves `management_require_session_without_activity()`, status/JSON field behavior, and log/status snapshot semantics |
+| 11b | `management-time-routes.c` — ADMIN time configuration | Implemented on `feature/management-route-families`; ESP-IDF v6.0.2 build passed | Preserves ADMIN/CSRF policy, form handling, NVS/time behavior, responses, and manual/NTP behavior |
+| 11c | `management-token-routes.c` — list/create/delete API-token family | Implemented on `feature/management-route-families`; ESP-IDF v6.0.2 build passed | Preserves list activity semantics, creation/deletion ADMIN/CSRF policy, token scope behavior, and response bodies |
+| 11d | `management-wifi-routes.c` — Wi-Fi scan and configuration family | Implemented on `feature/management-route-families`; ESP-IDF v6.0.2 build passed | Preserves scan/configuration authorization, scan responses, credential staging, restart scheduling, and zeroization |
+| 11e | `management-ota-routes.c` — browser and Agent OTA family | Implemented on `feature/management-route-families`; ESP-IDF v6.0.2 build passed | Preserves browser ADMIN/CSRF, bearer `ota.install` scope, Authorization-header zeroization, OTA response policy, inactive-slot behavior, and restart coordination |
+| 12 | `management-routes.c` — route composition after all handler families move | Implemented on `feature/management-route-families`; ESP-IDF v6.0.2 build passed | [ESP32_ROUTE_INVENTORY.md](ESP32_ROUTE_INVENTORY.md) records all 17 routes and source-level guards; paths, methods, status codes, authorization checks, response payload semantics, capacity assertion, and registration order remain unchanged |
 
 The order is intentionally conservative: logging has no security decision or
 network state; status is read-only; certificate and credential extraction then
@@ -61,25 +66,25 @@ out of `management.c`.
 
 | Responsibility | Focused module | Current status | Deliberately retained in `management.c` or later work |
 | --- | --- | --- | --- |
-| HTTPS server bootstrap and route registration | None yet; eventual `management-server.c` and/or `management-routes.c` | Planned; the route inventory is complete | HTTPS server configuration, route order, and all 17 registrations |
+| HTTPS server bootstrap and route registration | `management-routes.c` after handler-family extractions | Active plan; the route inventory is complete | HTTPS server configuration remains in `management.c`; route order and all 17 registrations move only in the final composition extraction |
 | ADMIN credential format, PBKDF2 verification, persistence, legacy migration | `management-credentials.c` | Complete | Setup, login, password-change, and factory-reset route policy |
 | ADMIN cookies, CSRF, idle timeout, and login throttling | `management-session.c` | Complete | Route-level authorization, 401/403/429 response selection, and form handling |
 | TLS certificate/key storage and self-signed material lifecycle | `management-certificates.c` | Complete | HTTPS server startup and route registration |
 | NUT and hardware diagnostic snapshots | `management-status.c` | Complete | Authenticated status-route authorization and final JSON response aggregation |
 | Bounded in-memory management-log capture and status serialization | `management-log.c` | Complete | No separate log API exists or is planned in this extraction |
-| OTA body handling, image verification, descriptor identity, boot selection, and restart coordination | `ota.c` | Complete focused boundary | Management routes retain ADMIN/CSRF/content-type checks and response policy; a separate `management-ota.c` is not currently needed |
+| OTA body handling, image verification, descriptor identity, boot selection, and restart coordination | `ota.c` | Complete focused boundary | `management-ota-routes.c` will own browser and Agent route policy while `ota.c` retains OTA mechanics |
 | Common HTTP headers, HTML/JSON/redirect responses, JSON utilities, and bounded form handling | `management-http.c` | Complete | It is not an HTML-template module and does not own route decisions |
 | Setup, login, cooldown, and authenticated administration page rendering | `management-pages.c` | Implemented on `feature/management-pages-module`; ESP-IDF v6.0.2 build passed; target behavior not yet tested for this refactor | Root-page ADMIN/session/CSRF decisions remain in `management.c`; the page module does not own route handlers or policy |
 | Setup/login/password route handlers | `management-auth-routes.c` | Implemented on `feature/management-auth-routes`; ESP-IDF v6.0.2 build passed; development-device smoke test passed after installation | Root-page authorization, logout, server startup, route order, and all non-auth routes remain in `management.c` |
 | Shared authorization helpers | `management-authorization.c` | Merged to `main` by PR #35; ESP-IDF v6.0.2 build passed | Session gates, bearer scope, unauthorized responses, header zeroization, and activity semantics remain unchanged by code-path inspection |
-| Session, time, status, token, OTA, and Wi-Fi route handlers | Separate focused route modules | Planned | Extract one route family per branch after source and target acceptance review |
-| Final route composition | `management-routes.c` and/or `management-server.c` | Planned after route acceptance matrix | Preserve route order, headers, authorization, and endpoint semantics exactly |
+| Remaining status, time, token, OTA, and Wi-Fi route handlers | Five focused route-family modules | Implemented on `feature/management-route-families`; local builds passed | Cohesive families, not individual operations; preserve each route's documented authorization and response semantics |
+| Final route composition | `management-routes.c` | Implemented on `feature/management-route-families`; local build passed | Preserves route order, capacity assertion, headers, authorization, and endpoint semantics; HTTPS lifecycle remains in `management.c` |
 
-The completed page-rendering, ADMIN-route, and shared-authorization extractions
-reduce `management.c` without changing security decisions. The active boundary
-is the logout and session-activity route module; its local ESP-IDF v6.0.2 build
-passed and target validation remains pending. Separate route-family slices
-follow after that validation.
+The completed page-rendering, ADMIN-route, shared-authorization, and session
+route extractions reduce `management.c` without changing security decisions.
+The active branch completed the remaining handler families and the final
+route-composition move. It did not begin the separately scoped v2.7.1
+factory-reset investigation.
 
 ### Current management page-rendering slice
 
@@ -234,14 +239,17 @@ checking the four routes. Do not submit real Wi-Fi credentials merely to test
 this refactor; use invalid input or a separately authorized credential-staging
 test.
 
-### Stage 11: route-composition inventory
+### Stages 11–12: remaining route families and route composition
 
 [ESP32_ROUTE_INVENTORY.md](ESP32_ROUTE_INVENTORY.md) records the 17 existing
 HTTPS route registrations in their current order, together with source-level
-authorization and CSRF guards. It is documentation only: no handler,
-registration, header, response, or device behavior has been moved. A future
-`management-routes.c` extraction must first complete its target-side acceptance
-matrix and preserve the inventory exactly.
+authorization and CSRF guards. The completed `management-routes.c` extraction
+moves the descriptors and registration loop only after the status, time, token,
+Wi-Fi, and OTA handler families became external. It preserves the inventory
+exactly. The applied family order was status; time; tokens; Wi-Fi; OTA; then
+route composition. This keeps each source unit small enough for constrained
+agent context without creating per-operation files that obscure a cohesive API
+or inflate boilerplate.
 
 ## Completed extraction summary: management log module
 

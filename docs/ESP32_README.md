@@ -310,13 +310,22 @@ The application uses FreeRTOS tasks:
 src/
 ├── main.c              - ESP32 application entry point
 ├── usb.c               - USB host implementation
-├── management.c        - HTTPS administration orchestration and routes
+├── management.c        - HTTPS administration orchestration, root policy, and factory reset
+├── management-auth-routes.c - setup, login, and ADMIN-password routes
 ├── management-certificates.c - persisted self-signed HTTPS certificate/key lifecycle
 ├── management-credentials.c - ADMIN credential storage, verification, and migration
 ├── management-http.c   - shared defensive HTTP responses and bounded form handling
 ├── management-log.c    - bounded in-memory management/NUT log capture
+├── management-ota-routes.c - browser and bearer Agent OTA routes
+├── management-pages.c  - setup, login, cooldown, and ADMIN page rendering
+├── management-routes.c - fixed HTTPS route descriptors and registration order
 ├── management-session.c - ADMIN/setup cookies, CSRF, timeout, and login throttling
+├── management-session-routes.c - logout and session-activity routes
 ├── management-status.c - read-only NUT and hardware status snapshots
+├── management-status-routes.c - authenticated read-only status response
+├── management-time-routes.c - ADMIN time configuration route
+├── management-token-routes.c - API-token list/create/delete routes
+├── management-wifi-routes.c - ADMIN Wi-Fi scan and configuration routes
 ├── wifi.c              - Wi-Fi orchestration and recovery coordination
 ├── wifi-credentials.c  - active/pending Wi-Fi NVS credential records
 ├── wifi-diagnostics.c  - connection diagnostics and read-only DHCP snapshots
