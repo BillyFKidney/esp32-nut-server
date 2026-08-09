@@ -18,12 +18,22 @@
 #define OTA_NVS_NAMESPACE "management"
 #define OTA_LAST_RESULT_KEY "ota-result"
 #define OTA_RECEIVE_BUFFER_SIZE 4096
-#define OTA_RECEIVE_TIMEOUT_RETRIES 3
+#define OTA_RECEIVE_TIMEOUT_RETRIES 4
 #define OTA_REBOOT_DELAY_MS 1000
 #define OTA_IMAGE_VERSION_BUFFER_SIZE (sizeof(((esp_app_desc_t *)0)->version) + 1U)
 #define OTA_CHECK_RESPONSE_SIZE 192U
 
 static bool ota_update_in_progress;
+
+typedef enum
+{
+    OTA_FAILURE_NONE,
+    OTA_FAILURE_RECEIVE_TIMEOUT,
+    OTA_FAILURE_RECEIVE,
+    OTA_FAILURE_WRITE,
+    OTA_FAILURE_VALIDATE,
+    OTA_FAILURE_BOOT_SELECTION,
+} OtaFailure;
 
 static void ota_record_result(const char *result)
 {
@@ -97,6 +107,37 @@ static esp_err_t ota_send_error(httpd_req_t *request, const char *status,
     ota_set_response_headers(request);
     httpd_resp_set_status(request, status);
     return httpd_resp_sendstr(request, message);
+}
+
+static esp_err_t ota_send_failure(httpd_req_t *request, OtaFailure failure)
+{
+    switch (failure)
+    {
+    case OTA_FAILURE_RECEIVE_TIMEOUT:
+        return ota_send_error(
+            request, "408 Request Timeout",
+            "{\"status\":\"error\",\"message\":\"Firmware upload timed out before completion. Disable automatic status refresh and try again.\"}");
+    case OTA_FAILURE_RECEIVE:
+        return ota_send_error(
+            request, "400 Bad Request",
+            "{\"status\":\"error\",\"message\":\"Firmware upload ended before the complete image was received.\"}");
+    case OTA_FAILURE_WRITE:
+        return ota_send_error(
+            request, "500 Internal Server Error",
+            "{\"status\":\"error\",\"message\":\"Unable to write the firmware upload to the inactive OTA partition.\"}");
+    case OTA_FAILURE_VALIDATE:
+        return ota_send_error(
+            request, "422 Unprocessable Content",
+            "{\"status\":\"error\",\"message\":\"The complete upload failed ESP32 application-image validation.\"}");
+    case OTA_FAILURE_BOOT_SELECTION:
+        return ota_send_error(
+            request, "500 Internal Server Error",
+            "{\"status\":\"error\",\"message\":\"Firmware was verified but could not be selected for the next boot.\"}");
+    case OTA_FAILURE_NONE:
+    default:
+        return ota_send_error(request, "500 Internal Server Error",
+                              "{\"status\":\"error\",\"message\":\"Firmware update failed.\"}");
+    }
 }
 
 static void ota_copy_image_version(char *destination, size_t destination_size,
@@ -226,6 +267,7 @@ static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
     char receive_buffer[OTA_RECEIVE_BUFFER_SIZE];
     int remaining = request->content_len;
     unsigned int receive_timeout_retries = 0;
+    OtaFailure failure = OTA_FAILURE_NONE;
     while (remaining > 0)
     {
         const size_t receive_size = remaining < (int)sizeof(receive_buffer)
@@ -244,6 +286,9 @@ static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
             }
 
             result = received == HTTPD_SOCK_ERR_TIMEOUT ? ESP_ERR_TIMEOUT : ESP_FAIL;
+            failure = received == HTTPD_SOCK_ERR_TIMEOUT
+                          ? OTA_FAILURE_RECEIVE_TIMEOUT
+                          : OTA_FAILURE_RECEIVE;
             ESP_LOGE(TAG, "OTA image receive failed: %s", esp_err_to_name(result));
             break;
         }
@@ -252,6 +297,9 @@ static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
         result = esp_ota_write(update_handle, receive_buffer, received);
         if (result != ESP_OK)
         {
+            failure = result == ESP_ERR_OTA_VALIDATE_FAILED
+                          ? OTA_FAILURE_VALIDATE
+                          : OTA_FAILURE_WRITE;
             ESP_LOGE(TAG, "OTA image write failed: %s", esp_err_to_name(result));
             break;
         }
@@ -263,6 +311,9 @@ static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
         result = esp_ota_end(update_handle);
         if (result != ESP_OK)
         {
+            failure = result == ESP_ERR_OTA_VALIDATE_FAILED
+                          ? OTA_FAILURE_VALIDATE
+                          : OTA_FAILURE_WRITE;
             ESP_LOGE(TAG, "OTA image verification failed: %s", esp_err_to_name(result));
         }
     }
@@ -276,6 +327,7 @@ static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
         result = esp_ota_set_boot_partition(update_partition);
         if (result != ESP_OK)
         {
+            failure = OTA_FAILURE_BOOT_SELECTION;
             ESP_LOGE(TAG, "Unable to select OTA partition for boot: %s", esp_err_to_name(result));
         }
     }
@@ -287,8 +339,7 @@ static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
         {
             ota_record_result("failed");
         }
-        return ota_send_error(request, "422 Unprocessable Content",
-                              "{\"status\":\"error\",\"message\":\"The uploaded file is not a valid ESP32-NUT firmware image.\"}");
+        return ota_send_failure(request, failure);
     }
 
     if (!install)

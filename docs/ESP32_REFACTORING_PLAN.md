@@ -71,13 +71,15 @@ out of `management.c`.
 | Common HTTP headers, HTML/JSON/redirect responses, JSON utilities, and bounded form handling | `management-http.c` | Complete | It is not an HTML-template module and does not own route decisions |
 | Setup, login, cooldown, and authenticated administration page rendering | `management-pages.c` | Implemented on `feature/management-pages-module`; ESP-IDF v6.0.2 build passed; target behavior not yet tested for this refactor | Root-page ADMIN/session/CSRF decisions remain in `management.c`; the page module does not own route handlers or policy |
 | Setup/login/password route handlers | `management-auth-routes.c` | Implemented on `feature/management-auth-routes`; ESP-IDF v6.0.2 build passed; development-device smoke test passed after installation | Root-page authorization, logout, server startup, route order, and all non-auth routes remain in `management.c` |
-| Shared authorization helpers | `management-authorization.c` | Next planned slice from current `main` | Preserve session gates, bearer scope, unauthorized responses, header zeroization, and activity semantics exactly |
+| Shared authorization helpers | `management-authorization.c` | Merged to `main` by PR #35; ESP-IDF v6.0.2 build passed | Session gates, bearer scope, unauthorized responses, header zeroization, and activity semantics remain unchanged by code-path inspection |
 | Session, time, status, token, OTA, and Wi-Fi route handlers | Separate focused route modules | Planned | Extract one route family per branch after source and target acceptance review |
 | Final route composition | `management-routes.c` and/or `management-server.c` | Planned after route acceptance matrix | Preserve route order, headers, authorization, and endpoint semantics exactly |
 
-The completed page-rendering and ADMIN-route extractions reduce `management.c`
-without changing security decisions. The next planned boundary is the shared
-authorization helper module, followed by separate route-family slices.
+The completed page-rendering, ADMIN-route, and shared-authorization extractions
+reduce `management.c` without changing security decisions. The active boundary
+is the logout and session-activity route module; its local ESP-IDF v6.0.2 build
+passed and target validation remains pending. Separate route-family slices
+follow after that validation.
 
 ### Current management page-rendering slice
 
@@ -307,12 +309,13 @@ base is current `main`, which now contains the merged refactoring stack and
 handoff from PR #33. The older `feature/management-route-inventory` checkout is
 an ancestor and is not the next code base by default.
 
-The next code slice is intentionally narrow: move the four shared authorization
-helpers from `management.c` into `management-authorization.c`. Do not combine
-that work with route registration, route-handler movement, factory reset, Wi-Fi
-recovery, or behavior changes. The development device has already received and
-smoke-tested the current build, so local compilation is the next validation
-boundary; no device action is implied.
+The active code slice is intentionally narrow: move only the existing logout
+and session-activity handlers from `management.c` into
+`management-session-routes.c`. Do not combine that work with route
+registration, other route-handler movement, factory reset, Wi-Fi recovery, or
+behavior changes. The development device has already received and smoke-tested
+the preceding build; this extraction now requires separately authorized target
+validation before publishing.
 
 ## Branch and validation rules
 

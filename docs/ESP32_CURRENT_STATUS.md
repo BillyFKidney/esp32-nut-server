@@ -19,19 +19,32 @@ packet for a context-limited agent.**
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `main` |
+| Active branch | Resolve from live Git; the current local repair branch is `fix/ota-upload-diagnostics` |
 | Release target | `v2.7.1` |
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
-| Branch base | `main` now contains the merged refactoring stack and 64k-agent handoff from PR #33 at `22f4cbe6`; live Git is authoritative |
+| Branch base | `main` contains the merged refactoring stack and 64k-agent handoff from PR #33, the handoff alignment from PR #34, and the shared management authorization boundary from PR #35; live Git is authoritative |
 | Remote branch | `origin/main` is the canonical remote baseline |
-| Implementation state | Management logging, read-only status, HTTPS certificate/key lifecycle, ADMIN credential, ADMIN session/CSRF, shared HTTP helper, Wi-Fi credential, Wi-Fi diagnostic, route-inventory, temporary Wi-Fi provisioning-web, page-rendering, and ADMIN-route slices are locally committed and target builds passed. The Project Maintainer installed `v2.7.0-25-gfffbf96a3`; authenticated dashboard smoke evidence showed Wi-Fi connected, NUT health `ok`, and UPS status `OL` |
-| Worktree scope | `main` contains the compact 64k-agent continuation packet and the completed local refactoring stack. Page rendering and setup/login/password handlers are focused modules; server startup, route paths/methods/order, authorization helpers, logout, status response assembly, token routes, time, OTA, Wi-Fi management routes, and factory-reset coordination remain to be handled in separate slices |
+| Implementation state | The stacked session-route, time-form, refresh-control, and production NUT logging changes are locally built. The deployed build rejected a locally valid ESP-IDF application image through both ADMIN OTA actions; the focused repair distinguishes receive, write, validation, and boot-selection failures and pauses status polling during transfers. The repair's ESP-IDF v6.0.2 build passed and was serial-installed for target validation. The authenticated Check Firmware action verified its exact v36 image without selecting it for boot or restarting; authenticated management, Wi-Fi, NTP, read-only NUT, and fresh UPS data were then observed healthy. The retained `last_result` value remains the earlier failed OTA attempt. |
+| Worktree scope | `fix/ota-upload-diagnostics` changes only the management OTA transfer boundary and its directly related browser polling behavior. It preserves the existing HTTPS, ADMIN/CSRF, inactive-slot, and reboot rules. |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
 | SDK | ESP-IDF v6.0.2, target `esp32s3` |
 | Required services | LAN-only HTTPS `443`; read-only NUT `3493`; retired unauthenticated `8080` remains refused |
 | Device coordinates | **Observed:** the development-console FQDN was used for browser OTA and current DNS resolved it to `192.168.40.10`. Treat that as the management-proxy address; rediscover the direct ESP32 address and any `/dev/cu.usbmodem*` path before direct hardware work |
 | Authorization | The Project Maintainer completed the latest firmware installation and smoke test. No additional flash, OTA installation, factory reset, push, merge, tag, or release is authorized by this documentation handoff |
+
+## Current development-target flash
+
+**Observed (2026-08-08):** the development target's complete flash was erased
+at the Project Maintainer's request, then ESP-IDF wrote and verified the
+bootloader, partition table, OTA metadata, application, and both filesystem
+images from the active session-routes working tree.
+
+**Not tested after the flash:** application boot, provisioning, Wi-Fi, HTTPS
+ADMIN console, NUT, and UPS behavior. The erase removed all prior NVS-backed
+Wi-Fi, ADMIN, certificate, token, and OTA state, so the former browser session
+and LAN configuration cannot be expected to work until the device is set up
+again.
 
 ## Recent target acceptance: checked-image identity
 
@@ -161,13 +174,11 @@ must not be presented as current.
 
 ## Exact next action
 
-Use [ESP32_64K_AGENT_HANDOFF.md](ESP32_64K_AGENT_HANDOFF.md), create
-`feature/management-authorization-module` from `main`, and extract only the
-four shared authorization helpers. Build and review that slice locally. Do not
-publish the code branch before the preceding slices are reviewed and the branch
-is based on current `main`. The separate factory-reset investigation still
-requires tracing every UPS field exposed by the authenticated status response
-back through NUT dstate, runtime caches, and filesystem persistence.
+Review the successful recovery and Check Firmware evidence for
+`fix/ota-upload-diagnostics`. The exact next acceptance decision is whether to
+exercise Install Firmware and its reboot path with the already-checked v36
+image, then authorize publication separately if the remaining release checks
+are accepted.
 
 ## Read only when needed
 
