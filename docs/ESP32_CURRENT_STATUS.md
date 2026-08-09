@@ -24,7 +24,7 @@ packet for a context-limited agent.**
 | HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
 | Branch base | `main` contains the merged refactoring stack and 64k-agent handoff from PR #33, the handoff alignment from PR #34, and the shared management authorization boundary from PR #35; live Git is authoritative |
 | Remote branch | `origin/main` is the canonical remote baseline |
-| Implementation state | The stacked session-route, time-form, refresh-control, and production NUT logging changes are locally built. The deployed build rejected a locally valid ESP-IDF application image through both ADMIN OTA actions; the focused repair distinguishes receive, write, validation, and boot-selection failures and pauses status polling during transfers. The repair's ESP-IDF v6.0.2 build passed; target testing remains pending. |
+| Implementation state | The stacked session-route, time-form, refresh-control, and production NUT logging changes are locally built. The deployed build rejected a locally valid ESP-IDF application image through both ADMIN OTA actions; the focused repair distinguishes receive, write, validation, and boot-selection failures and pauses status polling during transfers. The repair's ESP-IDF v6.0.2 build passed and was serial-installed for target validation. The authenticated Check Firmware action verified its exact v36 image without selecting it for boot or restarting; authenticated management, Wi-Fi, NTP, read-only NUT, and fresh UPS data were then observed healthy. The retained `last_result` value remains the earlier failed OTA attempt. |
 | Worktree scope | `fix/ota-upload-diagnostics` changes only the management OTA transfer boundary and its directly related browser polling behavior. It preserves the existing HTTPS, ADMIN/CSRF, inactive-slot, and reboot rules. |
 | Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
 | Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
@@ -174,12 +174,11 @@ must not be presented as current.
 
 ## Exact next action
 
-Complete the local ESP-IDF v6.0.2 build of `fix/ota-upload-diagnostics`. Because
-the deployed OTA path rejects the repair artifact, obtain separate authority
-before installing it through the serial recovery path; then target-test Check
-Firmware and Install Firmware with automatic status refresh enabled and
-disabled. Record the exact response and confirm that Check does not select the
-image for boot or restart the device.
+Review the successful recovery and Check Firmware evidence for
+`fix/ota-upload-diagnostics`. The exact next acceptance decision is whether to
+exercise Install Firmware and its reboot path with the already-checked v36
+image, then authorize publication separately if the remaining release checks
+are accepted.
 
 ## Read only when needed
 
