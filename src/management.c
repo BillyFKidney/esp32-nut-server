@@ -6,6 +6,7 @@
 #include "management-log.h"
 #include "management-pages.h"
 #include "management-session.h"
+#include "management-session-routes.h"
 #include "management-status.h"
 #include "management-authorization.h"
 
@@ -86,17 +87,6 @@ static esp_err_t management_root_handler(httpd_req_t *request)
     const esp_err_t send_result = management_pages_send_admin(request, csrf);
     mbedtls_platform_zeroize(csrf, sizeof(csrf));
     return send_result;
-}
-
-static esp_err_t management_logout_handler(httpd_req_t *request)
-{
-    if (!management_session_csrf_is_valid(request))
-    {
-        return management_send_json(request, "403 Forbidden", "{\"error\":\"Invalid session or CSRF token.\"}");
-    }
-    management_session_clear();
-    management_session_expire_cookie(request);
-    return management_send_redirect(request, "/");
 }
 
 static const char *management_wifi_security_name(uint8_t authmode)
@@ -463,27 +453,6 @@ static esp_err_t management_status_handler(httpd_req_t *request)
     const esp_err_t send_result = management_send_json(request, "200 OK", response);
     mbedtls_platform_zeroize(response, sizeof(response));
     return send_result;
-}
-
-static esp_err_t management_session_activity_handler(httpd_req_t *request)
-{
-    if (!management_session_csrf_is_valid(request))
-    {
-        return management_send_json(
-            request, "403 Forbidden",
-            "{\"error\":\"Invalid session or CSRF token.\"}");
-    }
-
-    char response[96];
-    const uint32_t remaining_seconds = management_session_remaining_seconds();
-    snprintf(response, sizeof(response),
-             "{\"remaining_seconds\":%u,\"warning\":%s}",
-             (unsigned int)remaining_seconds,
-             remaining_seconds > 0 &&
-                     remaining_seconds <= MANAGEMENT_SESSION_WARNING_SECONDS
-                 ? "true"
-                 : "false");
-    return management_send_json(request, "200 OK", response);
 }
 
 static esp_err_t management_token_list_handler(httpd_req_t *request)
@@ -924,7 +893,7 @@ esp_err_t management_server_start(void)
     const httpd_uri_t login_page = {.uri = "/login", .method = HTTP_GET, .handler = management_auth_login_page_handler};
     const httpd_uri_t login = {.uri = "/login", .method = HTTP_POST, .handler = management_auth_login_handler};
     const httpd_uri_t password = {.uri = "/api/v1/admin/password", .method = HTTP_POST, .handler = management_auth_password_change_handler};
-    const httpd_uri_t logout = {.uri = "/logout", .method = HTTP_POST, .handler = management_logout_handler};
+    const httpd_uri_t logout = {.uri = "/logout", .method = HTTP_POST, .handler = management_session_logout_handler};
     const httpd_uri_t status = {.uri = "/api/v1/status", .method = HTTP_GET, .handler = management_status_handler};
     const httpd_uri_t session_activity = {.uri = "/api/v1/admin/session/activity", .method = HTTP_POST, .handler = management_session_activity_handler};
     const httpd_uri_t time_configuration = {.uri = "/api/v1/admin/time", .method = HTTP_POST, .handler = management_time_config_handler};

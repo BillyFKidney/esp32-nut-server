@@ -68,32 +68,31 @@ boundaries already exist:
 - `management-status.c` — NUT and hardware data collection; and
 - `management-log.c` — bounded in-memory log capture and serialization.
 
-## Next code slice
+## Current code slice
 
 Create a new code branch from `main`:
 
 ```text
-feature/management-authorization-module
+feature/management-session-routes
 ```
 
-Move only these shared authorization helpers from `management.c`:
+Move only the existing session route handlers from `management.c`:
 
-- `management_require_session()`;
-- `management_require_session_without_activity()`;
-- `management_bearer_is_authorized()`; and
-- `management_send_bearer_unauthorized()`.
+- `POST /logout`; and
+- `POST /api/v1/admin/session/activity`.
 
-The extraction must preserve the exact status strings, response bodies, bearer
-scope, constant-time/token handling, Authorization-header zeroization, and
-ADMIN session activity behavior. It must not move route registration or change
-any route policy. Add the new source explicitly to `src/CMakeLists.txt` and
-provide a narrow header interface.
+The extraction must preserve the exact status strings and response bodies, CSRF
+checks, session clear/expiry behavior, remaining-session/warning calculation,
+and ADMIN session activity behavior. It must not move route registration or
+change any route policy. Add the new source explicitly to `src/CMakeLists.txt`
+and provide a narrow header interface.
 
-After that slice builds, the next independent route slice is
-`management-session-routes.c` for logout and session-activity handlers. Follow
-with time, read-only status response assembly, token routes, OTA routes, and
-Wi-Fi routes as separate reviewable boundaries. Leave factory reset separate
-until the stale-UPS-state investigation is complete.
+The local ESP-IDF v6.0.2 build passed for this extraction. Target validation
+is pending: test authenticated logout and session activity before publishing.
+After target validation, follow with time, read-only status response assembly,
+token routes, OTA routes, and Wi-Fi routes as separate reviewable boundaries.
+Leave factory reset separate until the stale-UPS-state investigation is
+complete.
 
 ## Validation contract
 
