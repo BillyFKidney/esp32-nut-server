@@ -185,7 +185,8 @@ void rtos_yield(void)
 void app_main()
 {
     management_log_capture_start();
-    nut_debug_level = 9;
+    /* Production operation keeps NUT diagnostics at normal log severity. */
+    nut_debug_level = 0;
 
     esp_task_wdt_config_t twdt_config = {
         .timeout_ms = 60000,
