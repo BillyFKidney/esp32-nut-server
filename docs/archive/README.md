@@ -24,9 +24,8 @@ when a current document links to it or historical evidence is required.
 | [ESP32_DEVELOPMENT_PLAN_V2_7_1.md](ESP32_DEVELOPMENT_PLAN_V2_7_1.md) | Frozen pre-v2.7.1 planning snapshot; active and future roadmap scope is maintained in `docs/ESP32_DEVELOPMENT_PLAN.md` |
 | [ESP32_REFACTORING_PLAN_V2_7_1.md](ESP32_REFACTORING_PLAN_V2_7_1.md) | Full management/Wi-Fi extraction plan, module inventory, and completed validation record |
 | [ESP32_ROUTE_INVENTORY_V2_7_1.md](ESP32_ROUTE_INVENTORY_V2_7_1.md) | Completed HTTPS management-route order and extraction acceptance baseline |
-| [ESP32_V2_7_1_HEADER_LIMIT_FIX.md](ESP32_V2_7_1_HEADER_LIMIT_FIX.md) | Completed HTTPS request-header-limit repair record |
 | [ESP32_README_V2_7_1.md](ESP32_README_V2_7_1.md) | Full downstream port, compatibility, troubleshooting, and changelog notes through v2.7.1 |
-| [ESP32_V2_7_1_RELEASE_VALIDATION.md](ESP32_V2_7_1_RELEASE_VALIDATION.md) | Published release and post-publication target validation evidence |
+| [ESP32_DEVELOPMENT_PLAN_COMPLETED_HISTORY.md](ESP32_DEVELOPMENT_PLAN_COMPLETED_HISTORY.md#v271-repair-publication-and-validation-history) | Consolidated v2.7.1 HTTPS request-header repair, publication, and post-publication target validation evidence |
 
 ## Archive rules
 
