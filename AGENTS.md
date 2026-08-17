@@ -95,5 +95,7 @@ Archives are reference material and are not part of normal agent startup.
 
 At session end, report the active branch, HEAD, worktree and remote divergence,
 what changed, validation performed, what was not tested, and the exact next
-action. Do not push, merge, tag, OTA, flash, or release unless explicitly
-requested.
+action. Confirm whether an authorized release was published; if so, include the
+tag, GitHub release URL, and verified firmware/checksum artifacts, otherwise
+state that publication was not authorized or not performed. Do not push, merge,
+tag, OTA, flash, or release unless explicitly requested.

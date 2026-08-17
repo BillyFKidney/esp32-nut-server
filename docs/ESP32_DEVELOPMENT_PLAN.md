@@ -12,6 +12,27 @@ not publish a version: the Project Maintainer separately authorizes the tag,
 release assets, and any target installation. Do not consume a later version
 for completed maintenance work without updating this table first.
 
+## Release Execution
+
+After the release slice is merged, the Codex Agent executes this workflow. It
+must stop before the release tag in step 3 until the Project Maintainer
+explicitly says, **“Tag vX.Y.Z and publish release.”** A build, upload, or
+target installation remains a separate authorization boundary.
+
+1. Create a release-evidence index and an unpushed evidence tag that identify
+   the merged commit, validation results, and intended firmware artifact.
+2. Await the Maintainer's explicit `Tag vX.Y.Z and publish release`
+   authorization.
+3. Create the annotated release tag `vX.Y.Z` with a link to the
+   release-evidence index.
+4. Build the firmware from that tagged commit for the intended target.
+5. Generate and verify the SHA-256 checksum against the exact
+   `build/esp32-nut-server.bin` artifact.
+6. Publish the GitHub release with `build/esp32-nut-server.bin` and
+   `build/esp32-nut-server.bin.sha256`, and link the release evidence.
+7. Update [ESP32_CURRENT_STATUS.md](ESP32_CURRENT_STATUS.md) with the
+   publication, validation state, and next action.
+
 ## Published baseline
 
 `v2.7.1` is published and target-tested. It completed the management route
