@@ -11,16 +11,16 @@ the project history.
    the file's branch, base, and worktree claims are still current.
 3. Read only the task-specific document selected from the routing table below.
 
+Every agent receives the same handoff through this file and current status.
 Stop there unless the task requires another reference. Do **not** preload the
-development plan, milestone Q&A, roles, preflight, or `docs/archive/` during an
-ordinary startup.
+development plan, milestone Q&A, roles, preflight, `docs/archive/`, source
+tree, or project conversation during an ordinary startup.
 
 ## Task routing
 
 | Task or question | Read next |
 | --- | --- |
 | Current branch, active scope, next action | [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) |
-| Continuing with a 64k-context agent | [ESP32_64K_AGENT_HANDOFF.md](docs/ESP32_64K_AGENT_HANDOFF.md) |
 | Roadmap, version, or branch boundary | [ESP32_DEVELOPMENT_PLAN.md](docs/ESP32_DEVELOPMENT_PLAN.md) |
 | Locked Operational Management requirement or decision | [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](docs/ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md) |
 | Hardware, LAN, COM, build, flash, OTA, or recovery | [ESP32_PREFLIGHT.md](docs/ESP32_PREFLIGHT.md) |

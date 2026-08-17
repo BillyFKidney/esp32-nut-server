@@ -25,7 +25,9 @@ when a current document links to it or historical evidence is required.
 | [ESP32_REFACTORING_PLAN_V2_7_1.md](ESP32_REFACTORING_PLAN_V2_7_1.md) | Full management/Wi-Fi extraction plan, module inventory, and completed validation record |
 | [ESP32_ROUTE_INVENTORY_V2_7_1.md](ESP32_ROUTE_INVENTORY_V2_7_1.md) | Completed HTTPS management-route order and extraction acceptance baseline |
 | [ESP32_README_V2_7_1.md](ESP32_README_V2_7_1.md) | Full downstream port, compatibility, troubleshooting, and changelog notes through v2.7.1 |
+| [ESP32_SECURITY_V2_7_1.md](ESP32_SECURITY_V2_7_1.md) | Frozen detailed security guidance through v2.7.1, including generic and superseded material |
 | [ESP32_DEVELOPMENT_PLAN_COMPLETED_HISTORY.md](ESP32_DEVELOPMENT_PLAN_COMPLETED_HISTORY.md#v271-repair-publication-and-validation-history) | Consolidated v2.7.1 HTTPS request-header repair, publication, and post-publication target validation evidence |
+| [ESP32_REPOSITORY_LAYOUT_HISTORY.md](ESP32_REPOSITORY_LAYOUT_HISTORY.md) | Historical rationale for the 2026 repository-layout preservation decisions |
 
 ## Archive rules
 

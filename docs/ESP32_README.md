@@ -33,5 +33,7 @@ workflow.
 Wi-Fi credentials are configured at runtime and are never compiled into the
 firmware. NUT is read-only and configures no NUT users. For current branch,
 device, and acceptance facts, read [ESP32_CURRENT_STATUS.md](ESP32_CURRENT_STATUS.md).
-For detailed recovery, transport, and security information, use the linked
-preflight, security, proxy, and archived documents rather than guessing.
+For task-specific detail, use [preflight](ESP32_PREFLIGHT.md),
+[security](ESP32_SECURITY.md), [management-proxy](ESP32_MANAGEMENT_PROXY.md),
+[repository-layout](ESP32_REPOSITORY_LAYOUT.md), and archived records rather
+than guessing.

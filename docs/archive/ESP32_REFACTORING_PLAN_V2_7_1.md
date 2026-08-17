@@ -316,11 +316,12 @@ changed. The module does not log credentials.
 
 ## 64k-agent continuation boundary
 
-The compact [ESP32_64K_AGENT_HANDOFF.md](../ESP32_64K_AGENT_HANDOFF.md) is the
-preferred startup packet for a context-limited agent. The canonical continuation
-base is current `main`, which now contains the merged refactoring stack and
-handoff from PR #33. The older `feature/management-route-inventory` checkout is
-an ancestor and is not the next code base by default.
+The historical [ESP32_64K_AGENT_HANDOFF_V2_7_1.md](ESP32_64K_AGENT_HANDOFF_V2_7_1.md)
+records the then-preferred startup packet for a context-limited agent. The
+canonical continuation base was current `main`, which contained the merged
+refactoring stack and handoff from PR #33. The older
+`feature/management-route-inventory` checkout was an ancestor and was not the
+next code base by default.
 
 The active code slice is intentionally narrow: move only the existing logout
 and session-activity handlers from `management.c` into
