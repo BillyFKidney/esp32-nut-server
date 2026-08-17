@@ -1,201 +1,79 @@
 # ESP32-NUT current development status
 
 This is the fast-start handoff for the active branch. Read it immediately after
-[AGENTS.md](../AGENTS.md). It intentionally contains current facts, the active
-acceptance boundary, and one next action—not release history or reusable
-procedures.
+[AGENTS.md](../AGENTS.md), then confirm it against live Git. It records only
+the active acceptance boundary and one next action; completed evidence belongs
+in the archive.
 
-Do not preload `docs/archive/` during a normal startup. Historical evidence from
-the former 101 KB status file is preserved in
-[ESP32_CURRENT_STATUS_HISTORY.md](archive/ESP32_CURRENT_STATUS_HISTORY.md).
+Do not preload `docs/archive/` during a normal startup.
 
 ## Repository snapshot
 
-**Repository state and development-target smoke evidence were rechecked on
-2026-07-29. This file records only current handoff facts; the complete target
-evidence is preserved in [2026-07-29 target candidate smoke validation](archive/2026-07-29-target-candidate-smoke-validation.md). The compact
-[64k-agent handoff](ESP32_64K_AGENT_HANDOFF.md) is the preferred continuation
-packet for a context-limited agent.**
-
 | Field | Current fact |
 | --- | --- |
-| Active branch | Resolve from live Git; the current local repair branch is `fix/ota-upload-diagnostics` |
-| Release target | `v2.7.1` |
-| HEAD | Resolve from live Git. This file intentionally does not hard-code its own containing commit |
-| Branch base | `main` contains the merged refactoring stack and 64k-agent handoff from PR #33, the handoff alignment from PR #34, and the shared management authorization boundary from PR #35; live Git is authoritative |
-| Remote branch | `origin/main` is the canonical remote baseline |
-| Implementation state | The stacked session-route, time-form, refresh-control, and production NUT logging changes are locally built. The deployed build rejected a locally valid ESP-IDF application image through both ADMIN OTA actions; the focused repair distinguishes receive, write, validation, and boot-selection failures and pauses status polling during transfers. The repair's ESP-IDF v6.0.2 build passed and was serial-installed for target validation. The authenticated Check Firmware action verified its exact v36 image without selecting it for boot or restarting; authenticated management, Wi-Fi, NTP, read-only NUT, and fresh UPS data were then observed healthy. The retained `last_result` value remains the earlier failed OTA attempt. |
-| Worktree scope | `fix/ota-upload-diagnostics` changes only the management OTA transfer boundary and its directly related browser polling behavior. It preserves the existing HTTPS, ADMIN/CSRF, inactive-slot, and reboot rules. |
-| Published baseline | `v2.7.0`; resolve post-release documentation history from live Git rather than maintaining a count here |
-| Target | YD-ESP32-23, ESP32-S3-WROOM-1-N16R8, 16 MB flash, 8 MB octal PSRAM |
-| SDK | ESP-IDF v6.0.2, target `esp32s3` |
+| Active branch | `feature/management-route-families` |
+| Base and canonical remote | `main` / `origin/main` |
+| Base HEAD when this handoff was updated | `91079a7f5` — resolve live Git before acting |
+| Worktree at plan start | Clean |
+| Release boundary | Publish the validated `v2.7.1` maintenance release; the next implementation slice is `v2.7.2` UPS-disconnect invalidation, and factory-reset state clearing is the final planned `v2.7.7` slice |
+| Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, target `esp32s3` |
 | Required services | LAN-only HTTPS `443`; read-only NUT `3493`; retired unauthenticated `8080` remains refused |
-| Device coordinates | **Observed:** the development-console FQDN was used for browser OTA and current DNS resolved it to `192.168.40.10`. Treat that as the management-proxy address; rediscover the direct ESP32 address and any `/dev/cu.usbmodem*` path before direct hardware work |
-| Authorization | The Project Maintainer completed the latest firmware installation and smoke test. No additional flash, OTA installation, factory reset, push, merge, tag, or release is authorized by this documentation handoff |
+| Implementation state | All five remaining handler families and final route-registration composition are extracted. `management.c` is 144 lines and contains only root policy, HTTPS startup, and factory reset. Target testing exposed and resolved an ADMIN-password change lockout: new credentials stage, persist, re-read, and verify before promotion. The routine ESP-IDF HTTPS handshake INFO line is filtered from the bounded browser-log snapshot while it remains on serial and TLS errors remain visible. |
+| Current firmware evidence | The Project Maintainer validated v2.7.0-41-g374f40646 on target: responsive authenticated management, NTP, Wi-Fi, USB HID/NUT startup, two ADMIN-password rotations followed by new-password sign-in, and a browser-log snapshot without routine HTTPS handshake entries. Earlier v2.7.0-40 target checks covered fresh read-only UPS data, Wi-Fi scan/configuration, and token issuance/revocation. |
+| Device authority | Target validation is complete. Push, merge, tagging, and release of this accepted maintenance slice are explicitly authorized; do not perform another flash, OTA install, or reset without a new request. |
 
-## Current development-target flash
+## Active refactoring boundary
 
-**Observed (2026-08-08):** the development target's complete flash was erased
-at the Project Maintainer's request, then ESP-IDF wrote and verified the
-bootloader, partition table, OTA metadata, application, and both filesystem
-images from the active session-routes working tree.
+The active branch completed only the remaining management route-family
+extractions. It did not introduce product behavior or begin factory-reset
+work. The resulting structure is:
 
-**Not tested after the flash:** application boot, provisioning, Wi-Fi, HTTPS
-ADMIN console, NUT, and UPS behavior. The erase removed all prior NVS-backed
-Wi-Fi, ADMIN, certificate, token, and OTA state, so the former browser session
-and LAN configuration cannot be expected to work until the device is set up
-again.
+- `management-status-routes.c` — `GET /api/v1/status`, preserving the
+  no-activity session check and exact JSON/status behavior.
+- `management-time-routes.c` — the ADMIN-and-CSRF-protected time route.
+- `management-token-routes.c` — token list, create, and delete as one API
+  family.
+- `management-wifi-routes.c` — Wi-Fi scan and configuration as one Wi-Fi
+  family.
+- `management-ota-routes.c` — browser check/install and bearer Agent install
+  as one OTA family.
+- `management-routes.c` — the existing 17 route descriptors and registration
+  order, extracted after all handler families moved.
 
-## Recent target acceptance: checked-image identity
+`management.c` deliberately remains the small orchestration boundary: root
+page policy, HTTPS server lifecycle, and `management_factory_reset()`. Factory
+reset stays there until the separately reviewed final planned v2.7.7 slice.
 
-`src/ota.c` already writes a complete checked image to the inactive OTA
-partition and calls `esp_ota_end()` before returning the successful check
-response. This slice reads the ESP-IDF application descriptor from that same
-verified partition and reports its bounded, JSON-safe embedded version in the
-ADMIN-and-CSRF-protected response. It does not select the image for boot, alter
-the inactive-slot choice, persist a new result, or schedule a restart.
+Every moved module needs a narrow header and explicit `src/CMakeLists.txt`
+registration. Preserve all exact responses, ADMIN/CSRF/activity policy,
+bearer scopes and Authorization-header zeroization, service ports, Wi-Fi
+staging/recovery, read-only UPS behavior, and route registration order.
 
-**Observed (Project Maintainer):** the authenticated Update Firmware page
-reported `Firmware image verified: v2.7.0-23-g0d2776aaf. It is ready to
-install.` after checking a local image. This confirms the checked-image
-response identifies its embedded version before installation.
+## Validation plan
 
-**Not tested in this check:** the image was not installed during this specific
-validation, so it does not add reboot or running-dashboard evidence. The
-dashboard after a successful reboot remains the authoritative source for the
-version currently running on the device.
-
-## Completed preceding slice: management page rendering
-
-`src/management.c` previously owned both security/route decisions and the
-embedded setup, login, cooldown, and authenticated administration HTML/JS.
-This slice moves only the rendering boundary into `management-pages.c`.
-`management.c` retains setup-session creation, root-page ADMIN authorization,
-throttle decisions, and CSRF copying/zeroization. The page module receives only
-the request and a supplied CSRF value; it must not read or mutate credentials,
-sessions, cookies, tokens, or NVS. The later ADMIN-route slice owns the four
-corresponding handler bodies without changing their policy.
-
-The resulting local ESP-IDF v6.0.2 build passes. Source comparison confirms the
-setup, login, cooldown, and authenticated HTML/JavaScript moved byte-for-byte
-except for the private page-buffer symbol. This is deliberately before route
-composition: page markup is a cohesive non-routing boundary, while route
-extraction still requires the recorded route-by-route acceptance matrix.
-
-## Completed slice: ADMIN route handlers
-
-`management-auth-routes.c` owns the existing `POST /setup`, `GET /login`,
-`POST /login`, and `POST /api/v1/admin/password` handlers. The route paths,
-methods, form limits, response statuses/messages, login-cooldown rules, and
-credential/CSRF zeroization remain unchanged. `management.c` retains root-page
-authorization, logout, non-auth route handlers, HTTPS startup, and the exact
-route-registration order; it only references the focused module's handler
-symbols for these four routes.
-
-Source comparison confirms the moved handler bodies are unchanged except for
-their exported function names, and the local ESP-IDF v6.0.2 build passes. The
-Project Maintainer subsequently installed the resulting build and observed the
-authenticated dashboard, Wi-Fi, USB UPS, and NUT service operating normally.
-This is smoke evidence only; setup, login failure, login cooldown, password
-change, logout, and the complete route matrix remain separately untested. No
-credentials, cookies, tokens, or Authorization headers are recorded in this
-handoff.
-
-## Stacked prerequisite: Wi-Fi provisioning web module
-
-The active branch moves the temporary captive-portal HTTP handlers, common
-portal response helpers, bounded form decoding, JSON construction, and route
-registration from `src/wifi.c` into `src/wifi-provisioning-web.c`. It preserves
-the four existing portal endpoints and lets `wifi.c` retain Wi-Fi radio state,
-credential lifecycle, AP/DNS lifecycle, physical recovery, portal scheduling,
-and HTTP server-handle ownership.
-
-This must not change HTTPS `443`, NUT `3493`, refused `8080`, ADMIN/CSRF,
-token, certificate, credential validation/staging, Wi-Fi connection/recovery,
-or factory-reset behavior. The focused module receives only the existing
-connection-request flag and restart callback; it does not make connection or
-reset decisions.
-
-The staged extraction sequence and later management/Wi-Fi boundaries are in
-[ESP32_REFACTORING_PLAN.md](ESP32_REFACTORING_PLAN.md).
-
-This is temporarily a stacked local branch based on the route-inventory,
-logging, status, certificate, credential, session, HTTP-helper, Wi-Fi
-credential, and Wi-Fi diagnostic slices. Review and merge each preceding slice,
-then rebase this branch onto the merged `main` before publishing it.
-
-## Factory-reset slice remains separate
-
-### Reported defect
-
-**Observed by the Project Maintainer after v2.7.0 acceptance:** with the UPS
-disconnected, holding BOOT for at least fifteen seconds and completing a
-factory reset can leave the previous UPS identity and measurements visible.
-It is **not yet proven** whether those values come from persistent storage, a
-runtime cache, or another NUT state path.
-
-### Required outcome
-
-`v2.7.1` must make the fifteen-second factory reset erase every value within
-the agreed reset boundary, including UPS identity/cache state, while retaining
-the current bootable firmware and OTA recovery slot. On restart, stale UPS data
-must not be presented as current.
-
-### Initial source facts
-
-- `src/wifi.c` erases the `wifi-config` NVS namespace at the three-second
-  threshold and calls `management_factory_reset()` after the fifteen-second
-  threshold is reached and BOOT is released.
-- `management_factory_reset()` erases the `management` NVS namespace and clears
-  the active ADMIN session. That namespace is also used by ADMIN credentials,
-  API tokens, device identity/certificate material, time configuration, and OTA
-  result metadata.
-- The existing reset path does not explicitly invalidate the NUT dstate values
-  or other UPS runtime caches before restart.
-- A first source inventory found the downstream `wifi-config` and `management`
-  NVS namespaces. This does not prove that all retained UPS state is NVS-backed;
-  inherited NUT runtime or filesystem paths still require tracing.
-
-### Acceptance boundary
-
-- Reproduce the disconnected-UPS reset case before claiming a fix.
-- Define the complete persistent and runtime reset inventory in code or tests.
-- Erase the agreed Wi-Fi, ADMIN, token, device, time, OTA-result, optional-log,
-  and UPS identity/cache state.
-- Retain the current bootable firmware and OTA recovery slot.
-- Restart into the documented provisioning/recovery flow.
-- Never show pre-reset UPS identity or measurements as current after restart.
-- Preserve LAN-only HTTPS `443`, read-only NUT `3493`, refused `8080`, and all
-  existing ADMIN/CSRF boundaries.
-- Keep UPS access read-only; do not begin APC-specific compatibility work in
-  this slice.
-- Build with ESP-IDF v6.0.2 and perform proportionate target validation before
-  calling the slice complete.
+Run `git diff --check` and an ESP-IDF v6.0.2 `esp32s3` build after each
+coherent extraction. Perform source-level route-inventory review as routes are
+moved. The password-change/new-password sign-in and browser-log noise-filter
+smoke tests passed on the target. A release build must be produced after the
+`v2.7.1` tag is created; it is source-equivalent to the target-tested v2.7.0-41
+candidate except for its release identity.
 
 ## Exact next action
 
-Review the successful recovery and Check Firmware evidence for
-`fix/ota-upload-diagnostics`. The exact next acceptance decision is whether to
-exercise Install Firmware and its reboot path with the already-checked v36
-image, then authorize publication separately if the remaining release checks
-are accepted.
+Push and merge the accepted maintenance branch, tag and build `v2.7.1`, publish
+the release image and checksum, then begin the separately scoped `v2.7.2`
+UPS-disconnect invalidation work from updated `main`.
 
 ## Read only when needed
 
 | Need | Document |
 | --- | --- |
-| Active and future release slices | [ESP32_DEVELOPMENT_PLAN.md](ESP32_DEVELOPMENT_PLAN.md) |
-| Locked factory-reset and security decisions | [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md) |
-| Hardware, network, COM, flash, or OTA work | [ESP32_PREFLIGHT.md](ESP32_PREFLIGHT.md) |
+| Route order and handler acceptance baseline | [ESP32_ROUTE_INVENTORY.md](ESP32_ROUTE_INVENTORY.md) |
+| Detailed route-family plan | [ESP32_REFACTORING_PLAN.md](ESP32_REFACTORING_PLAN.md) |
+| 64k continuation packet | [ESP32_64K_AGENT_HANDOFF.md](ESP32_64K_AGENT_HANDOFF.md) |
+| Hardware, LAN, COM, flash, or OTA work | [ESP32_PREFLIGHT.md](ESP32_PREFLIGHT.md) |
 | Authority for physical, external, or destructive actions | [ESP32_DEVELOPMENT_ROLES.md](ESP32_DEVELOPMENT_ROLES.md) |
 | Security boundaries | [ESP32_SECURITY.md](ESP32_SECURITY.md) |
-| Synology/AdGuard browser path | [ESP32_MANAGEMENT_PROXY.md](ESP32_MANAGEMENT_PROXY.md) |
-| Repository file ownership or moves | [ESP32_REPOSITORY_LAYOUT.md](ESP32_REPOSITORY_LAYOUT.md) |
-| Completed releases and old device evidence | [Archive index](archive/README.md) |
 
-Update this file only when the branch, base, worktree, implementation state,
-validation evidence, authorization state, or exact next action changes. Keep
-procedures in preflight, roadmap detail in the development plan, decisions in
-the milestone/security documents, and historical evidence in the archive.
 Never record passwords, Wi-Fi credentials, cookies, API tokens, private keys,
 or Authorization headers here.

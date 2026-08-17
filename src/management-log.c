@@ -15,6 +15,7 @@
 #define MANAGEMENT_LOG_CHUNK_LENGTH 256U
 #define MANAGEMENT_LOG_RESPONSE_LIMIT 6U
 #define MANAGEMENT_LOG_VALID_EPOCH 1704067200LL
+#define MANAGEMENT_LOG_HTTPS_HANDSHAKE_MESSAGE "performing session handshake"
 
 typedef struct
 {
@@ -97,6 +98,15 @@ static void management_log_store_locked(char level, const char *message,
                                         uint64_t uptime_ms, time_t epoch_seconds)
 {
     if (message == NULL || message[0] == '\0')
+    {
+        return;
+    }
+    /*
+     * esp_https_server emits this INFO line for every new TLS connection.
+     * Keep it on the serial console, but do not let routine browser polling
+     * displace actionable events from the small authenticated log snapshot.
+     */
+    if (strcmp(message, MANAGEMENT_LOG_HTTPS_HANDSHAKE_MESSAGE) == 0)
     {
         return;
     }

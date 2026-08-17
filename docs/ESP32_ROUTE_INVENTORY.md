@@ -40,6 +40,25 @@ refactor. It was derived from `src/management.c` on
 The existing route-capacity assertion limits this list to
 `MANAGEMENT_HTTPS_ROUTE_CAPACITY`; moving the array must retain that protection.
 
+## Approved extraction map
+
+The active `feature/management-route-families` branch uses cohesive route
+families rather than one file per URI:
+
+| Module | Routes |
+| --- | --- |
+| `management-status-routes.c` | `GET /api/v1/status` |
+| `management-time-routes.c` | `POST /api/v1/admin/time` |
+| `management-token-routes.c` | token list/create/delete |
+| `management-wifi-routes.c` | Wi-Fi scan/configuration |
+| `management-ota-routes.c` | browser OTA check/install and bearer Agent install |
+| `management-routes.c` | all existing descriptors and registration order; final extraction only |
+
+The existing authentication and session route modules remain cohesive and are
+not subdivided. `management.c` retains root-page policy, HTTPS server
+lifecycle, and factory reset; factory reset belongs to the separate v2.7.1
+slice.
+
 ## Required preflight before Stage 10 code changes
 
 1. Confirm the live branch, working tree, device IP, and USB path rather than

@@ -26,12 +26,13 @@ access remains read-only.
 
 ## Current operating model
 
-The published operational baseline is `v2.7.0`. Active work is the bounded
-`v2.7.1` factory-reset state-clearing fix. The current branch, repository facts,
-acceptance boundary, authorization state, and exact next action are maintained
-in [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md). Historical
-release and device evidence is archived rather than carried in that fast-start
-handoff.
+The validated maintenance release is `v2.7.1`. The next planned slice is
+`v2.7.2` UPS-disconnect invalidation; factory-reset state clearing is reserved
+for the final planned `v2.7.7` release in this sequence. The current branch,
+repository facts, acceptance boundary, authorization state, and exact next
+action are maintained in [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md).
+Historical release and device evidence is archived rather than carried in that
+fast-start handoff.
 
 The normal browser path uses Synology as a LAN reverse proxy:
 

@@ -14,6 +14,7 @@
 #define MANAGEMENT_ADMIN_SALT_KEY "admin-salt"
 #define MANAGEMENT_ADMIN_HASH_KEY "admin-hash"
 #define MANAGEMENT_ADMIN_CREDENTIAL_KEY "admin-cred"
+#define MANAGEMENT_ADMIN_STAGED_CREDENTIAL_KEY "admin-stage"
 
 #define MANAGEMENT_PASSWORD_SALT_BYTES 16
 #define MANAGEMENT_PASSWORD_HASH_BYTES 32
@@ -31,6 +32,8 @@ _Static_assert(sizeof(MANAGEMENT_ADMIN_HASH_KEY) <= NVS_KEY_NAME_MAX_SIZE,
                "ADMIN hash NVS key exceeds the ESP-IDF limit");
 _Static_assert(sizeof(MANAGEMENT_ADMIN_CREDENTIAL_KEY) <= NVS_KEY_NAME_MAX_SIZE,
                "ADMIN credential NVS key exceeds the ESP-IDF limit");
+_Static_assert(sizeof(MANAGEMENT_ADMIN_STAGED_CREDENTIAL_KEY) <= NVS_KEY_NAME_MAX_SIZE,
+               "Staged ADMIN credential NVS key exceeds the ESP-IDF limit");
 
 typedef struct
 {
@@ -39,6 +42,16 @@ typedef struct
     uint8_t salt[MANAGEMENT_PASSWORD_SALT_BYTES];
     uint8_t hash[MANAGEMENT_PASSWORD_HASH_BYTES];
 } ManagementAdminCredential;
+
+static bool management_credentials_is_current_format(
+    const ManagementAdminCredential *credential, size_t credential_length)
+{
+    return credential != NULL &&
+           credential_length == sizeof(*credential) &&
+           credential->version == MANAGEMENT_PASSWORD_CREDENTIAL_VERSION &&
+           credential->iterations >= MANAGEMENT_PASSWORD_MIN_ITERATIONS &&
+           credential->iterations <= MANAGEMENT_PASSWORD_MAX_ITERATIONS;
+}
 
 static bool management_credentials_constant_time_equal(const uint8_t *left,
                                                         const uint8_t *right,
@@ -75,10 +88,8 @@ bool management_admin_password_is_configured(void)
     if (credential_result == ESP_OK)
     {
         nvs_close(handle);
-        const bool valid = credential_length == sizeof(credential) &&
-                           credential.version == MANAGEMENT_PASSWORD_CREDENTIAL_VERSION &&
-                           credential.iterations >= MANAGEMENT_PASSWORD_MIN_ITERATIONS &&
-                           credential.iterations <= MANAGEMENT_PASSWORD_MAX_ITERATIONS;
+        const bool valid = management_credentials_is_current_format(&credential,
+                                                                     credential_length);
         mbedtls_platform_zeroize(&credential, sizeof(credential));
         return valid;
     }
@@ -141,6 +152,22 @@ static esp_err_t management_credentials_derive_password_hash(const char *passwor
     return result == PSA_SUCCESS ? ESP_OK : ESP_FAIL;
 }
 
+static bool management_credentials_matches_password(const ManagementAdminCredential *credential,
+                                                     const char *password)
+{
+    uint8_t candidate_hash[MANAGEMENT_PASSWORD_HASH_BYTES] = {0};
+    const bool matches = management_credentials_is_current_format(credential,
+                                                                    sizeof(*credential)) &&
+                         password != NULL &&
+                         management_credentials_derive_password_hash(
+                             password, credential->salt, credential->iterations,
+                             candidate_hash) == ESP_OK &&
+                         management_credentials_constant_time_equal(
+                             credential->hash, candidate_hash, sizeof(candidate_hash));
+    mbedtls_platform_zeroize(candidate_hash, sizeof(candidate_hash));
+    return matches;
+}
+
 esp_err_t management_credentials_set_admin_password(const char *password)
 {
     if (password == NULL || strlen(password) < 12 || strlen(password) > 128)
@@ -165,6 +192,50 @@ esp_err_t management_credentials_set_admin_password(const char *password)
     result = management_credentials_open_nvs(NVS_READWRITE, &handle);
     if (result == ESP_OK)
     {
+        result = nvs_set_blob(handle, MANAGEMENT_ADMIN_STAGED_CREDENTIAL_KEY,
+                              &credential, sizeof(credential));
+    }
+    if (result == ESP_OK)
+    {
+        result = nvs_commit(handle);
+    }
+    if (handle != 0)
+    {
+        nvs_close(handle);
+        handle = 0;
+    }
+    if (result != ESP_OK)
+    {
+        mbedtls_platform_zeroize(&credential, sizeof(credential));
+        return result;
+    }
+
+    ManagementAdminCredential staged_credential = {0};
+    size_t staged_credential_length = sizeof(staged_credential);
+    result = management_credentials_open_nvs(NVS_READONLY, &handle);
+    if (result == ESP_OK)
+    {
+        result = nvs_get_blob(handle, MANAGEMENT_ADMIN_STAGED_CREDENTIAL_KEY,
+                              &staged_credential, &staged_credential_length);
+    }
+    if (handle != 0)
+    {
+        nvs_close(handle);
+        handle = 0;
+    }
+    if (result != ESP_OK || !management_credentials_is_current_format(
+                            &staged_credential, staged_credential_length) ||
+        !management_credentials_matches_password(&staged_credential, password))
+    {
+        mbedtls_platform_zeroize(&staged_credential, sizeof(staged_credential));
+        mbedtls_platform_zeroize(&credential, sizeof(credential));
+        return result == ESP_OK ? ESP_FAIL : result;
+    }
+    mbedtls_platform_zeroize(&staged_credential, sizeof(staged_credential));
+
+    result = management_credentials_open_nvs(NVS_READWRITE, &handle);
+    if (result == ESP_OK)
+    {
         result = nvs_set_blob(handle, MANAGEMENT_ADMIN_CREDENTIAL_KEY,
                               &credential, sizeof(credential));
     }
@@ -183,6 +254,10 @@ esp_err_t management_credentials_set_admin_password(const char *password)
         {
             result = erase_result;
         }
+    }
+    if (result == ESP_OK)
+    {
+        result = nvs_erase_key(handle, MANAGEMENT_ADMIN_STAGED_CREDENTIAL_KEY);
     }
     if (result == ESP_OK)
     {
