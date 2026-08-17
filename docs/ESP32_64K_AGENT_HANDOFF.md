@@ -23,9 +23,13 @@ Read `ESP32_PREFLIGHT.md` only for explicitly authorized device work.
 - Preserve: HTTPS `443`, read-only NUT `3493`, refused `8080`, ADMIN/CSRF,
   bearer scopes, Authorization-header zeroization, Wi-Fi recovery, and
   read-only UPS access.
-- The Project Maintainer observed the published v2.7.0-36 firmware operating
-  normally after the OTA diagnostic repair. Do not change the device while
-  this refactor is in progress.
+- The prior v2.7.0-39 route-family candidate passed management, Wi-Fi, token,
+  time, and read-only UPS checks, but its ADMIN-password change reported
+  success before a later sign-in failed. The device was fully erased and
+  re-flashed under explicit recovery authority. The active repair stages and
+  verifies a new credential before promotion; it still needs one target
+  password-change/sign-in smoke test. Do not alter the device without fresh
+  authority.
 
 ## Current architecture
 
@@ -59,8 +63,9 @@ explicitly registered in `src/CMakeLists.txt` and has a narrow public header.
 
 ## Validation contract
 
-ESP-IDF v6.0.2 builds passed after each family and after final composition.
-The complete diff, handler-body transfers, and route order were reviewed; the
-final `git diff --check` passed. A clean candidate is ready, so stop for
-explicit upload/test authority. Do not flash, OTA, reset, push, merge, tag, or
-release.
+ESP-IDF v6.0.2 builds passed after each family, final composition, and the
+password-safety repair. The complete route-family diff, handler-body transfers,
+and route order were reviewed; `git diff --check` passed. Commit, reconfigure,
+and stop at a clean candidate for explicit upload and a password-change/sign-in
+smoke test. Do not flash, OTA, reset, push, merge, tag, or release without
+fresh authority.

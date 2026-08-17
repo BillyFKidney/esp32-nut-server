@@ -18,9 +18,9 @@ Do not preload `docs/archive/` during a normal startup.
 | Release boundary | Finish the behavior-preserving `management.c` route refactor before beginning the separately scoped `v2.7.1` factory-reset work |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, target `esp32s3` |
 | Required services | LAN-only HTTPS `443`; read-only NUT `3493`; retired unauthenticated `8080` remains refused |
-| Implementation state | All five remaining handler families and the final route-registration composition are extracted. `management.c` is now 144 lines and contains only root policy, HTTPS startup, and factory reset. ESP-IDF v6.0.2 builds passed after each family and after final composition; source-level handler-body and route-order review passed. |
-| Current firmware evidence | The Project Maintainer observed the published v2.7.0-36 build operating with responsive authenticated management, NTP, Wi-Fi, and fresh read-only UPS data. The browser Check Firmware flow also verified that image. The prior OTA failure result remains historical state, not a current device-health failure. |
-| Device authority | No flash, OTA install, reset, push, merge, tag, or release is authorized by this handoff. Stop after producing the final candidate firmware and report its path. |
+| Implementation state | All five remaining handler families and the final route-registration composition are extracted. `management.c` is now 144 lines and contains only root policy, HTTPS startup, and factory reset. Target testing then exposed an ADMIN-password change which reported success but did not permit a subsequent login. The credential write now stages, persists, re-reads, and verifies a candidate before promotion, preserving the prior credential if that verification fails. ESP-IDF v6.0.2 builds passed after each family, final composition, and the password-safety repair; source-level handler-body and route-order review passed. |
+| Current firmware evidence | The Project Maintainer observed the prior v2.7.0-39 candidate operating with responsive authenticated management, NTP, Wi-Fi, fresh read-only UPS data, Wi-Fi scan/configuration, and token issuance/revocation. Its ADMIN-password change path is not release-ready: it caused a lockout after returning success. The device was fully erased and re-flashed under explicit authority, then reconfigured and authenticated. |
+| Device authority | The full erase and flash were explicitly authorized and completed for lockout recovery. Do not perform another flash, OTA install, reset, push, merge, tag, or release without a new explicit request. |
 
 ## Active refactoring boundary
 
@@ -53,14 +53,16 @@ staging/recovery, read-only UPS behavior, and route registration order.
 
 Run `git diff --check` and an ESP-IDF v6.0.2 `esp32s3` build after each
 coherent extraction. Perform source-level route-inventory review as routes are
-moved. Produce one final candidate firmware after the complete branch; do not
-alter the device until the Project Maintainer separately authorizes upload and
-target smoke testing.
+moved. Before release, install the password-safety repair and confirm that a
+password change permits a subsequent sign-out and sign-in with the new
+password. Do not alter the device until the Project Maintainer separately
+authorizes upload and target smoke testing.
 
 ## Exact next action
 
-The clean candidate is ready. Stop at its firmware path for explicit upload and
-target-test authority; do not alter the device until that authority is given.
+Commit the password-safety repair, reconfigure the ESP-IDF build for its clean
+Git version, and stop at that candidate's firmware path for explicit upload
+and the one targeted password-change smoke test.
 
 ## Read only when needed
 
