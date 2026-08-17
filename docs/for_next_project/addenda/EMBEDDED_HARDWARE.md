@@ -45,6 +45,11 @@ Current status should record:
 A dirty build may be valid evidence only when its diff is preserved and later
 committed. Record that relationship explicitly.
 
+For a published firmware release, build the distributable image from the exact
+tag, inspect its embedded version and checksum, and state whether that exact
+image was installed on target. If a prior candidate supplied the target test,
+record the source-equivalence boundary instead of implying an unperformed test.
+
 ## Hardware preflight additions
 
 - [ ] Preserve healthy power and peripheral connections.

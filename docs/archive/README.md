@@ -19,6 +19,14 @@ when a current document links to it or historical evidence is required.
 | [ESP32_README_CHANGELOG.md](ESP32_README_CHANGELOG.md) | Superseded current-version summary from the detailed downstream README |
 | [AGENT_STARTUP_CONTEXT_AUDIT_2026-07-29.md](AGENT_STARTUP_CONTEXT_AUDIT_2026-07-29.md) | Before/after startup-context measurements for this optimization |
 | [2026-07-29 target candidate smoke validation](2026-07-29-target-candidate-smoke-validation.md) | Browser-OTA, reboot, ADMIN-session, and network-service evidence for the local Wi-Fi-provisioning/header-limit integration candidate |
+| [ESP32_CURRENT_STATUS_V2_7_1.md](ESP32_CURRENT_STATUS_V2_7_1.md) | Full v2.7.1 pre-publication status and release-preparation handoff |
+| [ESP32_64K_AGENT_HANDOFF_V2_7_1.md](ESP32_64K_AGENT_HANDOFF_V2_7_1.md) | Full v2.7.1 64k continuation packet before active-slice compaction |
+| [ESP32_DEVELOPMENT_PLAN_V2_7_1.md](ESP32_DEVELOPMENT_PLAN_V2_7_1.md) | Full roadmap before completed v2.7.1 material was reduced to the active 2.7.x sequence |
+| [ESP32_REFACTORING_PLAN_V2_7_1.md](ESP32_REFACTORING_PLAN_V2_7_1.md) | Full management/Wi-Fi extraction plan, module inventory, and completed validation record |
+| [ESP32_ROUTE_INVENTORY_V2_7_1.md](ESP32_ROUTE_INVENTORY_V2_7_1.md) | Completed HTTPS management-route order and extraction acceptance baseline |
+| [ESP32_V2_7_1_HEADER_LIMIT_FIX.md](ESP32_V2_7_1_HEADER_LIMIT_FIX.md) | Completed HTTPS request-header-limit repair record |
+| [ESP32_README_V2_7_1.md](ESP32_README_V2_7_1.md) | Full downstream port, compatibility, troubleshooting, and changelog notes through v2.7.1 |
+| [ESP32_V2_7_1_RELEASE_VALIDATION.md](ESP32_V2_7_1_RELEASE_VALIDATION.md) | Published release and post-publication target validation evidence |
 
 ## Archive rules
 

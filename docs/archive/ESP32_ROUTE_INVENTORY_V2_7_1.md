@@ -76,8 +76,8 @@ slice.
 
 ## Related documents
 
-- [Current status](ESP32_CURRENT_STATUS.md)
-- [Refactoring plan](ESP32_REFACTORING_PLAN.md)
-- [Preflight](ESP32_PREFLIGHT.md)
-- [Security boundaries](ESP32_SECURITY.md)
-- [Roles and authority](ESP32_DEVELOPMENT_ROLES.md)
+- [Current status](../ESP32_CURRENT_STATUS.md)
+- [Refactoring plan](../ESP32_REFACTORING_PLAN.md)
+- [Preflight](../ESP32_PREFLIGHT.md)
+- [Security boundaries](../ESP32_SECURITY.md)
+- [Roles and authority](../ESP32_DEVELOPMENT_ROLES.md)

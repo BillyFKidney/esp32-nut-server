@@ -33,6 +33,9 @@ project-specific brief, roles, guardrails, and access boundaries.
   major-version family, each independently validated and published slice as a
   minor version, and compatible fixes as patch versions. Record when this is
   intentionally not strict Semantic Versioning.
+- After a release, preserve completed plans, inventories, and test evidence in
+  an indexed project archive. Keep active status and handoff files as compact
+  routing documents rather than deleting history or carrying it at startup.
 
 ## Service and workflow continuity
 
@@ -83,6 +86,9 @@ project-specific brief, roles, guardrails, and access boundaries.
   should observe and report before the next action.
 - Do not call a milestone complete until its combined definition of done is
   evidenced.
+- For a tagged release, verify the artifact's embedded version and checksum.
+  State whether the exact tagged artifact was target-tested or is
+  source-equivalent to an earlier tested candidate.
 
 ## Handoffs and long sessions
 

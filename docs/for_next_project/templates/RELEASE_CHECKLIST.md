@@ -28,6 +28,8 @@
 ## Validation
 
 - [ ] Clean build/package succeeds in the supported toolchain.
+- [ ] Distributable artifact is built from the exact release tag; embedded
+  version metadata and checksum are inspected.
 - [ ] Automated tests, linting, and static checks pass.
 - [ ] Manual acceptance matrix passes.
 - [ ] Upgrade, rollback, restart, and recovery paths pass.
@@ -55,6 +57,9 @@
 - [ ] Deployment/publishing is performed once from the approved commit.
 - [ ] Release/tag/assets are verified from the consumer perspective.
 - [ ] Published artifact version metadata matches the release tag.
+- [ ] If target testing used an earlier candidate, source equivalence and the
+  remaining identity-only difference are recorded; otherwise test the tagged
+  artifact itself.
 
 ## Post-release
 

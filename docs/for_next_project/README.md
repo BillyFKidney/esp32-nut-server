@@ -78,13 +78,16 @@ or other secrets in any starter document or chat message.
    boundary.
 4. **Validation gate:** run proportionate automated, integration, target,
    manual, security, and recovery checks.
-5. **Handoff:** update current status with evidence and one exact next action.
+5. **Handoff:** move completed evidence, full inventories, and superseded plans
+   into a project-local archive with an index; keep current status short with
+   evidence links and one exact next action.
 6. **Publish code:** commit intentionally, push, use a draft PR while
    incomplete, merge validated slices, then start the next branch from updated
    `main`.
 7. **Slice release gate:** after acceptance, explicitly decide whether to
    publish the slice's assigned version. Verify the tag, artifacts, checksums,
-   and release record rather than assuming the merge created a release.
+   release record, and embedded artifact version rather than assuming the merge
+   created a release. Build distributable artifacts from the exact release tag.
 8. **Milestone acceptance:** declare the umbrella milestone complete only when
    its combined definition of done passes—not merely because its last branch
    merged or an early version in its release family was published.

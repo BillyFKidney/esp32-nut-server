@@ -1,8 +1,8 @@
 # {{PROJECT_NAME}} current status
 
 This is the operational handoff for the active development session. Keep it
-short, factual, timestamped, and safe to share. Link to stable plans rather than
-duplicating them.
+short, factual, timestamped, and safe to share. Link to stable plans and an
+indexed archive rather than duplicating completed release evidence.
 
 **Updated:** {{DATE_TIME_AND_TIME_ZONE}}
 
