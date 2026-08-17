@@ -77,8 +77,15 @@ Then inspect repository and COM state before opening a monitor or flashing:
 
 ```bash
 git status --short --branch
+git remote get-url origin
+gh auth status
 ls -1 /dev/cu.usbmodem* 2>/dev/null
 ```
+
+Confirm that `origin` names the intended repository and that `gh auth status`
+reports the intended authenticated account. Treat a missing remote, unavailable
+GitHub CLI, or unauthenticated CLI as a publication blocker; report it without
+printing credentials or tokens.
 
 Choose the currently enumerated `/dev/cu.usbmodem...` path. Never assume its
 suffix remains stable across reconnects. Check whether another process owns it,

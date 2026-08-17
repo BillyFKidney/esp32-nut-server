@@ -60,7 +60,8 @@ and diagnostic role and the human decision-maker for the project.
 - Administer UniFi and other in-scope devices or services
 - Change the Git repository, branches, commits, and remotes
 - Authorize builds, flashes, OTA installation, destructive recovery, commits,
-  pushes, pull requests, and other external changes
+  pushes, pull requests, release tags, GitHub releases, and other external
+  changes
 - Provide the Agent with screenshots, logs, current IP addresses, and physical
   observations that are not available from the workspace
 
@@ -71,7 +72,8 @@ and diagnostic role and the human decision-maker for the project.
   destructive, security, or external effects
 - Ensure credentials and private material remain outside tracked files and chat
 - Resolve conflicts between requested behavior and documented safety guardrails
-- Confirm whether a result is ready to commit, push, merge, or release
+- Confirm whether a result is ready to commit, push, merge, or release, and
+  explicitly authorize any release tag and GitHub publication
 - Escalate physical or third-party administration tasks that the Agent cannot
   perform directly
 - Explicitly approve or reject each proposed service retirement and each change
@@ -94,6 +96,8 @@ environment permits.
 - Discover the current serial device, identify its owner, monitor logs, and use
   approved flash commands
 - Test reachable LAN services when sandbox and network permissions allow
+- Create release tags and publish GitHub releases with verified artifacts when
+  the Maintainer explicitly authorizes that exact publication
 - Preserve user changes and explain observed, inferred, and untested findings
 
 ### Limits
@@ -140,7 +144,8 @@ environment permits.
 | Build and automated checks | Observes results | Authorizes or performs | Runs and interprets |
 | Flash or OTA operation | Assists physically | Authorizes | Runs when authorized and available |
 | Service retirement or workflow ownership transfer | Reports impact | Explicitly approves or rejects | Proposes impact/replacement; does not implement without approval |
-| Commit, push, merge, release | No | Authorizes and owns | Performs only when requested |
+| Commit, push, merge | No | Authorizes | Performs when requested |
+| Create release tag and publish GitHub release | No | Explicitly authorizes the exact tag and publication | Creates and publishes when explicitly authorized |
 | Credentials and secrets | Keeps private | Administers and keeps private | Must not request or record unless strictly necessary and safely handled |
 | Final acceptance | Provides UX result | Owns decision | Provides evidence and recommendation |
 
