@@ -18,8 +18,8 @@ Do not preload `docs/archive/` during a normal startup.
 | Release boundary | Finish the behavior-preserving `management.c` route refactor before beginning the separately scoped `v2.7.1` factory-reset work |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, target `esp32s3` |
 | Required services | LAN-only HTTPS `443`; read-only NUT `3493`; retired unauthenticated `8080` remains refused |
-| Implementation state | All five remaining handler families and the final route-registration composition are extracted. `management.c` is now 144 lines and contains only root policy, HTTPS startup, and factory reset. Target testing then exposed an ADMIN-password change which reported success but did not permit a subsequent login. The credential write now stages, persists, re-reads, and verifies a candidate before promotion, preserving the prior credential if that verification fails. ESP-IDF v6.0.2 builds passed after each family, final composition, and the password-safety repair; source-level handler-body and route-order review passed. |
-| Current firmware evidence | The Project Maintainer observed the prior v2.7.0-39 candidate operating with responsive authenticated management, NTP, Wi-Fi, fresh read-only UPS data, Wi-Fi scan/configuration, and token issuance/revocation. Its ADMIN-password change path is not release-ready: it caused a lockout after returning success. The device was fully erased and re-flashed under explicit authority, then reconfigured and authenticated. |
+| Implementation state | All five remaining handler families and the final route-registration composition are extracted. `management.c` is now 144 lines and contains only root policy, HTTPS startup, and factory reset. Target testing exposed and then resolved an ADMIN-password change lockout: new credentials now stage, persist, re-read, and verify before promotion. The next diagnostic-only change suppresses the routine ESP-IDF HTTPS handshake INFO line from the bounded browser log snapshot, while retaining it on serial and retaining TLS errors. |
+| Current firmware evidence | The Project Maintainer observed v2.7.0-40 operating with responsive authenticated management, NTP, Wi-Fi, fresh read-only UPS data, Wi-Fi scan/configuration, token issuance/revocation, and two successful ADMIN password rotations followed by a new-password sign-in. The dashboard log currently fills with routine HTTPS handshake messages; the active diagnostic-only change addresses that display noise. |
 | Device authority | The full erase and flash were explicitly authorized and completed for lockout recovery. Do not perform another flash, OTA install, reset, push, merge, tag, or release without a new explicit request. |
 
 ## Active refactoring boundary
@@ -53,16 +53,17 @@ staging/recovery, read-only UPS behavior, and route registration order.
 
 Run `git diff --check` and an ESP-IDF v6.0.2 `esp32s3` build after each
 coherent extraction. Perform source-level route-inventory review as routes are
-moved. Before release, install the password-safety repair and confirm that a
-password change permits a subsequent sign-out and sign-in with the new
-password. Do not alter the device until the Project Maintainer separately
-authorizes upload and target smoke testing.
+moved. The password-change and new-password sign-in smoke test passed on the
+target. Build the diagnostic log-noise filter, then confirm that the browser
+log snapshot shows actionable events rather than routine HTTPS handshakes. Do
+not alter the device until the Project Maintainer separately authorizes upload
+and target smoke testing.
 
 ## Exact next action
 
-Commit the password-safety repair, reconfigure the ESP-IDF build for its clean
-Git version, and stop at that candidate's firmware path for explicit upload
-and the one targeted password-change smoke test.
+Commit the diagnostic log-noise filter, reconfigure the ESP-IDF build for its
+clean Git version, and stop at that candidate's firmware path for explicit
+upload and one browser-log snapshot check.
 
 ## Read only when needed
 

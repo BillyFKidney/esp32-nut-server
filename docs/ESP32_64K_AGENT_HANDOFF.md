@@ -23,13 +23,12 @@ Read `ESP32_PREFLIGHT.md` only for explicitly authorized device work.
 - Preserve: HTTPS `443`, read-only NUT `3493`, refused `8080`, ADMIN/CSRF,
   bearer scopes, Authorization-header zeroization, Wi-Fi recovery, and
   read-only UPS access.
-- The prior v2.7.0-39 route-family candidate passed management, Wi-Fi, token,
-  time, and read-only UPS checks, but its ADMIN-password change reported
-  success before a later sign-in failed. The device was fully erased and
-  re-flashed under explicit recovery authority. The active repair stages and
-  verifies a new credential before promotion; it still needs one target
-  password-change/sign-in smoke test. Do not alter the device without fresh
-  authority.
+- The v2.7.0-40 candidate passed management, Wi-Fi, token, time, and
+  read-only UPS checks. Its password-change safety repair also passed two
+  password rotations and a subsequent new-password sign-in. The next
+  diagnostic-only slice filters the routine ESP-IDF HTTPS handshake message
+  from the browser log snapshot; serial output and TLS errors remain intact.
+  Do not alter the device without fresh authority.
 
 ## Current architecture
 
@@ -65,7 +64,7 @@ explicitly registered in `src/CMakeLists.txt` and has a narrow public header.
 
 ESP-IDF v6.0.2 builds passed after each family, final composition, and the
 password-safety repair. The complete route-family diff, handler-body transfers,
-and route order were reviewed; `git diff --check` passed. Commit, reconfigure,
-and stop at a clean candidate for explicit upload and a password-change/sign-in
-smoke test. Do not flash, OTA, reset, push, merge, tag, or release without
+and route order were reviewed; `git diff --check` passed. Build the log-noise
+filter, then stop at a clean candidate for explicit upload and one browser-log
+snapshot test. Do not flash, OTA, reset, push, merge, tag, or release without
 fresh authority.
