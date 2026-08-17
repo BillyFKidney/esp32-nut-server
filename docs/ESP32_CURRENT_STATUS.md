@@ -15,12 +15,12 @@ Do not preload `docs/archive/` during a normal startup.
 | Base and canonical remote | `main` / `origin/main` |
 | Base HEAD when this handoff was updated | `91079a7f5` — resolve live Git before acting |
 | Worktree at plan start | Clean |
-| Release boundary | Finish the behavior-preserving `management.c` route refactor before beginning the separately scoped `v2.7.1` factory-reset work |
+| Release boundary | Publish the validated `v2.7.1` maintenance release; the next implementation slice is `v2.7.2` UPS-disconnect invalidation, and factory-reset state clearing is the final planned `v2.7.7` slice |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, target `esp32s3` |
 | Required services | LAN-only HTTPS `443`; read-only NUT `3493`; retired unauthenticated `8080` remains refused |
-| Implementation state | All five remaining handler families and the final route-registration composition are extracted. `management.c` is now 144 lines and contains only root policy, HTTPS startup, and factory reset. Target testing exposed and then resolved an ADMIN-password change lockout: new credentials now stage, persist, re-read, and verify before promotion. The next diagnostic-only change suppresses the routine ESP-IDF HTTPS handshake INFO line from the bounded browser log snapshot, while retaining it on serial and retaining TLS errors. |
-| Current firmware evidence | The Project Maintainer observed v2.7.0-40 operating with responsive authenticated management, NTP, Wi-Fi, fresh read-only UPS data, Wi-Fi scan/configuration, token issuance/revocation, and two successful ADMIN password rotations followed by a new-password sign-in. The dashboard log currently fills with routine HTTPS handshake messages; the active diagnostic-only change addresses that display noise. |
-| Device authority | The full erase and flash were explicitly authorized and completed for lockout recovery. Do not perform another flash, OTA install, reset, push, merge, tag, or release without a new explicit request. |
+| Implementation state | All five remaining handler families and final route-registration composition are extracted. `management.c` is 144 lines and contains only root policy, HTTPS startup, and factory reset. Target testing exposed and resolved an ADMIN-password change lockout: new credentials stage, persist, re-read, and verify before promotion. The routine ESP-IDF HTTPS handshake INFO line is filtered from the bounded browser-log snapshot while it remains on serial and TLS errors remain visible. |
+| Current firmware evidence | The Project Maintainer validated v2.7.0-41-g374f40646 on target: responsive authenticated management, NTP, Wi-Fi, USB HID/NUT startup, two ADMIN-password rotations followed by new-password sign-in, and a browser-log snapshot without routine HTTPS handshake entries. Earlier v2.7.0-40 target checks covered fresh read-only UPS data, Wi-Fi scan/configuration, and token issuance/revocation. |
+| Device authority | Target validation is complete. Push, merge, tagging, and release of this accepted maintenance slice are explicitly authorized; do not perform another flash, OTA install, or reset without a new request. |
 
 ## Active refactoring boundary
 
@@ -42,7 +42,7 @@ work. The resulting structure is:
 
 `management.c` deliberately remains the small orchestration boundary: root
 page policy, HTTPS server lifecycle, and `management_factory_reset()`. Factory
-reset stays there until the separately reviewed v2.7.1 slice.
+reset stays there until the separately reviewed final planned v2.7.7 slice.
 
 Every moved module needs a narrow header and explicit `src/CMakeLists.txt`
 registration. Preserve all exact responses, ADMIN/CSRF/activity policy,
@@ -53,17 +53,16 @@ staging/recovery, read-only UPS behavior, and route registration order.
 
 Run `git diff --check` and an ESP-IDF v6.0.2 `esp32s3` build after each
 coherent extraction. Perform source-level route-inventory review as routes are
-moved. The password-change and new-password sign-in smoke test passed on the
-target. Build the diagnostic log-noise filter, then confirm that the browser
-log snapshot shows actionable events rather than routine HTTPS handshakes. Do
-not alter the device until the Project Maintainer separately authorizes upload
-and target smoke testing.
+moved. The password-change/new-password sign-in and browser-log noise-filter
+smoke tests passed on the target. A release build must be produced after the
+`v2.7.1` tag is created; it is source-equivalent to the target-tested v2.7.0-41
+candidate except for its release identity.
 
 ## Exact next action
 
-Commit the diagnostic log-noise filter, reconfigure the ESP-IDF build for its
-clean Git version, and stop at that candidate's firmware path for explicit
-upload and one browser-log snapshot check.
+Push and merge the accepted maintenance branch, tag and build `v2.7.1`, publish
+the release image and checksum, then begin the separately scoped `v2.7.2`
+UPS-disconnect invalidation work from updated `main`.
 
 ## Read only when needed
 

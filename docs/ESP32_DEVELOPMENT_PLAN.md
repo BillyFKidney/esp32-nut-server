@@ -49,9 +49,10 @@ for that unstable API.
 The large downstream orchestration units are being reduced through small,
 behavior-preserving extraction branches. The staged boundaries, security
 invariants, and validation rules are recorded in
-[ESP32_REFACTORING_PLAN.md](ESP32_REFACTORING_PLAN.md). This track does not
-consume a release version by itself and must not blur the acceptance boundary
-of the active UPS-state or factory-reset slices.
+[ESP32_REFACTORING_PLAN.md](ESP32_REFACTORING_PLAN.md). This track may be
+packaged as an assigned maintenance release after its behavior-preserving
+acceptance boundary is validated. It must not blur the acceptance boundary of
+later UPS-state or factory-reset slices.
 
 The completed work isolates management logging, status snapshots, certificate
 material, credentials, sessions, HTTP helpers, pages, authorization, all
@@ -59,9 +60,10 @@ management handler families, and route composition, plus Wi-Fi credential,
 diagnostic, and provisioning-web boundaries. The local
 `feature/management-route-families` branch completed status, time, token,
 Wi-Fi, OTA, and route-composition extraction builds. `management.c` remains
-the HTTPS/root-policy/factory-reset orchestration boundary. Complete review,
-clean build, and authorized target validation before beginning the separately
-scoped v2.7.1 factory-reset work.
+the HTTPS/root-policy/factory-reset orchestration boundary. The completed,
+validated extraction, ADMIN credential-promotion repair, and browser-log
+noise filter are assigned to `v2.7.1`. The separately scoped factory-reset
+work follows the intervening UPS-state and compatibility releases.
 
 ## Target platform
 
@@ -141,14 +143,14 @@ proportional build and target-hardware validation.
 | Order | Release target | Branch | Scope and merge boundary |
 | --- | --- | --- | --- |
 | 1–8 | `v2.0.0`–`v2.7.0` | Completed branches | Published slice details and acceptance evidence are archived in the completed-history document linked above. |
-| 8a | `v2.7.1` | `fix/management-request-header-limit` | Compatible recovery patch: raise only the HTTPS management server's bounded request-header limit so browser requests forwarded through the trusted reverse proxy can reach setup and authentication handlers. |
+| 8a | `v2.7.1` | `feature/management-route-families` | Validated maintenance release: finish the focused management-route extractions, prevent ADMIN password-change lockout with credential promotion verification, and suppress routine HTTPS handshakes from the browser log snapshot. |
 | 9 | `v2.8.0` | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
 | 10 | `v2.9.0` | `feature/operational-management-acceptance` | Integrate and validate the definition of done from iPhone and MacBook Air, close documentation gaps, and publish the final `v2.x` acceptance release. |
 
 The completed v2.5.0/v2.7.0 planning rationale, build provenance, and target
 acceptance records are preserved in the same completed-history archive.
 
-### v2.7.1-v2.7.6 UPS state and compatibility fixes
+### v2.7.2-v2.7.7 UPS state and compatibility fixes
 
 **Reported by the Project Maintainer on 2026-07-22 after v2.7.0 acceptance:**
 the following defects are immediately prioritized. These observations are
@@ -170,16 +172,18 @@ Each patch release below is one reviewable branch and acceptance boundary:
 
 | Release | Prospective branch | Required outcome |
 | --- | --- | --- |
-| `v2.7.1` | `feature/factory-reset-clears-state` | A 15-second-plus factory reset erases all defined saved user values, including UPS identity/cache state, while preserving the firmware and documented recovery boundary. |
 | `v2.7.2` | `feature/nut-disconnect-invalidation` | Loss of the UPS connection immediately updates the status JSON and dashboard; stale data is never presented as current UPS information. |
 | `v2.7.3` | `feature/nut-stale-timeout` | After five minutes without a connection, all UPS information is cleared while NUT remains explicitly stale/unavailable. The timer resets only after a confirmed connection. |
 | `v2.7.4` | `feature/apc-br1500g-support` | From factory-reset state, the APC Back-UPS RS 1500G communicates without freeze/reboot and reports a validated NUT identity, status, and available measurements. |
 | `v2.7.5` | `feature/nut-compatibility-hardening` | Expand compatibility handling for NUT-compatible UPS devices with graceful unsupported-device behavior, bounded resources, and a documented validation matrix; do not claim universal support without evidence. |
 | `v2.7.6` | `feature/ups-change-without-wait` | A connected UPS can be replaced and reprobed immediately without waiting for the five-minute timeout; old identity and values cannot leak into the new device state. |
+| `v2.7.7` | `feature/factory-reset-clears-state` | A 15-second-plus factory reset erases all defined saved user values, including UPS identity/cache state, while preserving the firmware and documented recovery boundary. |
 
-The first implementation slice is `v2.7.1`; reproduce the disconnected-UPS
-factory-reset case and define the persistent-state boundary before touching
-APC-specific compatibility work.
+The next implementation slice is `v2.7.2`; reproduce the disconnected-UPS
+case and define the invalidation boundary before touching APC-specific
+compatibility work. Factory-reset state clearing is deliberately last in this
+2.7.x sequence so the preceding compatibility releases can be published and
+validated independently.
 
 Historical sequencing, workflow-continuity rationale, and publication records
 are preserved in the completed-history archive.

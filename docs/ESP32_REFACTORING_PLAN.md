@@ -83,8 +83,8 @@ out of `management.c`.
 The completed page-rendering, ADMIN-route, shared-authorization, and session
 route extractions reduce `management.c` without changing security decisions.
 The active branch completed the remaining handler families and the final
-route-composition move. It did not begin the separately scoped v2.7.1
-factory-reset investigation.
+route-composition move. It did not begin the separately scoped final planned
+v2.7.7 factory-reset investigation.
 
 ### Current management page-rendering slice
 

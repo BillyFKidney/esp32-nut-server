@@ -2,8 +2,9 @@
 
 ## Status
 
-Implementation and target validation in progress. This is a compatible recovery
-patch based directly on the published `v2.7.0` source tag.
+Implementation and target validation completed. This compatible recovery patch
+is included in the `v2.7.1` maintenance release and is based directly on the
+published `v2.7.0` source tag.
 
 ## Observed behavior
 
