@@ -1,3 +1,4 @@
+/** @file management.c @brief Coordinate root policy, HTTPS lifecycle, and factory reset. @see management.h, management-certificates.h, management-routes.h, management-session.h */
 #include "management.h"
 #include "management-certificates.h"
 #include "management-credentials.h"

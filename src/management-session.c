@@ -1,3 +1,4 @@
+/** @file management-session.c @brief Create and validate expiring ADMIN browser sessions. @see management-session.h, esp_http_server.h, esp_timer.h, mbedtls/platform_util.h */
 #include "management-session.h"
 
 #include <stdint.h>

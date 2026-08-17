@@ -1,3 +1,4 @@
+/** @file timegm_fallback.c @brief Provide a fallback timegm conversion implementation. @see time.h, stdlib.h */
 /* Fallback timegm() for systems that lack one.
  * Algorithm: http://howardhinnant.github.io/date_algorithms.html
  * https://stackoverflow.com/a/58037981/4715872
@@ -46,4 +47,3 @@ time_t timegm_fallback(struct tm const* t)
 
     return 60 * (60 * (24L * days_since_epoch_1970 + t->tm_hour) + t->tm_min) + t->tm_sec;
 }
-

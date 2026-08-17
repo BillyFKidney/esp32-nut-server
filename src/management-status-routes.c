@@ -1,3 +1,4 @@
+/** @file management-status-routes.c @brief Serve authenticated management status JSON. @see management-status-routes.h, management-authorization.h, management-status.h, time_config.h */
 #include "management-status-routes.h"
 
 #include <stdbool.h>

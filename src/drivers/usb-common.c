@@ -1,3 +1,4 @@
+/** @file usb-common.c @brief Provide shared USB helpers for NUT drivers. @see usb-common.h, nut_libusb.h, nut_common.h */
 /* usb-common.c - common useful USB functions
 
    Copyright (C) 2008  Arnaud Quette <arnaud.quette@gmail.com>

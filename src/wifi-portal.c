@@ -1,3 +1,4 @@
+/** @file wifi-portal.c @brief Provide the captive-portal HTML payload. @see wifi-portal.h, esp_http_server.h */
 #include "wifi-portal.h"
 
 const char wifi_portal_html[] =

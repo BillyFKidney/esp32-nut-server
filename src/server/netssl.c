@@ -1,3 +1,4 @@
+/** @file netssl.c @brief Provide TLS support for upsd network clients. @see upsd.h, nut_common.h, openssl/ssl.h, openssl/err.h */
 /* netssl.c - Interface to OpenSSL for upsd
 
    Copyright (C)

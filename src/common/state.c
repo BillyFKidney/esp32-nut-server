@@ -1,3 +1,4 @@
+/** @file state.c @brief Manage shared NUT runtime state and notifications. @see state.h, nut_common.h, config.h */
 /* state.c - Network UPS Tools common state management functions
 
    Copyright (C)

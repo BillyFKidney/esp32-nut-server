@@ -1,3 +1,4 @@
+/** @file management-certificates.c @brief Create and persist HTTPS certificate material. @see management-certificates.h, nvs.h, mbedtls/x509_crt.h, mbedtls/pk.h */
 #include "management-certificates.h"
 
 #include <stdio.h>

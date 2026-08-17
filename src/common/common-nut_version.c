@@ -1,3 +1,4 @@
+/** @file common-nut_version.c @brief Report NUT version metadata and build information. @see nut_version.h, nut_common.h, config.h */
 /* nut_version.c - data and functions regarding just NUT version reporting
                    (extracted from common.c to minimize the compilation unit
                    impacted by git metadata changes during development)

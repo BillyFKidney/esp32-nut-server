@@ -1,3 +1,4 @@
+/** @file upsd.c @brief Run the NUT network server and client event loop. @see upsd.h, conf.h, sstate.h, user.h */
 /* upsd.c - watches ups state files and answers queries
 
    Copyright (C)

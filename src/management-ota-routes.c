@@ -1,3 +1,4 @@
+/** @file management-ota-routes.c @brief Authorize and dispatch management OTA routes. @see management-ota-routes.h, management-authorization.h, api_tokens.h, ota.h */
 #include "management-ota-routes.h"
 
 #include <string.h>

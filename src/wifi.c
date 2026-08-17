@@ -1,3 +1,4 @@
+/** @file wifi.c @brief Manage Wi-Fi lifecycle, recovery, and provisioning. @see wifi-provisioning.h, wifi-credentials.h, dns-server.h, wifi-provisioning-web.h */
 #include "wifi-provisioning.h"
 
 #include <stdbool.h>

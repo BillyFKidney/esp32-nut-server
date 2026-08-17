@@ -1,3 +1,4 @@
+/** @file strsep.c @brief Provide a portable strsep compatibility implementation. @see string.h, stdlib.h */
 #include <string.h>
 
 /* Simple implem courtesy of https://stackoverflow.com/a/58244503
@@ -16,4 +17,3 @@ char *strsep(char **stringp, const char *delim) {
 	}
 	return rv;
 }
-

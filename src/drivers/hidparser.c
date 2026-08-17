@@ -1,3 +1,4 @@
+/** @file hidparser.c @brief Parse HID report descriptors and data items. @see hidparser.h, usbhid-ups.h, nut_common.h */
 /*
  * hidparser.c:	HID Parser
  *

@@ -1,3 +1,4 @@
+/** @file libhid.c @brief Provide generic HID access for NUT UPS drivers. @see libhid.h, hidparser.h, usb-common.h, nut_common.h */
 /*!
  * @file libhid.c
  * @brief NUT HID Library - User API (Generic HID Access using MGE HIDParser)

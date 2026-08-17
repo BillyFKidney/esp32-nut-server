@@ -1,3 +1,4 @@
+/** @file snprintf.c @brief Provide a bounded snprintf compatibility implementation. @see config.h, stdio.h, stdarg.h */
 /*
  * Copyright Patrick Powell 1995
  * This code is based on code written by Patrick Powell (papowell@astart.com)

@@ -1,3 +1,4 @@
+/** @file management-time-routes.c @brief Handle authenticated time-configuration requests. @see management-time-routes.h, time_config.h, management-session.h, management-http.h */
 #include "management-time-routes.h"
 
 #include <stdbool.h>

@@ -1,3 +1,4 @@
+/** @file ota.c @brief Validate and install ESP-IDF OTA application images. @see ota.h, esp_ota_ops.h, esp_app_desc.h, nvs.h */
 #include "ota.h"
 
 #include <stdbool.h>

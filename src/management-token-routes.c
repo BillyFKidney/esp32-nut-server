@@ -1,3 +1,4 @@
+/** @file management-token-routes.c @brief Handle ADMIN API-token lifecycle routes. @see management-token-routes.h, api_tokens.h, management-authorization.h, time_config.h */
 #include "management-token-routes.h"
 
 #include <stdio.h>

@@ -1,3 +1,4 @@
+/** @file management-session-routes.c @brief Handle logout and session-activity management routes. @see management-session-routes.h, management-session.h, management-http.h */
 #include "management-session-routes.h"
 
 #include <stdio.h>

@@ -1,3 +1,4 @@
+/** @file management-credentials.c @brief Store and verify ADMIN password credentials. @see management-credentials.h, nvs.h, psa/crypto.h, mbedtls/platform_util.h */
 #include "management-credentials.h"
 
 #include <stddef.h>

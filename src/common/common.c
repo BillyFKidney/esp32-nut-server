@@ -1,3 +1,4 @@
+/** @file common.c @brief Provide shared NUT utility functions and runtime helpers. @see nut_common.h, timehead.h, proto.h */
 /* common.c - common useful functions
 
    Copyright (C) 2000  Russell Kroll <rkroll@exploits.org>

@@ -1,3 +1,4 @@
+/** @file wifi-diagnostics.c @brief Collect bounded Wi-Fi and DHCP diagnostics. @see wifi-diagnostics.h, esp_netif.h, lwip/dhcp.h, lwip/netif.h */
 #include "wifi-diagnostics.h"
 
 #include <stdbool.h>

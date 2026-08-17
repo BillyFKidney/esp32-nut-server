@@ -1,3 +1,4 @@
+/** @file main.c @brief Boot ESP32-NUT services and launch read-only UPS tasks. @see wifi-provisioning.h, management.h, ota.h, drivers/espusb.h */
 #include "nut_common.h"
 #include "nut_version.h"
 #include <pwd.h>

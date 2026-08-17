@@ -1,3 +1,4 @@
+/** @file management-pages.c @brief Render setup, login, and ADMIN management pages. @see management-pages.h, management-http.h, management-session.h */
 #include "management-pages.h"
 
 #include "management-http.h"

@@ -1,3 +1,4 @@
+/** @file strnlen.c @brief Provide a bounded strnlen compatibility implementation. @see string.h, sys/cdefs.h */
 /*-
  * Copyright (c) 2009 David Schultz <das@FreeBSD.org>
  * All rights reserved.
@@ -43,4 +44,3 @@ strnlen(const char *s, size_t maxlen)
 	}
 	return (len);
 }
-

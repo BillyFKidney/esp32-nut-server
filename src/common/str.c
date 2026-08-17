@@ -1,3 +1,4 @@
+/** @file str.c @brief Provide shared NUT string utility functions. @see nut_common.h, proto.h, ctype.h */
 /* str.c - Common string-related functions
  *
  * Copyright (C)

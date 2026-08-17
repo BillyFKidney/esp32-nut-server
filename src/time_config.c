@@ -1,3 +1,4 @@
+/** @file time_config.c @brief Persist time settings and manage SNTP synchronization. @see time_config.h, nvs.h, esp_netif_sntp.h, sys/time.h */
 #include "time_config.h"
 
 #include <stdint.h>

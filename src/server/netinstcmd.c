@@ -1,3 +1,4 @@
+/** @file netinstcmd.c @brief Handle NUT INSTCMD protocol commands. @see upsd.h, sstate.h, state.h, netinstcmd.h */
 /* netinstcmd.c - INSTCMD handler for upsd
 
    Copyright (C) 2003  Russell Kroll <rkroll@exploits.org>

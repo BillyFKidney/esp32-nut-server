@@ -1,3 +1,4 @@
+/** @file dstate.c @brief Manage driver-side NUT state and socket publication. @see dstate.h, af_unix_socket.h, nut_common.h, state.h */
 /* dstate.c - Network UPS Tools driver-side state management
 
    Copyright (C)

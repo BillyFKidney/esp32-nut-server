@@ -1,3 +1,4 @@
+/** @file api_tokens.c @brief Manage persisted API tokens and scoped bearer authorization. @see api_tokens.h, management-authorization.h, nvs.h */
 #include "api_tokens.h"
 
 #include <stdio.h>

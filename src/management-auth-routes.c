@@ -1,3 +1,4 @@
+/** @file management-auth-routes.c @brief Handle setup, login, and ADMIN password routes. @see management-auth-routes.h, management-credentials.h, management-session.h, management-pages.h */
 #include "management-auth-routes.h"
 
 #include "management-credentials.h"
