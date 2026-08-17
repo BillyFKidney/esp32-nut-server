@@ -1,3 +1,4 @@
+/** @file cps-hid.c @brief Map CyberPower HID UPS reports to NUT variables. @see cps-hid.h, usbhid-ups.h, hidparser.h, main.h */
 /* cps-hid.c - subdriver to monitor CPS USB/HID devices with NUT
  *
  *  Copyright (C)

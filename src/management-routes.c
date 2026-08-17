@@ -1,3 +1,4 @@
+/** @file management-routes.c @brief Register the complete HTTPS management route set. @see management-routes.h, management-auth-routes.h, management-ota-routes.h, management-status-routes.h */
 #include "management-routes.h"
 
 #include "management-auth-routes.h"

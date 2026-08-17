@@ -1,3 +1,4 @@
+/** @file conf.c @brief Load and validate upsd configuration. @see conf.h, upsd.h, sstate.h, upsconf.h */
 /* conf.c - configuration handlers for upsd
 
    Copyright (C) 2001  Russell Kroll <rkroll@exploits.org>

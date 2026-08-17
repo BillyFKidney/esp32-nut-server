@@ -1,3 +1,4 @@
+/** @file upsdrvquery.c @brief Query NUT UPS drivers through their state sockets. @see upsdrvquery.h, dstate.h, nut_common.h */
 /* upsdrvquery.c - a single query shot over a driver socket,
                    tracked until a response arrives, returning
                    that line and closing a connection

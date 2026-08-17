@@ -1,3 +1,4 @@
+/** @file main.c @brief Run the shared NUT UPS driver lifecycle. @see main.h, dstate.h, nut_common.h, upsdrvquery.h */
 /* main.c - Network UPS Tools driver core
 
    Copyright (C)

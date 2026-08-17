@@ -1,3 +1,4 @@
+/** @file management-authorization.c @brief Enforce shared session and bearer authorization boundaries. @see management-authorization.h, management-session.h, api_tokens.h, management-http.h */
 #include "management-authorization.h"
 #include "management-session.h"
 #include "management-http.h"

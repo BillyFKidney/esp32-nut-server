@@ -1,3 +1,4 @@
+/** @file management-http.c @brief Send bounded management HTTP responses and parse forms. @see management-http.h, esp_http_server.h, mbedtls/platform_util.h */
 #include "management-http.h"
 
 #include <stdarg.h>

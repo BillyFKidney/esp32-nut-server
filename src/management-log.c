@@ -1,3 +1,4 @@
+/** @file management-log.c @brief Capture and serialize bounded management runtime logs. @see management-log.h, time_config.h, esp_log.h, esp_timer.h */
 #include "management-log.h"
 
 #include <stdint.h>

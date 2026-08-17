@@ -1,3 +1,4 @@
+/** @file management-status.c @brief Collect NUT and hardware diagnostics for management status. @see management-status.h, drivers/dstate.h, esp_heap_caps.h, driver/temperature_sensor.h */
 #include "management-status.h"
 
 #include <math.h>

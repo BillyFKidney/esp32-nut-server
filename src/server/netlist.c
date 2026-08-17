@@ -1,3 +1,4 @@
+/** @file netlist.c @brief Handle NUT LIST protocol commands. @see upsd.h, sstate.h, state.h, netlist.h */
 /* netlist.c - LIST handlers for upsd
 
    Copyright (C)

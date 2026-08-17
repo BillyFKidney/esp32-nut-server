@@ -1,3 +1,4 @@
+/** @file wifi-provisioning-web.c @brief Serve captive-portal setup pages and APIs. @see wifi-provisioning-web.h, wifi-credentials.h, wifi-diagnostics.h, wifi-portal.h */
 #include "wifi-provisioning-web.h"
 
 #include <ctype.h>

@@ -1,3 +1,4 @@
+/** @file user.c @brief Manage upsd users and authorization rules. @see user.h, upsd.h, nut_common.h */
 /* user.c - user handling functions for upsd
 
    Copyright (C) 2001  Russell Kroll <rkroll@exploits.org>

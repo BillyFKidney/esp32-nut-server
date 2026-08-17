@@ -1,3 +1,4 @@
+/** @file desc.c @brief Load variable and command descriptions for upsd. @see upsd.h, parseconf.h, nut_common.h */
 /* desc.c - variable/command description handling for upsd
 
    Copyright (C) 2003  Russell Kroll <rkroll@exploits.org>

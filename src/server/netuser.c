@@ -1,3 +1,4 @@
+/** @file netuser.c @brief Handle NUT client authentication and login commands. @see upsd.h, user.h, sstate.h, state.h */
 /* netuser.c - LOGIN/LOGOUT/USERNAME/PASSWORD/MASTER[PRIMARY] handlers for upsd
 
    Copyright (C) 2003  Russell Kroll <rkroll@exploits.org>

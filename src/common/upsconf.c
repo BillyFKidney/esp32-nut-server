@@ -1,3 +1,4 @@
+/** @file upsconf.c @brief Parse and manage NUT UPS configuration data. @see upsconf.h, parseconf.h, nut_common.h */
 /* upsconf.c - code for handling ups.conf ini-style parsing
 
    Copyright (C) 2001  Russell Kroll <rkroll@exploits.org>

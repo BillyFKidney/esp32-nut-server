@@ -1,3 +1,4 @@
+/** @file strptime.c @brief Provide a portable strptime compatibility implementation. @see time.h, nut_stdint.h, config.h */
 /*	$NetBSD: strptime.c,v 1.36 2012/03/13 21:13:48 christos Exp $	*/
 
 /* Fetched into NUT codebase from MSYS2 packaging of MINGW:

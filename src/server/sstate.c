@@ -1,3 +1,4 @@
+/** @file sstate.c @brief Track server-side UPS state and driver connections. @see sstate.h, upsd.h, state.h, timehead.h */
 /* sstate.c - Network UPS Tools server-side state management
 
    Copyright (C)

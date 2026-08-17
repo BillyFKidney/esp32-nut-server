@@ -1,3 +1,4 @@
+/** @file parseconf.c @brief Parse dynamic NUT configuration files. @see parseconf.h, nut_common.h, config.h */
 /* parseconf.c - state machine-driven dynamic configuration file parser
 
    Copyright (C) 2002  Russell Kroll <rkroll@exploits.org>

@@ -1,3 +1,4 @@
+/** @file setenv.c @brief Provide a portable setenv compatibility implementation. @see nut_common.h, stdlib.h, config.h */
 /* setenv.c Ben Collver <collver@softhome.net> */
 #include "config.h" /* must be first */
 

@@ -1,3 +1,4 @@
+/** @file management-wifi-routes.c @brief Handle authenticated Wi-Fi management routes. @see management-wifi-routes.h, wifi-provisioning.h, management-authorization.h, management-http.h */
 #include "management-wifi-routes.h"
 
 #include <stdbool.h>

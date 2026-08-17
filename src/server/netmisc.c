@@ -1,3 +1,4 @@
+/** @file netmisc.c @brief Handle miscellaneous NUT protocol commands. @see upsd.h, sstate.h, state.h, netmisc.h */
 /* netmisc.c - miscellaneous network handlers for upsd (VER, HELP, FSD)
 
    Copyright (C)
@@ -125,4 +126,3 @@ void net_fsd(nut_ctype_t *client, size_t numarg, const char **arg)
 	ups->fsd = 1;
 	sendback(client, "OK FSD-SET\n");
 }
-

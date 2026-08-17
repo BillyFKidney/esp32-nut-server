@@ -1,3 +1,4 @@
+/** @file netset.c @brief Handle NUT SET protocol commands. @see upsd.h, sstate.h, state.h, netset.h */
 /* netset.c - SET handler for upsd
 
    Copyright (C) 2003  Russell Kroll <rkroll@exploits.org>

@@ -1,3 +1,4 @@
+/** @file strerror.c @brief Provide a portable strerror compatibility implementation. @see config.h, errno.h, string.h */
 /* strerror()  Mark Powell <medp@primagraphics.co.uk> */
 /* Simple implementation derived from libiberty */
 

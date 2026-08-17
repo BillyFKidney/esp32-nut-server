@@ -1,3 +1,4 @@
+/** @file wifi-credentials.c @brief Persist active and pending Wi-Fi credentials. @see wifi-credentials.h, nvs.h */
 #include "wifi-credentials.h"
 
 #include "nvs.h"

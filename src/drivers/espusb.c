@@ -1,3 +1,4 @@
+/** @file espusb.c @brief Adapt ESP-IDF USB host services to the NUT USB backend. @see espusb.h, usb-common.h, nut_libusb.h, usb/usb_host.h */
 /*!
  * @file tinyusb.c
  * @brief Generic USB communication backend (using tinyusb)

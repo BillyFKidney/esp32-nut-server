@@ -1,3 +1,4 @@
+/** @file explore-hid.c @brief Inspect unsupported HID UPS devices through the exploration subdriver. @see explore-hid.h, usbhid-ups.h, main.h */
 /*  explore-hid.c - this is a "stub" subdriver used to collect data
  *  about HID UPS systems that are not yet supported.
  *

@@ -20,6 +20,7 @@ tree, or project conversation during an ordinary startup.
 
 | Task or question | Read next |
 | --- | --- |
+| Quick orientation / "where is X?" | [NAVIGATION.md](docs/NAVIGATION.md) |
 | Current branch, active scope, next action | [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) |
 | Roadmap, version, or branch boundary | [ESP32_DEVELOPMENT_PLAN.md](docs/ESP32_DEVELOPMENT_PLAN.md) |
 | Locked Operational Management requirement or decision | [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](docs/ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md) |

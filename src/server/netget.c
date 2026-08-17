@@ -1,3 +1,4 @@
+/** @file netget.c @brief Handle NUT GET protocol commands. @see upsd.h, sstate.h, state.h, netget.h */
 /* netget.c - GET handlers for upsd
 
    Copyright (C) 2003  Russell Kroll <rkroll@exploits.org>

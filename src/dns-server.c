@@ -1,3 +1,4 @@
+/** @file dns-server.c @brief Serve captive-portal DNS replies for the setup access point. @see dns-server.h, esp_netif.h, lwip/sockets.h */
 /*
  * SPDX-FileCopyrightText: 2021-2023 Espressif Systems (Shanghai) CO LTD
  *

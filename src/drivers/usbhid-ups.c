@@ -1,3 +1,4 @@
+/** @file usbhid-ups.c @brief Poll HID UPS devices and publish NUT state. @see usbhid-ups.h, libhid.h, hidparser.h, main.h */
 /* usbhid-ups.c - Driver for USB and serial (MGE SHUT) HID UPS units
  *
  * Copyright (C)

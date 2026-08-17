@@ -1,3 +1,4 @@
+/** @file atexit.c @brief Provide a portable atexit compatibility implementation. @see nut_common.h, stdlib.h, config.h */
 /* atexit()  Mark Powell <medp@primagraphics.co.uk> */
 /* Implemented in terms of on_exit() for old BSD-style systems, like SunOS4 */
 

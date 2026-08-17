@@ -1,3 +1,4 @@
+/** @file usb.c @brief Run ESP-IDF USB host tasks and HID discovery. @see drivers/espusb.h, usb/usb_host.h, usb/usb_helpers.h, esp_check.h */
 #include "usb/usb_host.h"
 #include "usb/usb_helpers.h"
 #include "drivers/espusb.h"

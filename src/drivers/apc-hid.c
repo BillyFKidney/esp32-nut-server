@@ -1,3 +1,4 @@
+/** @file apc-hid.c @brief Map APC HID UPS reports to NUT variables. @see apc-hid.h, usbhid-ups.h, hidparser.h, main.h */
 /*  apc-hid.c - data to monitor APC USB/HID devices with NUT
  *
  *  Copyright (C)
