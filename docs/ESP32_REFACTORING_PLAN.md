@@ -57,6 +57,11 @@ network state; status is read-only; certificate and credential extraction then
 receive dedicated review before session and route composition; Wi-Fi recovery
 is kept separate because it crosses physical input, NVS erasure, and restart.
 
+The staged management-route work, the credential-promotion repair, and the
+browser-log noise filter were published in `v2.7.1`. The historical branch
+labels in the table identify their original review boundaries; they are not
+active work.
+
 ## Management module inventory (corrected)
 
 The following inventory supersedes shorthand task lists that combined distinct

@@ -17,8 +17,8 @@ Read `ESP32_PREFLIGHT.md` only for explicitly authorized device work.
 ## Canonical continuation state
 
 - Canonical code base: `main`; live Git is authoritative.
-- Release branch: `feature/management-route-families`, based on `main` at
-  `91079a7f5`; confirm branch, HEAD, and worktree before acting.
+- Published baseline: `main` at `163e3d08d` (v2.7.1); confirm branch, HEAD,
+  and worktree before acting.
 - Target: YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3`.
 - Preserve: HTTPS `443`, read-only NUT `3493`, refused `8080`, ADMIN/CSRF,
   bearer scopes, Authorization-header zeroization, Wi-Fi recovery, and
@@ -28,7 +28,7 @@ Read `ESP32_PREFLIGHT.md` only for explicitly authorized device work.
   two password rotations with a subsequent new-password sign-in and confirmed
   that routine ESP-IDF HTTPS handshakes no longer fill the browser log
   snapshot; serial output and TLS errors remain intact. This validated
-  maintenance bundle is assigned to `v2.7.1`. Factory-reset state clearing is
+  maintenance bundle is published as `v2.7.1`. Factory-reset state clearing is
   reserved for final planned `v2.7.7` work; the next slice is `v2.7.2`
   UPS-disconnect invalidation.
 
@@ -69,5 +69,7 @@ ESP-IDF v6.0.2 builds passed after each family, final composition,
 password-safety repair, and log-noise filter. The complete route-family diff,
 handler-body transfers, and route order were reviewed; `git diff --check`
 passed. Target validation confirmed the password repair and browser-log filter.
-Push, merge, tag, and release are authorized only for this accepted `v2.7.1`
-maintenance bundle. Do not flash, OTA, or reset without fresh authority.
+The release image was rebuilt from the v2.7.1 tag and its embedded version and
+SHA-256 were verified locally; it was not separately installed. Start the
+v2.7.2 UPS-disconnect slice from current `main`; do not flash, OTA, or reset
+without fresh authority.

@@ -62,7 +62,7 @@ diagnostic, and provisioning-web boundaries. The local
 Wi-Fi, OTA, and route-composition extraction builds. `management.c` remains
 the HTTPS/root-policy/factory-reset orchestration boundary. The completed,
 validated extraction, ADMIN credential-promotion repair, and browser-log
-noise filter are assigned to `v2.7.1`. The separately scoped factory-reset
+noise filter are published in `v2.7.1`. The separately scoped factory-reset
 work follows the intervening UPS-state and compatibility releases.
 
 ## Target platform
