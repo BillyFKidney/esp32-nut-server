@@ -1,8 +1,9 @@
 # ESP32-NUT active development plan
 
-This is the compact forward roadmap. Completed v2.7.1 scope, historical
-sequencing, and released refactoring details are preserved in
-[archive/ESP32_DEVELOPMENT_PLAN_V2_7_1.md](archive/ESP32_DEVELOPMENT_PLAN_V2_7_1.md).
+This is the authoritative forward roadmap. Completed v2.7.1 scope and released
+refactoring details are preserved in [archive/](archive/README.md). The
+archived plan snapshot is historical context only; future roadmap content is
+maintained here.
 
 ## Version and publication rule
 
@@ -18,16 +19,104 @@ families, credential-promotion safety repair, and browser-log handshake filter
 without changing the protected service, authorization, Wi-Fi, or read-only UPS
 boundaries.
 
-## Remaining 2.7.x sequence
+## Operational Management completion — `v2.x`
+
+The locked requirements remain in
+[ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md).
+The ADMIN console, LAN-only HTTPS, read-only NUT access, and physical-recovery
+boundaries remain in force. The remaining umbrella-milestone slices are:
 
 | Release | Prospective branch | Required outcome |
 | --- | --- | --- |
-| `v2.7.2` | `feature/nut-disconnect-invalidation` | On UPS loss, status JSON and dashboard promptly mark data unavailable; stale values are never presented as current. |
-| `v2.7.3` | `feature/nut-stale-timeout` | After five minutes without a confirmed connection, clear all UPS information while preserving an explicit stale/unavailable state. |
-| `v2.7.4` | `feature/apc-br1500g-support` | Validate APC Back-UPS RS 1500G communication without freeze/reboot and report only confirmed identity/status/measurements. |
-| `v2.7.5` | `feature/nut-compatibility-hardening` | Add bounded, graceful handling for supported and unsupported NUT-compatible UPS devices with a documented validation matrix. |
-| `v2.7.6` | `feature/ups-change-without-wait` | Reprobe a replacement UPS immediately; prior identity and values cannot leak into the new device state. |
-| `v2.7.7` | `feature/factory-reset-clears-state` | A 15-second-plus factory reset clears all defined saved user values, including UPS identity/cache state, while preserving firmware and recovery boundaries. |
+| `v2.8.0` | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
+| `v2.9.0` | `feature/operational-management-acceptance` | Validate the locked definition of done from iPhone and MacBook Air and publish the final `v2.x` acceptance release. |
+
+## UPS state and compatibility — `v2.7.2`–`v2.7.7`
+
+The following observations remain active implementation evidence: disconnecting
+the CyberPower UPS can leave old identity/values visible while NUT is stale; a
+factory reset with the UPS absent can retain displayed state; and an APC
+BR1500G previously caused freeze/reboot symptoms after healthy communication
+through the Mac mini. Root causes remain to be established per slice.
+
+| Release | Prospective branch | Required outcome |
+| --- | --- | --- |
+| `v2.7.2` | `feature/nut-disconnect-invalidation` | Loss of the UPS connection immediately updates status JSON and dashboard; stale data is never presented as current UPS information. |
+| `v2.7.3` | `feature/nut-stale-timeout` | After five minutes without a confirmed connection, clear all UPS information while preserving an explicit stale/unavailable state; reset the timer only after connection confirmation. |
+| `v2.7.4` | `feature/apc-br1500g-support` | From factory-reset state, an APC Back-UPS RS 1500G communicates without freeze/reboot and reports only validated identity, status, and available measurements. |
+| `v2.7.5` | `feature/nut-compatibility-hardening` | Expand compatibility handling with graceful unsupported-device behavior, bounded resources, and a documented validation matrix; do not claim universal support without evidence. |
+| `v2.7.6` | `feature/ups-change-without-wait` | A replacement UPS can be reprobed immediately; prior identity and values cannot leak into the new device state. |
+| `v2.7.7` | `feature/factory-reset-clears-state` | A 15-second-plus factory reset erases all defined saved user values, including UPS identity/cache state, while preserving firmware and documented recovery boundaries. |
+
+Factory-reset state clearing is deliberately last in this sequence so the
+preceding compatibility releases can be published and validated independently.
+
+## Production OTA — `v3.x`
+
+- Build on the authenticated HTTPS local-upload route; do not restore an
+  unauthenticated development listener.
+- Replace the self-signed management certificate with reviewed local-CA trust.
+- Verify signed firmware metadata or an ESP-IDF-supported signed-image and
+  secure-boot strategy before unattended updates.
+- Define a controlled release-asset/version-manifest workflow. Manual check,
+  download, and install come before any opt-in schedule; automatic install
+  remains disabled by default.
+
+| Release | Prospective branch | Scope |
+| --- | --- | --- |
+| `v3.0.0` | `feature/local-ca-trust` | Local-CA trust and provisioning model. |
+| `v3.1.0` | `feature/signed-update-metadata` | Signed release metadata or supported signed-image strategy. |
+| `v3.2.0` | `feature/remote-update-client` | Certificate-validated remote check/download with manual approval. |
+| `v3.3.0` | `feature/scheduled-updates` | Opt-in check scheduling; automatic installation remains disabled. |
+| `v3.4.0` | `feature/production-ota-acceptance` | Validate authorization, source resistance, rollback, recovery, and definition of done. |
+
+## NUT and UPS compatibility hardening — `v4.x`
+
+Test additional CyberPower and USB HID UPS models, improve evidenced
+descriptor/driver selection, and validate read-only NUT interoperability with
+`upsc`, Home Assistant/NUT clients, and monitoring systems. UPS writes remain
+blocked pending a separately reviewed control milestone.
+
+| Release | Prospective branch | Scope |
+| --- | --- | --- |
+| `v4.0.0` | `feature/nut-client-interoperability` | Validate representative read-only NUT clients. |
+| `v4.1.0` | `feature/cyberpower-compatibility` | Test additional available CyberPower devices. |
+| `v4.2.0` | `feature/usb-hid-compatibility` | Improve bounded diagnostics and driver selection for evidenced gaps. |
+| `v4.3.0` | `feature/nut-ups-acceptance` | Publish supported-device/client matrix and sustained-operation evidence. |
+
+## Platform resilience and release automation — `v5.x`
+
+Decide whether to expand the lower-8-MB layout while preserving dual OTA;
+add exact-target builds and release provenance; document upgrade/recovery; and
+evaluate secure boot, flash encryption, and certificate storage as separate
+risk boundaries.
+
+| Release | Prospective branch | Scope |
+| --- | --- | --- |
+| `v5.0.0` | `feature/flash-layout` | Validate any storage-layout expansion and dual-OTA recovery. |
+| `v5.1.0` | `feature/release-automation` | Exact-target builds, artifacts, provenance, and authorized publication workflow. |
+| `v5.2.0` | `feature/upgrade-recovery-policy` | Repeatable install, rollback, upgrade, downgrade, and physical recovery. |
+| `v5.3.0` | `feature/platform-security` | Review approved secure boot, flash encryption, and certificate storage. |
+| `v5.4.0` | `feature/platform-acceptance` | Target release, security, resource, and recovery acceptance. |
+
+## Expanded functionality — `v6.x`
+
+Defer MQTT, Home Assistant, mDNS, password UX, a read-only USER role, and any
+UPS controls until their security and hardware-safety foundations are reviewed.
+Configuration backup/restore precedes mDNS/Home Assistant and excludes Wi-Fi
+credentials and administrator secrets by default.
+
+| Release | Prospective branch | Scope |
+| --- | --- | --- |
+| `v6.0.0` | `feature/config-backup-restore` | Reviewed secret-excluding configuration backup/restore. |
+| `v6.1.0` | `feature/password-ux` | Improve ADMIN password UX without weakening validation. |
+| `v6.2.0` | `feature/mqtt` | Lock and implement bounded broker/security/topic contract. |
+| `v6.3.0` | `feature/mdns-discovery` | Reviewed LAN discovery without broader management exposure. |
+| `v6.4.0` | `feature/home-assistant-integration` | Read-only Home Assistant discovery and entity validation. |
+| `v6.5.0` | `feature/user-role` | Read-only USER role with explicit authorization and recovery. |
+| `v6.6.0` | `feature/ups-control-safety` | Lock UPS-control hazard, authorization, and recovery model. |
+| `v6.7.0` | `feature/ups-controls` | Implement only approved controls with model-specific validation. |
+| `v6.8.0` | `feature/expanded-functionality-acceptance` | Combined security, integration, hardware-safety, recovery, and client acceptance. |
 
 ## Guardrails
 

@@ -1,4 +1,8 @@
-# ESP32-NUT development plan
+# Historical pre-v2.7.1 development-plan snapshot
+
+This is a frozen record of planning context at the v2.7.1 release boundary.
+It is not the current roadmap; active and future release scope is maintained
+in [ESP32_DEVELOPMENT_PLAN.md](../ESP32_DEVELOPMENT_PLAN.md).
 
 ## Purpose
 

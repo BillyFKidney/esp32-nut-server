@@ -21,7 +21,7 @@ when a current document links to it or historical evidence is required.
 | [2026-07-29 target candidate smoke validation](2026-07-29-target-candidate-smoke-validation.md) | Browser-OTA, reboot, ADMIN-session, and network-service evidence for the local Wi-Fi-provisioning/header-limit integration candidate |
 | [ESP32_CURRENT_STATUS_V2_7_1.md](ESP32_CURRENT_STATUS_V2_7_1.md) | Full v2.7.1 pre-publication status and release-preparation handoff |
 | [ESP32_64K_AGENT_HANDOFF_V2_7_1.md](ESP32_64K_AGENT_HANDOFF_V2_7_1.md) | Full v2.7.1 64k continuation packet before active-slice compaction |
-| [ESP32_DEVELOPMENT_PLAN_V2_7_1.md](ESP32_DEVELOPMENT_PLAN_V2_7_1.md) | Full roadmap before completed v2.7.1 material was reduced to the active 2.7.x sequence |
+| [ESP32_DEVELOPMENT_PLAN_V2_7_1.md](ESP32_DEVELOPMENT_PLAN_V2_7_1.md) | Frozen pre-v2.7.1 planning snapshot; active and future roadmap scope is maintained in `docs/ESP32_DEVELOPMENT_PLAN.md` |
 | [ESP32_REFACTORING_PLAN_V2_7_1.md](ESP32_REFACTORING_PLAN_V2_7_1.md) | Full management/Wi-Fi extraction plan, module inventory, and completed validation record |
 | [ESP32_ROUTE_INVENTORY_V2_7_1.md](ESP32_ROUTE_INVENTORY_V2_7_1.md) | Completed HTTPS management-route order and extraction acceptance baseline |
 | [ESP32_V2_7_1_HEADER_LIMIT_FIX.md](ESP32_V2_7_1_HEADER_LIMIT_FIX.md) | Completed HTTPS request-header-limit repair record |
