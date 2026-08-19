@@ -56,6 +56,28 @@ bool management_bearer_is_authorized(httpd_req_t *request,
     return authorized;
 }
 
+bool management_diagnostic_bearer_is_authorized(httpd_req_t *request)
+{
+    static const char prefix[] = "Bearer ";
+    const size_t expected_length = sizeof(prefix) - 1U + API_TOKEN_VALUE_LENGTH;
+    if (httpd_req_get_hdr_value_len(request, "Authorization") != expected_length)
+    {
+        return false;
+    }
+    char authorization[sizeof(prefix) - 1U + API_TOKEN_VALUE_LENGTH + 1U];
+    if (httpd_req_get_hdr_value_str(request, "Authorization", authorization,
+                                    sizeof(authorization)) != ESP_OK)
+    {
+        mbedtls_platform_zeroize(authorization, sizeof(authorization));
+        return false;
+    }
+    const bool authorized =
+        strncmp(authorization, prefix, sizeof(prefix) - 1U) == 0 &&
+        diagnostic_tokens_authorize(authorization + sizeof(prefix) - 1U);
+    mbedtls_platform_zeroize(authorization, sizeof(authorization));
+    return authorized;
+}
+
 esp_err_t management_send_bearer_unauthorized(httpd_req_t *request)
 {
     httpd_resp_set_hdr(
@@ -64,4 +86,14 @@ esp_err_t management_send_bearer_unauthorized(httpd_req_t *request)
     return management_send_json(
         request, "401 Unauthorized",
         "{\"error\":\"A valid API token with ota.install scope is required.\"}");
+}
+
+esp_err_t management_send_diagnostic_bearer_unauthorized(httpd_req_t *request)
+{
+    httpd_resp_set_hdr(
+        request, "WWW-Authenticate",
+        "Bearer realm=\"ESP32-NUT Diagnostics\", scope=\"diagnostics.nut\"");
+    return management_send_json(
+        request, "401 Unauthorized",
+        "{\"error\":\"A valid API token with diagnostics.nut scope is required.\"}");
 }

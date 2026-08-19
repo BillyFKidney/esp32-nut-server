@@ -12,6 +12,8 @@
 #define API_TOKEN_NAMESPACE "management"
 #define API_TOKEN_NVS_KEY "api-tokens"
 #define API_TOKEN_STORE_VERSION 1U
+#define DIAGNOSTIC_TOKEN_NVS_KEY "diag-tokens"
+#define DIAGNOSTIC_TOKEN_STORE_VERSION 1U
 #define API_TOKEN_VALID_EPOCH ((time_t)1704067200)
 #define API_TOKEN_VERIFIER_BYTES 32U
 #define API_TOKEN_SALT_BYTES 16U
@@ -37,6 +39,13 @@ typedef struct
     StoredApiToken records[API_TOKEN_MAX_COUNT];
 } StoredApiTokenSet;
 
+typedef struct
+{
+    uint32_t version;
+    uint32_t record_size;
+    StoredApiToken records[DIAGNOSTIC_TOKEN_MAX_COUNT];
+} DiagnosticStoredApiTokenSet;
+
 _Static_assert(sizeof(API_TOKEN_NAMESPACE) <= NVS_NS_NAME_MAX_SIZE,
                "API-token NVS namespace exceeds the ESP-IDF limit");
 _Static_assert(sizeof(API_TOKEN_NVS_KEY) <= NVS_KEY_NAME_MAX_SIZE,
@@ -45,6 +54,8 @@ _Static_assert(sizeof(StoredApiToken) == 112U,
                "API-token record layout changed; increment the store version");
 _Static_assert(sizeof(StoredApiTokenSet) == 456U,
                "API-token store layout changed; increment the store version");
+_Static_assert(sizeof(DiagnosticStoredApiTokenSet) == 232U,
+               "Diagnostic-token store layout changed; increment the store version");
 
 static const uint8_t api_token_verifier_domain[] =
     "ESP32-NUT API token verifier v1";
@@ -615,6 +626,351 @@ bool api_tokens_authorize(const char *token, uint32_t required_scope)
         const uint8_t scope_matches =
             (record->scopes & required_scope) == required_scope ? 1U : 0U;
         authorized |= verifier_matches & record_active & scope_matches;
+        mbedtls_platform_zeroize(candidate, sizeof(candidate));
+    }
+    mbedtls_platform_zeroize(candidate, sizeof(candidate));
+    mbedtls_platform_zeroize(&store, sizeof(store));
+    return authorized != 0U;
+}
+
+static void diagnostic_tokens_empty_store(DiagnosticStoredApiTokenSet *store)
+{
+    memset(store, 0, sizeof(*store));
+    store->version = DIAGNOSTIC_TOKEN_STORE_VERSION;
+    store->record_size = sizeof(StoredApiToken);
+}
+
+static bool diagnostic_tokens_record_is_valid(const StoredApiToken *record)
+{
+    if (record->active == 0U)
+    {
+        return true;
+    }
+    uint8_t identifier_aggregate = 0U;
+    for (size_t index = 0; index < API_TOKEN_ID_BYTES; index++)
+    {
+        identifier_aggregate |= record->id[index];
+    }
+    if (record->active != 1U || identifier_aggregate == 0U ||
+        record->scopes != API_TOKEN_SCOPE_DIAGNOSTICS_NUT ||
+        record->issued_at < (int64_t)API_TOKEN_VALID_EPOCH ||
+        record->name[API_TOKEN_NAME_MAX_LENGTH] != '\0' ||
+        !api_token_name_is_valid(record->name) ||
+        record->final_four[API_TOKEN_FINAL_FOUR_LENGTH] != '\0' ||
+        strlen(record->final_four) != API_TOKEN_FINAL_FOUR_LENGTH)
+    {
+        return false;
+    }
+    for (size_t index = 0; index < API_TOKEN_FINAL_FOUR_LENGTH; index++)
+    {
+        if (api_tokens_hexadecimal_value(record->final_four[index]) < 0)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+static esp_err_t diagnostic_tokens_load(DiagnosticStoredApiTokenSet *store)
+{
+    if (store == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    diagnostic_tokens_empty_store(store);
+
+    nvs_handle_t handle = 0;
+    esp_err_t result = nvs_open(API_TOKEN_NAMESPACE, NVS_READONLY, &handle);
+    if (result == ESP_ERR_NVS_NOT_FOUND)
+    {
+        return ESP_OK;
+    }
+    if (result != ESP_OK)
+    {
+        mbedtls_platform_zeroize(store, sizeof(*store));
+        return result;
+    }
+
+    size_t length = sizeof(*store);
+    result = nvs_get_blob(handle, DIAGNOSTIC_TOKEN_NVS_KEY, store, &length);
+    nvs_close(handle);
+    if (result == ESP_ERR_NVS_NOT_FOUND)
+    {
+        diagnostic_tokens_empty_store(store);
+        return ESP_OK;
+    }
+    if (result != ESP_OK)
+    {
+        mbedtls_platform_zeroize(store, sizeof(*store));
+        return result;
+    }
+    if (length != sizeof(*store) ||
+        store->version != DIAGNOSTIC_TOKEN_STORE_VERSION ||
+        store->record_size != sizeof(StoredApiToken))
+    {
+        mbedtls_platform_zeroize(store, sizeof(*store));
+        return ESP_ERR_INVALID_VERSION;
+    }
+    for (size_t index = 0; index < DIAGNOSTIC_TOKEN_MAX_COUNT; index++)
+    {
+        if (!diagnostic_tokens_record_is_valid(&store->records[index]))
+        {
+            mbedtls_platform_zeroize(store, sizeof(*store));
+            return ESP_ERR_INVALID_CRC;
+        }
+        for (size_t other = index + 1U; other < DIAGNOSTIC_TOKEN_MAX_COUNT; other++)
+        {
+            if (store->records[index].active == 1U &&
+                store->records[other].active == 1U &&
+                (api_tokens_names_equal(store->records[index].name,
+                                        store->records[other].name) ||
+                 api_tokens_constant_time_equal(store->records[index].id,
+                                                store->records[other].id,
+                                                API_TOKEN_ID_BYTES)))
+            {
+                mbedtls_platform_zeroize(store, sizeof(*store));
+                return ESP_ERR_INVALID_CRC;
+            }
+        }
+    }
+    return ESP_OK;
+}
+
+static esp_err_t diagnostic_tokens_store(const DiagnosticStoredApiTokenSet *store)
+{
+    nvs_handle_t handle = 0;
+    esp_err_t result = nvs_open(API_TOKEN_NAMESPACE, NVS_READWRITE, &handle);
+    if (result == ESP_OK)
+    {
+        result = nvs_set_blob(handle, DIAGNOSTIC_TOKEN_NVS_KEY, store, sizeof(*store));
+    }
+    if (result == ESP_OK)
+    {
+        result = nvs_commit(handle);
+    }
+    if (handle != 0)
+    {
+        nvs_close(handle);
+    }
+    return result;
+}
+
+static bool diagnostic_tokens_name_exists(const DiagnosticStoredApiTokenSet *store,
+                                          const char *name)
+{
+    for (size_t index = 0; index < DIAGNOSTIC_TOKEN_MAX_COUNT; index++)
+    {
+        if (store->records[index].active == 1U &&
+            api_tokens_names_equal(store->records[index].name, name))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool diagnostic_tokens_identifier_is_unique(const DiagnosticStoredApiTokenSet *store,
+                                                    const uint8_t *identifier)
+{
+    for (size_t index = 0; index < DIAGNOSTIC_TOKEN_MAX_COUNT; index++)
+    {
+        if (store->records[index].active == 1U &&
+            api_tokens_constant_time_equal(store->records[index].id, identifier,
+                                           API_TOKEN_ID_BYTES))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+esp_err_t diagnostic_tokens_list(DiagnosticTokenList *list)
+{
+    if (list == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    memset(list, 0, sizeof(*list));
+    DiagnosticStoredApiTokenSet store;
+    esp_err_t result = diagnostic_tokens_load(&store);
+    if (result != ESP_OK)
+    {
+        return result;
+    }
+    for (size_t index = 0; index < DIAGNOSTIC_TOKEN_MAX_COUNT; index++)
+    {
+        if (store.records[index].active == 1U)
+        {
+            if (!api_tokens_metadata_from_record(&store.records[index],
+                                                 &list->tokens[list->count]))
+            {
+                result = ESP_ERR_INVALID_STATE;
+                break;
+            }
+            list->count++;
+        }
+    }
+    mbedtls_platform_zeroize(&store, sizeof(store));
+    if (result != ESP_OK)
+    {
+        mbedtls_platform_zeroize(list, sizeof(*list));
+    }
+    return result;
+}
+
+esp_err_t diagnostic_tokens_create(const char *name, time_t issued_at,
+                                   ApiTokenMetadata *metadata,
+                                   char token[API_TOKEN_VALUE_LENGTH + 1U])
+{
+    if (!api_token_name_is_valid(name) || issued_at < API_TOKEN_VALID_EPOCH ||
+        metadata == NULL || token == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    memset(metadata, 0, sizeof(*metadata));
+    memset(token, 0, API_TOKEN_VALUE_LENGTH + 1U);
+
+    DiagnosticStoredApiTokenSet store;
+    esp_err_t result = diagnostic_tokens_load(&store);
+    if (result != ESP_OK)
+    {
+        return result;
+    }
+    if (diagnostic_tokens_name_exists(&store, name))
+    {
+        mbedtls_platform_zeroize(&store, sizeof(store));
+        return ESP_ERR_INVALID_STATE;
+    }
+    size_t available_index = DIAGNOSTIC_TOKEN_MAX_COUNT;
+    for (size_t index = 0; index < DIAGNOSTIC_TOKEN_MAX_COUNT; index++)
+    {
+        if (store.records[index].active == 0U)
+        {
+            available_index = index;
+            break;
+        }
+    }
+    if (available_index == DIAGNOSTIC_TOKEN_MAX_COUNT)
+    {
+        mbedtls_platform_zeroize(&store, sizeof(store));
+        return ESP_ERR_NO_MEM;
+    }
+
+    StoredApiToken *record = &store.records[available_index];
+    memset(record, 0, sizeof(*record));
+    bool identifier_ready = false;
+    for (size_t attempt = 0; attempt < 8U && !identifier_ready; attempt++)
+    {
+        esp_fill_random(record->id, sizeof(record->id));
+        identifier_ready = !api_tokens_identifier_is_zero(record->id) &&
+                           diagnostic_tokens_identifier_is_unique(&store, record->id);
+    }
+    if (!identifier_ready)
+    {
+        mbedtls_platform_zeroize(&store, sizeof(store));
+        return ESP_FAIL;
+    }
+
+    uint8_t random_value[API_TOKEN_RANDOM_BYTES];
+    esp_fill_random(random_value, sizeof(random_value));
+    memcpy(token, API_TOKEN_PREFIX, sizeof(API_TOKEN_PREFIX) - 1U);
+    api_tokens_bytes_to_hex(random_value, sizeof(random_value),
+                            token + sizeof(API_TOKEN_PREFIX) - 1U,
+                            API_TOKEN_RANDOM_BYTES * 2U + 1U);
+    esp_fill_random(record->salt, sizeof(record->salt));
+    result = api_tokens_derive_verifier(token, record->salt, record->verifier);
+    mbedtls_platform_zeroize(random_value, sizeof(random_value));
+    if (result == ESP_OK)
+    {
+        record->issued_at = (int64_t)issued_at;
+        record->scopes = API_TOKEN_SCOPE_DIAGNOSTICS_NUT;
+        record->active = 1U;
+        snprintf(record->name, sizeof(record->name), "%s", name);
+        snprintf(record->final_four, sizeof(record->final_four), "%s",
+                 token + API_TOKEN_VALUE_LENGTH - API_TOKEN_FINAL_FOUR_LENGTH);
+        result = api_tokens_metadata_from_record(record, metadata)
+                     ? diagnostic_tokens_store(&store)
+                     : ESP_ERR_INVALID_STATE;
+    }
+    mbedtls_platform_zeroize(&store, sizeof(store));
+    if (result != ESP_OK)
+    {
+        mbedtls_platform_zeroize(metadata, sizeof(*metadata));
+        mbedtls_platform_zeroize(token, API_TOKEN_VALUE_LENGTH + 1U);
+    }
+    return result;
+}
+
+esp_err_t diagnostic_tokens_delete(const char *id)
+{
+    uint8_t identifier[API_TOKEN_ID_BYTES] = {0};
+    if (id == NULL || strlen(id) != API_TOKEN_ID_HEX_LENGTH ||
+        !api_tokens_hex_to_bytes(id, API_TOKEN_ID_HEX_LENGTH, identifier,
+                                 sizeof(identifier)))
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    DiagnosticStoredApiTokenSet store;
+    esp_err_t result = diagnostic_tokens_load(&store);
+    if (result != ESP_OK)
+    {
+        mbedtls_platform_zeroize(identifier, sizeof(identifier));
+        return result;
+    }
+    size_t found_index = DIAGNOSTIC_TOKEN_MAX_COUNT;
+    for (size_t index = 0; index < DIAGNOSTIC_TOKEN_MAX_COUNT; index++)
+    {
+        if (store.records[index].active == 1U &&
+            api_tokens_constant_time_equal(store.records[index].id, identifier,
+                                           sizeof(identifier)))
+        {
+            found_index = index;
+            break;
+        }
+    }
+    mbedtls_platform_zeroize(identifier, sizeof(identifier));
+    if (found_index == DIAGNOSTIC_TOKEN_MAX_COUNT)
+    {
+        mbedtls_platform_zeroize(&store, sizeof(store));
+        return ESP_ERR_NOT_FOUND;
+    }
+    for (size_t index = found_index; index + 1U < DIAGNOSTIC_TOKEN_MAX_COUNT; index++)
+    {
+        store.records[index] = store.records[index + 1U];
+    }
+    mbedtls_platform_zeroize(&store.records[DIAGNOSTIC_TOKEN_MAX_COUNT - 1U],
+                             sizeof(store.records[0]));
+    result = diagnostic_tokens_store(&store);
+    mbedtls_platform_zeroize(&store, sizeof(store));
+    return result;
+}
+
+bool diagnostic_tokens_authorize(const char *token)
+{
+    if (!api_token_value_is_valid(token))
+    {
+        return false;
+    }
+    DiagnosticStoredApiTokenSet store;
+    if (diagnostic_tokens_load(&store) != ESP_OK)
+    {
+        return false;
+    }
+    uint8_t authorized = 0U;
+    uint8_t candidate[API_TOKEN_VERIFIER_BYTES] = {0};
+    for (size_t index = 0; index < DIAGNOSTIC_TOKEN_MAX_COUNT; index++)
+    {
+        const StoredApiToken *record = &store.records[index];
+        if (api_tokens_derive_verifier(token, record->salt, candidate) != ESP_OK)
+        {
+            authorized = 0U;
+            break;
+        }
+        const uint8_t verifier_matches =
+            api_tokens_constant_time_equal(candidate, record->verifier,
+                                           sizeof(candidate)) ? 1U : 0U;
+        const uint8_t record_active = record->active == 1U ? 1U : 0U;
+        authorized |= verifier_matches & record_active;
         mbedtls_platform_zeroize(candidate, sizeof(candidate));
     }
     mbedtls_platform_zeroize(candidate, sizeof(candidate));

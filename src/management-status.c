@@ -7,12 +7,14 @@
 
 #include "driver/temperature_sensor.h"
 #include "drivers/dstate.h"
+#include "drivers/espusb.h"
 #include "esp_err.h"
 #include "esp_flash.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "sdkconfig.h"
+#include "nut-diagnostics.h"
 
 #define TAG "nut-management"
 
@@ -74,11 +76,34 @@ static void management_status_copy_nut_value(const char *name, char *destination
 void management_status_collect_nut_snapshot(ManagementStatusNutSnapshot *snapshot)
 {
     memset(snapshot, 0, sizeof(*snapshot));
-    snapshot->stale = dstate_is_stale() != 0;
+    snapshot->disconnect_simulated =
+        nut_diagnostics_disconnect_simulation_active();
+    snapshot->stale = dstate_is_stale() != 0 || !usb_hid_device_ready() ||
+                      snapshot->disconnect_simulated;
     const char *status = dstate_getinfo("ups.status");
     snapshot->available = status != NULL && !snapshot->stale;
     snprintf(snapshot->ups_name, sizeof(snapshot->ups_name), "%s",
              upsname != NULL && *upsname != '\0' ? upsname : "cyberpower");
+    if (snapshot->stale)
+    {
+        snprintf(snapshot->manufacturer, sizeof(snapshot->manufacturer), "unavailable");
+        snprintf(snapshot->model, sizeof(snapshot->model), "unavailable");
+        snprintf(snapshot->serial, sizeof(snapshot->serial), "unavailable");
+        snprintf(snapshot->status, sizeof(snapshot->status), "unavailable");
+        snprintf(snapshot->battery_type, sizeof(snapshot->battery_type), "unavailable");
+        snprintf(snapshot->battery_mfr_date, sizeof(snapshot->battery_mfr_date), "unavailable");
+        snprintf(snapshot->ups_temperature, sizeof(snapshot->ups_temperature), "unavailable");
+        snprintf(snapshot->battery_charge, sizeof(snapshot->battery_charge), "unavailable");
+        snprintf(snapshot->battery_runtime, sizeof(snapshot->battery_runtime), "unavailable");
+        snprintf(snapshot->battery_voltage, sizeof(snapshot->battery_voltage), "unavailable");
+        snprintf(snapshot->load, sizeof(snapshot->load), "unavailable");
+        snprintf(snapshot->input_voltage, sizeof(snapshot->input_voltage), "unavailable");
+        snprintf(snapshot->output_voltage, sizeof(snapshot->output_voltage), "unavailable");
+        snprintf(snapshot->ups_power, sizeof(snapshot->ups_power), "unavailable");
+        snprintf(snapshot->ups_realpower, sizeof(snapshot->ups_realpower), "unavailable");
+        snprintf(snapshot->ups_firmware, sizeof(snapshot->ups_firmware), "unavailable");
+        return;
+    }
     management_status_copy_nut_value("device.mfr", snapshot->manufacturer,
                                      sizeof(snapshot->manufacturer));
     if (strcmp(snapshot->manufacturer, "unavailable") == 0)

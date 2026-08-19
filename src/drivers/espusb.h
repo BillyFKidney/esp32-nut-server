@@ -38,6 +38,9 @@ esp_err_t espusb_control_get_report(
     uint8_t *report,
     size_t *report_length);
 
+/** Return whether ESP-IDF currently has a ready HID device. */
+bool usb_hid_device_ready(void);
+
 /* Structures */
 /* #define usb_dev_handle libusb_device_handle */
 // typedef espusb_device_handle usb_dev_handle;

@@ -24,13 +24,8 @@
 #define MANAGEMENT_DEFAULT_DEVICE_NAME "ESP32-NUT"
 #define MANAGEMENT_STATUS_RESPONSE_SIZE 7000U
 
-esp_err_t management_status_handler(httpd_req_t *request)
+static esp_err_t management_status_send(httpd_req_t *request)
 {
-    if (!management_require_session_without_activity(request))
-    {
-        return ESP_OK;
-    }
-
     esp_netif_ip_info_t ip_info = {0};
     esp_netif_t *station = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
     if (station != NULL)
@@ -171,9 +166,10 @@ esp_err_t management_status_handler(httpd_req_t *request)
         response_valid = false;
     }
     MANAGEMENT_JSON_APPEND(",\"nut\":{\"port\":3493,\"mode\":\"read-only\","
-                           "\"available\":%s,\"data_stale\":%s,\"health\":",
+                           "\"available\":%s,\"data_stale\":%s,\"disconnect_simulated\":%s,\"health\":",
                            nut_snapshot.available ? "true" : "false",
-                           nut_snapshot.stale ? "true" : "false");
+                           nut_snapshot.stale ? "true" : "false",
+                           nut_snapshot.disconnect_simulated ? "true" : "false");
     MANAGEMENT_JSON_STRING(nut_health);
     MANAGEMENT_JSON_APPEND(",\"ups_name\":");
     MANAGEMENT_JSON_STRING(nut_snapshot.ups_name);
@@ -224,4 +220,22 @@ esp_err_t management_status_handler(httpd_req_t *request)
     const esp_err_t send_result = management_send_json(request, "200 OK", response);
     mbedtls_platform_zeroize(response, sizeof(response));
     return send_result;
+}
+
+esp_err_t management_status_handler(httpd_req_t *request)
+{
+    if (!management_require_session_without_activity(request))
+    {
+        return ESP_OK;
+    }
+    return management_status_send(request);
+}
+
+esp_err_t management_agent_status_handler(httpd_req_t *request)
+{
+    if (!management_diagnostic_bearer_is_authorized(request))
+    {
+        return management_send_diagnostic_bearer_unauthorized(request);
+    }
+    return management_status_send(request);
 }

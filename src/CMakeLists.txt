@@ -8,6 +8,7 @@ list(APPEND app_sources
     ${CMAKE_SOURCE_DIR}/src/management-auth-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-certificates.c
     ${CMAKE_SOURCE_DIR}/src/management-credentials.c
+    ${CMAKE_SOURCE_DIR}/src/management-diagnostics-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-http.c
     ${CMAKE_SOURCE_DIR}/src/management-log.c
     ${CMAKE_SOURCE_DIR}/src/management-pages.c
@@ -21,6 +22,7 @@ list(APPEND app_sources
     ${CMAKE_SOURCE_DIR}/src/management-ota-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-authorization.c
+    ${CMAKE_SOURCE_DIR}/src/nut-diagnostics.c
     ${CMAKE_SOURCE_DIR}/src/wifi-credentials.c
     ${CMAKE_SOURCE_DIR}/src/wifi-diagnostics.c
     ${CMAKE_SOURCE_DIR}/src/wifi-provisioning-web.c

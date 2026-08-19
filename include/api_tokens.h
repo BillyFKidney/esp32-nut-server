@@ -8,6 +8,7 @@
 #include "esp_err.h"
 
 #define API_TOKEN_MAX_COUNT 4U
+#define DIAGNOSTIC_TOKEN_MAX_COUNT 2U
 #define API_TOKEN_NAME_MAX_LENGTH 32U
 #define API_TOKEN_RANDOM_BYTES 32U
 #define API_TOKEN_PREFIX "esp32nut_v1_"
@@ -19,6 +20,7 @@
 #define API_TOKEN_ISSUED_AT_LENGTH 20U
 
 #define API_TOKEN_SCOPE_OTA_INSTALL (1U << 0)
+#define API_TOKEN_SCOPE_DIAGNOSTICS_NUT (1U << 1)
 
 typedef struct
 {
@@ -34,6 +36,12 @@ typedef struct
     size_t count;
     ApiTokenMetadata tokens[API_TOKEN_MAX_COUNT];
 } ApiTokenList;
+
+typedef struct
+{
+    size_t count;
+    ApiTokenMetadata tokens[DIAGNOSTIC_TOKEN_MAX_COUNT];
+} DiagnosticTokenList;
 
 /** Return whether a token name is safe, non-empty, and within the fixed limit. */
 bool api_token_name_is_valid(const char *name);
@@ -54,3 +62,17 @@ esp_err_t api_tokens_delete(const char *id);
 
 /** Verify a complete token for the requested scope. */
 bool api_tokens_authorize(const char *token, uint32_t required_scope);
+
+/** Create a separately persisted diagnostics.nut bearer token. */
+esp_err_t diagnostic_tokens_create(const char *name, time_t issued_at,
+                                   ApiTokenMetadata *metadata,
+                                   char token[API_TOKEN_VALUE_LENGTH + 1U]);
+
+/** List non-secret diagnostics.nut token metadata. */
+esp_err_t diagnostic_tokens_list(DiagnosticTokenList *list);
+
+/** Revoke one diagnostics.nut token by its public identifier. */
+esp_err_t diagnostic_tokens_delete(const char *id);
+
+/** Verify a complete diagnostics.nut bearer token. */
+bool diagnostic_tokens_authorize(const char *token);

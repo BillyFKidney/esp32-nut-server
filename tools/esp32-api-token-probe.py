@@ -14,11 +14,14 @@ import sys
 
 
 TOKEN_ENVIRONMENT_VARIABLE = "ESP32_NUT_OTA_TOKEN"
+DIAGNOSTIC_TOKEN_ENVIRONMENT_VARIABLE = "ESP32_NUT_DIAGNOSTICS_TOKEN"
 TOKEN_PATTERN = re.compile(r"esp32nut_v1_[0-9a-f]{64}\Z")
 TOKEN_REDACTION_PATTERN = re.compile(r"esp32nut_v1_[0-9a-f]{64}")
 MAX_RESPONSE_SIZE = 16 * 1024
 ALLOWED_PATHS = {
     "/api/v1/agent/ota/install",
+    "/api/v1/agent/status",
+    "/api/v1/agent/nut/disconnect",
     "/api/v1/admin/tokens",
     "/api/v1/status",
     "/api/v1/admin/time",
@@ -29,8 +32,8 @@ ALLOWED_PATHS = {
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Send a small fingerprint-pinned HTTPS request using an API token "
-            f"read only from {TOKEN_ENVIRONMENT_VARIABLE}."
+            "Send a small fingerprint-pinned HTTPS request using the selected "
+            "API-token scope."
         )
     )
     parser.add_argument("--device", required=True, help="ESP32 hostname or IP address")
@@ -40,6 +43,12 @@ def parse_arguments() -> argparse.Namespace:
         help="trusted peer-certificate SHA-256 fingerprint",
     )
     parser.add_argument("--port", type=int, default=443, help="HTTPS port")
+    parser.add_argument(
+        "--token-kind",
+        choices=("ota", "diagnostics"),
+        default="ota",
+        help="token scope and private environment-variable selection (default: ota)",
+    )
     parser.add_argument("--method", choices=("GET", "POST", "DELETE"), default="POST")
     parser.add_argument("--path", choices=sorted(ALLOWED_PATHS), required=True)
     parser.add_argument("--content-type", help="optional Content-Type header")
@@ -54,6 +63,11 @@ def parse_arguments() -> argparse.Namespace:
 
 def main() -> int:
     arguments = parse_arguments()
+    token_environment_variable = (
+        DIAGNOSTIC_TOKEN_ENVIRONMENT_VARIABLE
+        if arguments.token_kind == "diagnostics"
+        else TOKEN_ENVIRONMENT_VARIABLE
+    )
     if "://" in arguments.device or "/" in arguments.device:
         print("--device must contain only a hostname or IP address.", file=sys.stderr)
         return 2
@@ -66,10 +80,10 @@ def main() -> int:
         print("The certificate SHA-256 fingerprint is invalid.", file=sys.stderr)
         return 2
 
-    token = os.environ.pop(TOKEN_ENVIRONMENT_VARIABLE, "")
+    token = os.environ.pop(token_environment_variable, "")
     if TOKEN_PATTERN.fullmatch(token) is None:
         print(
-            f"Set {TOKEN_ENVIRONMENT_VARIABLE} privately to a complete v1 API token.",
+            f"Set {token_environment_variable} privately to a complete v1 API token.",
             file=sys.stderr,
         )
         return 2

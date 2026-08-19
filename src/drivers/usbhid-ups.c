@@ -41,6 +41,7 @@
 #include "hidparser.h"
 #include "hidtypes.h"
 #include "nut_common.h"
+#include "nut-diagnostics.h"
 #ifdef WIN32
 #include "wincompat.h"
 #endif	/* WIN32 */
@@ -1181,6 +1182,9 @@ void upsdrv_updateinfo(void)
 	upsdebugx(1, "upsdrv_updateinfo...");
 
 	time(&now);
+	if (nut_diagnostics_disconnect_simulation_active()) {
+		dstate_datastale();
+	}
 
 	/* check for device availability to set datastale! */
 	if (hd == NULL) {
@@ -1337,7 +1341,9 @@ void upsdrv_updateinfo(void)
 	buzzmode_commit();
 	status_commit();
 
-	dstate_dataok();
+	if (!nut_diagnostics_disconnect_simulation_active()) {
+		dstate_dataok();
+	}
 #ifdef DEBUG
 	upsdebugx(1, "took %.3f seconds handling feature reports...",
 		interval());
