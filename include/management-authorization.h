@@ -31,6 +31,9 @@ bool management_require_session_without_activity(httpd_req_t *request);
  */
 bool management_bearer_is_authorized(httpd_req_t *request, uint32_t required_scope);
 
+/** Verify a Bearer token from the separately persisted diagnostics.nut store. */
+bool management_diagnostic_bearer_is_authorized(httpd_req_t *request);
+
 /**
  * Send a 401 Unauthorized response with proper WWW-Authenticate header for bearer tokens.
  *
@@ -38,3 +41,6 @@ bool management_bearer_is_authorized(httpd_req_t *request, uint32_t required_sco
  * @return ESP_OK on success, error code on failure
  */
 esp_err_t management_send_bearer_unauthorized(httpd_req_t *request);
+
+/** Send the diagnostics.nut bearer challenge without changing OTA responses. */
+esp_err_t management_send_diagnostic_bearer_unauthorized(httpd_req_t *request);

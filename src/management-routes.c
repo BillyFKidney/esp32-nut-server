@@ -2,6 +2,7 @@
 #include "management-routes.h"
 
 #include "management-auth-routes.h"
+#include "management-diagnostics-routes.h"
 #include "management-ota-routes.h"
 #include "management-session-routes.h"
 #include "management-status-routes.h"
@@ -30,10 +31,18 @@ esp_err_t management_routes_register(
     const httpd_uri_t wifi_scan = {.uri = "/api/v1/admin/wifi/scan", .method = HTTP_GET, .handler = management_wifi_scan_handler};
     const httpd_uri_t wifi_configuration = {.uri = "/api/v1/admin/wifi", .method = HTTP_POST, .handler = management_wifi_configure_handler};
     const httpd_uri_t agent_ota = {.uri = "/api/v1/agent/ota/install", .method = HTTP_POST, .handler = management_agent_ota_install_handler};
+    const httpd_uri_t agent_status = {.uri = "/api/v1/agent/status", .method = HTTP_GET, .handler = management_agent_status_handler};
+    const httpd_uri_t diagnostic_disconnect_start = {.uri = "/api/v1/agent/nut/disconnect", .method = HTTP_POST, .handler = management_diagnostic_disconnect_start_handler};
+    const httpd_uri_t diagnostic_disconnect_clear = {.uri = "/api/v1/agent/nut/disconnect", .method = HTTP_DELETE, .handler = management_diagnostic_disconnect_clear_handler};
+    const httpd_uri_t diagnostic_token_list = {.uri = "/api/v1/admin/diagnostic-tokens", .method = HTTP_GET, .handler = management_diagnostic_token_list_handler};
+    const httpd_uri_t diagnostic_token_create = {.uri = "/api/v1/admin/diagnostic-tokens", .method = HTTP_POST, .handler = management_diagnostic_token_create_handler};
+    const httpd_uri_t diagnostic_token_delete = {.uri = "/api/v1/admin/diagnostic-tokens", .method = HTTP_DELETE, .handler = management_diagnostic_token_delete_handler};
     const httpd_uri_t *routes[] = {
         &root, &setup, &login_page, &login, &password, &logout, &status,
         &session_activity, &time_configuration, &ota_check, &ota, &token_list,
-        &token_create, &token_delete, &wifi_scan, &wifi_configuration, &agent_ota};
+        &token_create, &token_delete, &wifi_scan, &wifi_configuration, &agent_ota,
+        &agent_status, &diagnostic_disconnect_start, &diagnostic_disconnect_clear,
+        &diagnostic_token_list, &diagnostic_token_create, &diagnostic_token_delete};
     _Static_assert(sizeof(routes) / sizeof(routes[0]) <=
                        MANAGEMENT_HTTPS_ROUTE_CAPACITY,
                    "HTTPS route count exceeds configured handler capacity");

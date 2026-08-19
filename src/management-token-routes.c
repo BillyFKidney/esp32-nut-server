@@ -218,3 +218,158 @@ esp_err_t management_token_delete_handler(httpd_req_t *request)
         request, "200 OK",
         "{\"message\":\"API token deleted and revoked.\"}");
 }
+
+esp_err_t management_diagnostic_token_list_handler(httpd_req_t *request)
+{
+    if (!management_require_session(request, true))
+    {
+        return ESP_OK;
+    }
+    DiagnosticTokenList list;
+    if (diagnostic_tokens_list(&list) != ESP_OK)
+    {
+        return management_send_json(request, "500 Internal Server Error",
+                                    "{\"error\":\"Unable to load diagnostic-token metadata.\"}");
+    }
+    char response[900];
+    size_t used = 0;
+    bool valid = management_json_append(response, sizeof(response), &used,
+                                        "{\"tokens\":[");
+    for (size_t index = 0; index < list.count && valid; index++)
+    {
+        const ApiTokenMetadata *token = &list.tokens[index];
+        valid = management_json_append(response, sizeof(response), &used,
+                                       "%s{\"id\":", index == 0U ? "" : ",") &&
+                management_json_append_string(response, sizeof(response), &used, token->id) &&
+                management_json_append(response, sizeof(response), &used, ",\"name\":") &&
+                management_json_append_string(response, sizeof(response), &used, token->name) &&
+                management_json_append(response, sizeof(response), &used, ",\"issued_at\":") &&
+                management_json_append_string(response, sizeof(response), &used, token->issued_at) &&
+                management_json_append(response, sizeof(response), &used, ",\"final_four\":") &&
+                management_json_append_string(response, sizeof(response), &used, token->final_four) &&
+                management_json_append(response, sizeof(response), &used,
+                                       ",\"scopes\":[\"diagnostics.nut\"]}");
+    }
+    valid = valid && management_json_append(response, sizeof(response), &used,
+                                             "],\"maximum\":%u}",
+                                             (unsigned int)DIAGNOSTIC_TOKEN_MAX_COUNT);
+    mbedtls_platform_zeroize(&list, sizeof(list));
+    if (!valid)
+    {
+        mbedtls_platform_zeroize(response, sizeof(response));
+        return management_send_json(request, "500 Internal Server Error",
+                                    "{\"error\":\"Unable to prepare diagnostic-token metadata.\"}");
+    }
+    const esp_err_t result = management_send_json(request, "200 OK", response);
+    mbedtls_platform_zeroize(response, sizeof(response));
+    return result;
+}
+
+esp_err_t management_diagnostic_token_create_handler(httpd_req_t *request)
+{
+    if (!management_session_csrf_is_valid(request))
+    {
+        return management_send_json(request, "403 Forbidden",
+                                    "{\"error\":\"Invalid session or CSRF token.\"}");
+    }
+    char body[MANAGEMENT_FORM_BODY_LIMIT + 1U] = {0};
+    char name[API_TOKEN_NAME_MAX_LENGTH + 1U] = {0};
+    const bool name_present =
+        management_read_form_body(request, body, sizeof(body)) == ESP_OK &&
+        management_form_value(body, "name", name, sizeof(name));
+    mbedtls_platform_zeroize(body, sizeof(body));
+    if (!name_present || !api_token_name_is_valid(name))
+    {
+        mbedtls_platform_zeroize(name, sizeof(name));
+        return management_send_json(request, "400 Bad Request",
+                                    "{\"error\":\"Use a unique 1-32 character diagnostic-token name containing letters, numbers, spaces, periods, underscores, or hyphens.\"}");
+    }
+    TimeConfigStatus time_status;
+    time_config_get_status(&time_status);
+    if (!time_status.available)
+    {
+        mbedtls_platform_zeroize(name, sizeof(name));
+        return management_send_json(request, "409 Conflict",
+                                    "{\"error\":\"Set or synchronize device time before creating a diagnostic token.\"}");
+    }
+    ApiTokenMetadata metadata;
+    char token[API_TOKEN_VALUE_LENGTH + 1U] = {0};
+    const esp_err_t result = diagnostic_tokens_create(name, time(NULL), &metadata, token);
+    mbedtls_platform_zeroize(name, sizeof(name));
+    if (result == ESP_ERR_INVALID_STATE)
+    {
+        mbedtls_platform_zeroize(token, sizeof(token));
+        return management_send_json(request, "409 Conflict",
+                                    "{\"error\":\"An active diagnostic token already uses that name.\"}");
+    }
+    if (result == ESP_ERR_NO_MEM)
+    {
+        mbedtls_platform_zeroize(token, sizeof(token));
+        return management_send_json(request, "409 Conflict",
+                                    "{\"error\":\"The maximum of two active diagnostic tokens has been reached.\"}");
+    }
+    if (result != ESP_OK)
+    {
+        mbedtls_platform_zeroize(token, sizeof(token));
+        return management_send_json(request, "500 Internal Server Error",
+                                    "{\"error\":\"Unable to create a diagnostic token.\"}");
+    }
+    char response[420];
+    const int response_length = snprintf(response, sizeof(response),
+        "{\"token\":\"%s\",\"id\":\"%s\",\"name\":\"%s\","
+        "\"issued_at\":\"%s\",\"final_four\":\"%s\","
+        "\"scopes\":[\"diagnostics.nut\"]}", token, metadata.id, metadata.name,
+        metadata.issued_at, metadata.final_four);
+    const esp_err_t send_result =
+        response_length < 0 || response_length >= (int)sizeof(response)
+            ? management_send_json(request, "500 Internal Server Error",
+                                   "{\"error\":\"The diagnostic token was created but its one-time response could not be prepared. Delete the undisclosed token and create another.\"}")
+            : management_send_json(request, "201 Created", response);
+    mbedtls_platform_zeroize(response, sizeof(response));
+    mbedtls_platform_zeroize(token, sizeof(token));
+    mbedtls_platform_zeroize(&metadata, sizeof(metadata));
+    return send_result;
+}
+
+esp_err_t management_diagnostic_token_delete_handler(httpd_req_t *request)
+{
+    if (!management_session_csrf_is_valid(request))
+    {
+        return management_send_json(request, "403 Forbidden",
+                                    "{\"error\":\"Invalid session or CSRF token.\"}");
+    }
+    char body[MANAGEMENT_FORM_BODY_LIMIT + 1U] = {0};
+    char id[API_TOKEN_ID_HEX_LENGTH + 1U] = {0};
+    char acknowledgement[6] = {0};
+    const bool fields_present =
+        management_read_form_body(request, body, sizeof(body)) == ESP_OK &&
+        management_form_value(body, "id", id, sizeof(id)) &&
+        management_form_value(body, "acknowledge", acknowledgement,
+                              sizeof(acknowledgement));
+    mbedtls_platform_zeroize(body, sizeof(body));
+    if (!fields_present || strcmp(acknowledgement, "true") != 0)
+    {
+        mbedtls_platform_zeroize(id, sizeof(id));
+        return management_send_json(request, "400 Bad Request",
+                                    "{\"error\":\"Diagnostic-token deletion requires the acknowledgement checkbox and explicit confirmation.\"}");
+    }
+    const esp_err_t result = diagnostic_tokens_delete(id);
+    mbedtls_platform_zeroize(id, sizeof(id));
+    if (result == ESP_ERR_INVALID_ARG)
+    {
+        return management_send_json(request, "400 Bad Request",
+                                    "{\"error\":\"A valid diagnostic-token identifier is required.\"}");
+    }
+    if (result == ESP_ERR_NOT_FOUND)
+    {
+        return management_send_json(request, "404 Not Found",
+                                    "{\"error\":\"The diagnostic token is no longer active.\"}");
+    }
+    if (result != ESP_OK)
+    {
+        return management_send_json(request, "500 Internal Server Error",
+                                    "{\"error\":\"Unable to delete the diagnostic token.\"}");
+    }
+    return management_send_json(request, "200 OK",
+                                "{\"message\":\"Diagnostic token deleted and revoked.\"}");
+}

@@ -14,6 +14,7 @@ typedef struct
 {
     bool available;
     bool stale;
+    bool disconnect_simulated;
     char ups_name[MANAGEMENT_STATUS_UPS_NAME_LENGTH];
     char manufacturer[MANAGEMENT_STATUS_NUT_VALUE_LENGTH];
     char model[MANAGEMENT_STATUS_NUT_VALUE_LENGTH];

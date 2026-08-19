@@ -174,6 +174,10 @@ reconnections.
 - Distinguish **observed**, **inferred**, and **not tested** status.
 - Give physical instructions one action at a time and state what evidence to
   report before continuing.
+- For v2.7.2 diagnostic API checks, use the fingerprint-pinned token probe with
+  the scope-specific private environment variable. Confirm the simulated stale
+  result and recovery before the separately authorized physical USB disconnect;
+  simulation is not a substitute for that final acceptance test.
 
 ## End-of-session checklist
 

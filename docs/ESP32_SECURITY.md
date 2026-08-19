@@ -53,7 +53,7 @@ CSRF protected. Wi-Fi scanning and credential staging never disclose the
 stored password; the browser-only Show-password control is not persisted,
 returned through an API, or logged.
 
-## API tokens and Agent OTA
+## API tokens, diagnostics, and Agent OTA
 
 Tokens are device-generated, scoped bearer credentials. Show a complete token
 only once at creation; retain only non-secret metadata and a salted verifier.
@@ -62,16 +62,25 @@ tokens in query parameters, cookies, source files, shell history, or logs.
 Compare verifiers in constant time and zeroize Authorization-header storage
 after use.
 
-The only current bearer scope is `ota.install`, for the Agent OTA installation
-route. Bearer tokens do not authorize browser pages, status, passwords, time,
-token management, logout, Wi-Fi, or other management routes. Browser token
-management and local OTA check/install remain ADMIN-session and CSRF actions.
+OTA tokens use the `ota.install` scope and authorize only the Agent OTA
+installation route. Diagnostic tokens use the `diagnostics.nut` scope and
+authorize only Agent diagnostic status and bounded disconnect simulation. The
+two token sets have separate NVS stores: OTA storage remains compatible with
+v2.7.1 rollback, and a diagnostic credential can never authorize OTA.
 
-The Agent OTA helper reads its token from a private environment variable and
-must validate the device certificate with a trusted CA file or a verified
-fingerprint before sending it. Insecure self-signed diagnostics are temporary
-only and must not be used with a valuable credential. Revoke and replace a
-possibly disclosed token; do not attempt to recover it.
+A diagnostic credential intentionally reads the same management-status
+diagnostics visible to ADMIN, including diagnostic, Wi-Fi, update, session, and
+log metadata. Treat it as sensitive and revoke it if disclosure is suspected.
+Diagnostic simulation is RAM-only, bounded, cannot operate USB or the UPS, and
+clears on expiry or reboot. Browser pages, browser status, passwords, time,
+token management, logout, Wi-Fi, and local OTA remain ADMIN-session and CSRF
+actions; bearer requests do not refresh browser activity.
+
+Agent helpers read only their scope-specific token from a private environment
+variable and must validate the device certificate with a trusted CA file or a
+verified fingerprint before sending it. Insecure self-signed diagnostics are
+temporary only and must not be used with a valuable credential. Revoke and
+replace a possibly disclosed token; do not attempt to recover it.
 
 ## Update, network, and resource safety
 
