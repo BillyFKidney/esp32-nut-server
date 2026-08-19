@@ -35,10 +35,12 @@ target installation remains a separate authorization boundary.
 
 ## Published baseline
 
-`v2.7.1` is published and target-tested. It completed the management route
-families, credential-promotion safety repair, and browser-log handshake filter
-without changing the protected service, authorization, Wi-Fi, or read-only UPS
-boundaries.
+`v2.7.2` is published and target-tested. It invalidates stale external UPS
+data across physical HID loss, driver staleness, and bounded diagnostics while
+keeping OTA and diagnostics credentials isolated. `v2.7.1` completed the
+management route families, credential-promotion safety repair, and browser-log
+handshake filter without changing the protected service, authorization, Wi-Fi,
+or read-only UPS boundaries.
 
 ## Operational Management completion — `v2.x`
 
@@ -62,7 +64,6 @@ through the Mac mini. Root causes remain to be established per slice.
 
 | Release | Prospective branch | Required outcome |
 | --- | --- | --- |
-| `v2.7.2` | `feature/nut-disconnect-invalidation` | USB/HID loss, driver staleness, or bounded diagnostic simulation immediately invalidate status JSON and dashboard UPS fields; stale data is never presented as current. Separate scoped diagnostic credentials support pre-physical validation without changing OTA authorization. |
 | `v2.7.3` | `feature/nut-stale-timeout` | After five minutes without a confirmed connection, clear all UPS information while preserving an explicit stale/unavailable state; reset the timer only after connection confirmation. |
 | `v2.7.4` | `feature/apc-br1500g-support` | From factory-reset state, an APC Back-UPS RS 1500G communicates without freeze/reboot and reports only validated identity, status, and available measurements. |
 | `v2.7.5` | `feature/nut-compatibility-hardening` | Expand compatibility handling with graceful unsupported-device behavior, bounded resources, and a documented validation matrix; do not claim universal support without evidence. |
