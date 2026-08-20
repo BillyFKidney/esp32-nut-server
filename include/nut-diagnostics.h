@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define NUT_DIAGNOSTIC_DISCONNECT_MIN_SECONDS 1U
-#define NUT_DIAGNOSTIC_DISCONNECT_MAX_SECONDS 300U
+#define NUT_DIAGNOSTIC_DISCONNECT_MAX_SECONDS 310U
 
 /** Enable a bounded, RAM-only simulated UPS disconnect. */
 bool nut_diagnostics_start_disconnect_simulation(uint32_t duration_seconds);

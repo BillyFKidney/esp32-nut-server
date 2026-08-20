@@ -33,7 +33,7 @@ For branch, release, target, and next-task context, begin with
 | USB HID UPS polling | `src/drivers/usbhid-ups.c:upsdrv_updateinfo()`; `src/drivers/main.c:drivers_main()` |
 | UPS disconnect invalidation / simulation state | `src/nut-diagnostics.c:nut_diagnostics_disconnect_simulation_active()`; `src/management-status.c:management_status_collect_nut_snapshot()` |
 | CyberPower HID subdriver selection and mapping | `src/drivers/cps-hid.c:cps_claim()`; `src/drivers/cps-hid.c:cps_hid2nut[]` |
-| NUT driver socket state / published values | `src/drivers/dstate.c:dstate_setinfo()`; `src/drivers/dstate.c:dstate_dataok()`; `src/drivers/dstate.c:dstate_datastale()` |
+| NUT driver stale lifecycle, timeout, and published values | `src/drivers/dstate.c:dstate_setinfo()`; `src/drivers/dstate.c:dstate_datastale()`; `src/drivers/dstate.c:dstate_stale_timeout_check()` |
 | NUT network-server startup and main loop | `src/server/upsd.c:main()`; `src/server/upsd.c:mainloop()` |
 | NUT protocol command dispatch | `src/server/netcmds.h:netcmds[]` |
 | NUT `GET`, `LIST`, and `SET` handlers | `src/server/netget.c:net_get()`; `src/server/netlist.c:net_list()`; `src/server/netset.c:net_set()` |

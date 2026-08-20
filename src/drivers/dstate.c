@@ -45,6 +45,7 @@
 #include "parseconf.h"
 #include "attribute.h"
 #include "nut_stdint.h"
+#include "esp_timer.h"
 
 	static TYPE_FD	sockfd = ERROR_FD;
 #ifndef WIN32
@@ -55,6 +56,8 @@
 #endif	/* WIN32 */
 	static int	stale = 1, alarm_active = 0, alarm_status = 0, ignorelb = 0,
 				alarm_legacy_status = 0;
+	static int64_t	stale_since_us = 0;
+	static int	stale_values_purged = 0;
 	static char	status_buf[ST_MAX_VALUE_LEN], alarm_buf[ST_MAX_VALUE_LEN],
 			buzzmode_buf[ST_MAX_VALUE_LEN];
 	static conn_t	*connhead = NULL;
@@ -1762,12 +1765,19 @@ void dstate_dataok(void)
 {
 	if (stale == 1) {
 		stale = 0;
+		stale_since_us = 0;
+		stale_values_purged = 0;
 		send_to_all("DATAOK\n");
 	}
 }
 
 void dstate_datastale(void)
 {
+	if (stale_since_us == 0) {
+		stale_since_us = esp_timer_get_time();
+		stale_values_purged = 0;
+	}
+
 	if (stale == 0) {
 		stale = 1;
 		send_to_all("DATASTALE\n");
@@ -1777,6 +1787,55 @@ void dstate_datastale(void)
 int dstate_is_stale(void)
 {
 	return stale;
+}
+
+#define DSTATE_STALE_PURGE_DELAY_US (300LL * 1000000LL)
+
+static int dstate_variable_is_external(const char *var)
+{
+	return strncmp(var, "driver.", 7) != 0 && strncmp(var, "override.", 9) != 0 &&
+		strcmp(var, "device.type") != 0;
+}
+
+static int dstate_find_external_variable(const st_tree_t *node, char *var, size_t var_size)
+{
+	if (!node) {
+		return 0;
+	}
+	if (dstate_find_external_variable(node->left, var, var_size)) {
+		return 1;
+	}
+	if (dstate_variable_is_external(node->var)) {
+		snprintf(var, var_size, "%s", node->var);
+		return 1;
+	}
+	return dstate_find_external_variable(node->right, var, var_size);
+}
+
+void dstate_stale_timeout_check(void)
+{
+	char var[LARGEBUF];
+	unsigned int purged = 0;
+
+	if (!stale || stale_since_us == 0 || stale_values_purged ||
+		esp_timer_get_time() - stale_since_us < DSTATE_STALE_PURGE_DELAY_US) {
+		return;
+	}
+
+	while (dstate_find_external_variable(dtree_root, var, sizeof(var))) {
+		if (dstate_delinfo(var) != 1) {
+			break;
+		}
+		purged++;
+	}
+
+	stale_values_purged = 1;
+	upslogx(LOG_INFO, "UPS data stale for five minutes; purged %u external values", purged);
+}
+
+int dstate_stale_values_purged(void)
+{
+	return stale_values_purged;
 }
 
 /* ups.status management functions - reducing duplication in the drivers */
