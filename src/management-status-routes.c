@@ -171,8 +171,8 @@ static esp_err_t management_status_send(httpd_req_t *request)
                            nut_snapshot.stale ? "true" : "false",
                            nut_snapshot.disconnect_simulated ? "true" : "false");
     MANAGEMENT_JSON_STRING(nut_health);
-    MANAGEMENT_JSON_APPEND(",\"ups_name\":");
-    MANAGEMENT_JSON_STRING(nut_snapshot.ups_name);
+    MANAGEMENT_JSON_APPEND(",\"ups\":");
+    MANAGEMENT_JSON_STRING(nut_snapshot.ups);
     MANAGEMENT_JSON_APPEND("},\"ups\":{\"manufacturer\":");
     MANAGEMENT_JSON_STRING(nut_snapshot.manufacturer);
     MANAGEMENT_JSON_APPEND(",\"model\":");
