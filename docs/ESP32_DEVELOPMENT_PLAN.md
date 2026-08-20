@@ -54,7 +54,7 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | `v2.8.0` | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
 | `v2.9.0` | `feature/operational-management-acceptance` | Validate the locked definition of done from iPhone and MacBook Air and publish the final `v2.x` acceptance release. |
 
-## UPS state and compatibility — `v2.7.2`–`v2.7.7`
+## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
 
 The following observations remain active implementation evidence: disconnecting
 the CyberPower UPS can leave old identity/values visible while NUT is stale; a
@@ -68,10 +68,12 @@ through the Mac mini. Root causes remain to be established per slice.
 | `v2.7.4` | Released | [APC Back-UPS RS 1500G compatibility](archive/v2.7.4/ESP32_V2_7_4_APC_BR1500G_SPEC.md): from normal post-factory-reset configuration, it communicates without freeze/reboot and reports only validated identity, status, and available measurements. |
 | `v2.7.5` | Released | [NUT compatibility hardening evidence](archive/v2.7.5/evidence.md): bounded USB HID/NUT parsing, allocation cleanup, metadata termination, and validated CyberPower/APC behavior; unsupported or malformed hardware remains unclaimed. |
 | `v2.7.6` | `feature/ups-change-without-wait` | A replacement UPS can be reprobed immediately; prior identity and values cannot leak into the new device state. |
-| `v2.7.7` | `feature/factory-reset-clears-state` | A 15-second-plus factory reset erases all defined saved user values, including UPS identity/cache state, while preserving firmware and documented recovery boundaries. |
+| `v2.7.7` | `feature/factory-reset-clears-state` | [Factory reset](ESP32_V2_7_7_FACTORY_RESET_SPEC.md): a 15-second-plus reset erases all defined user values, including UPS identity/cache state, while preserving firmware and documented recovery boundaries. |
+| `v2.7.8` | `feature/status-naming-and-device-status-ui` | [Status naming and Device Status presentation](ESP32_V2_7_8_STATUS_UI_SPEC.md): rename `nut.ups_name` to `nut.ups`, correct dashboard Model, and default raw JSON to expanded. |
+| `v2.7.9` | `feature/device-identity-and-log-level` | [Device identity and log level](ESP32_V2_7_9_DEVICE_CONFIGURATION_SPEC.md): configurable `device_name`, safe derived hostname, and reboot-persistent log-level dropdown. |
 
-Factory-reset state clearing is deliberately last in this sequence so the
-preceding compatibility releases can be published and validated independently.
+Factory-reset state clearing remains the final persisted-state-clearing slice;
+the following identity and presentation slices do not expand its reset scope.
 
 ## Production OTA — `v3.x`
 

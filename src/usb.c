@@ -398,11 +398,17 @@ typedef struct
 QueueHandle_t espusb_event_queue = NULL;
 
 hid_host_device_handle_t espusb_hid_device_handle = NULL;
+static volatile uint32_t espusb_hid_attachment_generation = 0;
 
 bool usb_hid_device_ready(void)
 {
     return espusb_hid_device_handle != NULL &&
            s_usb_discovery_state.device_available;
+}
+
+uint32_t usb_hid_device_generation(void)
+{
+    return espusb_hid_attachment_generation;
 }
 
 /**
@@ -502,6 +508,7 @@ void hid_host_interface_callback(hid_host_device_handle_t hid_device_handle,
         if (espusb_hid_device_handle == hid_device_handle)
         {
             espusb_hid_device_handle = NULL;
+            espusb_hid_attachment_generation++;
         }
         break;
     case HID_HOST_INTERFACE_EVENT_TRANSFER_ERROR:
@@ -560,6 +567,7 @@ void hid_host_device_callback(hid_host_device_handle_t hid_device_handle,
         }
 
         espusb_hid_device_handle = hid_device_handle;
+        espusb_hid_attachment_generation++;
 
         ESP_LOGI(TAG, "HID Device, protocol '%d' STARTED", dev_params.proto);
         return;

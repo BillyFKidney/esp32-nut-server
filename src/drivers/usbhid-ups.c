@@ -166,6 +166,8 @@ static HIDDeviceMatcher_t *subdriver_matcher = NULL;
 static HIDDeviceMatcher_t *exact_matcher = NULL;
 static HIDDeviceMatcher_t *regex_matcher = NULL;
 #endif	/* !SHUT_MODE => USB */
+static uint32_t active_usb_generation = 0;
+static bool_t reprobe_required = FALSE;
 static int pollfreq = DEFAULT_POLLFREQ;
 static unsigned ups_status = 0;
 static bool_t data_has_changed = FALSE; /* for SEMI_STATIC data polling */
@@ -290,9 +292,11 @@ static void process_boolean_info(const char *nutvalue);
 static void ups_alarm_set(void);
 static void ups_status_set(void);
 static bool_t hid_ups_walk(walkmode_t mode);
-static int reconnect_ups(void);
+static int reconnect_ups(bool_t reprobe);
 static int ups_infoval_set(hid_info_t *item, double value);
 static void restore_cached_identity(void);
+static void invalidate_replaced_device(void);
+static void reset_subdriver_hiddata(void);
 static int callback(hid_dev_handle_t argudev, HIDDevice_t *arghd,
 					usb_ctrl_charbuf rdbuf, usb_ctrl_charbufsize rdlen);
 static int reject_unsupported_device(void);
@@ -318,6 +322,74 @@ static int reject_unsupported_device(void)
 	exact_matcher = NULL;
 #endif
 	return 1;
+}
+
+static void reset_subdriver_hiddata(void)
+{
+	int i;
+	hid_info_t *item;
+
+	for (i = 0; subdriver_list[i] != NULL; i++) {
+		if (subdriver_list[i]->hid2nut == NULL) {
+			continue;
+		}
+		for (item = subdriver_list[i]->hid2nut; item->info_type != NULL; item++) {
+			item->hiddata = NULL;
+		}
+	}
+}
+
+static void invalidate_replaced_device(void)
+{
+	/* This function runs only in the driver task.  USB callbacks only publish
+	 * the attachment generation and never touch dstate or driver resources. */
+	dstate_datastale();
+	(void)dstate_purge_external_values();
+
+	/* Never allow stale physical identity to be restored after this reprobe. */
+	dstate_delinfo("driver.cached.ups.mfr");
+	dstate_delinfo("driver.cached.ups.model");
+	dstate_delinfo("driver.cached.ups.serial");
+	dstate_delinfo("driver.cached.ups.vendorid");
+	dstate_delinfo("driver.cached.ups.productid");
+
+	if (udev != HID_DEV_HANDLE_CLOSED) {
+		comm_driver->close_dev(udev);
+		udev = HID_DEV_HANDLE_CLOSED;
+	}
+
+	Free_ReportDesc(pDesc);
+	pDesc = NULL;
+	free_report_buffer(reportbuf);
+	reportbuf = NULL;
+	reset_subdriver_hiddata();
+
+#if !((defined SHUT_MODE) && SHUT_MODE)
+	USBFreeExactMatcher(exact_matcher);
+	exact_matcher = NULL;
+	if (regex_matcher != NULL) {
+		regex_matcher->next = NULL;
+	}
+#endif	/* !SHUT_MODE => USB */
+
+	hd = NULL;
+	subdriver = NULL;
+	unsupported_device = FALSE;
+	ups_status = 0;
+	lastpoll = 0;
+	active_usb_generation = usb_hid_device_generation();
+	reprobe_required = TRUE;
+
+	/* espusb owns these strings inside its device wrapper.  The wrapper has
+	 * just been closed, so clear the borrowed pointers before another open. */
+	curDevice.Vendor = NULL;
+	curDevice.Product = NULL;
+	curDevice.Serial = NULL;
+	curDevice.Bus = NULL;
+	curDevice.Device = NULL;
+#if (defined WITH_USB_BUSPORT) && (WITH_USB_BUSPORT)
+	curDevice.BusPort = NULL;
+#endif
 }
 
 /* --------------------------------------------------------------- */
@@ -1228,10 +1300,21 @@ void upsdrv_updateinfo(void)
 	bool_t		full_update = FALSE;
 	double		value;
 	time_t		now;
+	uint32_t	usb_generation;
+	bool_t		reprobe;
 
 	upsdebugx(1, "upsdrv_updateinfo...");
 
 	time(&now);
+	usb_generation = usb_hid_device_generation();
+	if (hd != NULL && usb_generation != active_usb_generation) {
+		upslogx(LOG_INFO, "USB HID attachment changed; invalidating UPS instance");
+		invalidate_replaced_device();
+	} else if (hd == NULL && usb_generation != active_usb_generation) {
+		/* A device may have appeared while the driver was between polls. */
+		reprobe_required = TRUE;
+		active_usb_generation = usb_generation;
+	}
 	if (unsupported_device && hd != NULL) {
 		dstate_datastale();
 		dstate_stale_timeout_check();
@@ -1263,15 +1346,24 @@ void upsdrv_updateinfo(void)
 				"options section for this driver!");
 		}
 
-		if (!reconnect_ups()) {
+		reprobe = reprobe_required;
+		if (!reconnect_ups(reprobe)) {
 			lastpoll = now;
 			dstate_stale_timeout_check();
 			return;
 		}
 
 		hd = &curDevice;
+		if (reprobe) {
+			active_usb_generation = usb_hid_device_generation();
+		}
 		interrupt_pipe_EIO_count = 0;
 		interrupt_pipe_no_events_count = 0;
+		if (unsupported_device) {
+			dstate_datastale();
+			dstate_stale_timeout_check();
+			return;
+		}
 
 		if (hid_ups_walk(HU_WALKMODE_INIT) == FALSE) {
 			hd = NULL;
@@ -1425,6 +1517,8 @@ void upsdrv_updateinfo(void)
 
 	if (full_update == TRUE) {
 		dstate_dataok();
+		active_usb_generation = usb_hid_device_generation();
+		reprobe_required = FALSE;
 	}
 #ifdef DEBUG
 	upsdebugx(1, "took %.3f seconds handling feature reports...",
@@ -1594,8 +1688,11 @@ void upsdrv_initups(void)
 		unsupported_device = TRUE;
 		subdriver = &unsupported_subdriver;
 		hd = NULL;
+		reprobe_required = TRUE;
 	} else {
 		hd = &curDevice;
+		active_usb_generation = usb_hid_device_generation();
+		reprobe_required = FALSE;
 	}
 
 	if (hd != NULL) {
@@ -2306,7 +2403,7 @@ static bool_t hid_ups_walk(walkmode_t mode)
 	return TRUE;
 }
 
-static int reconnect_ups(void)
+static int reconnect_ups(bool_t reprobe)
 {
 	int ret;
 	char	*val;
@@ -2340,9 +2437,13 @@ static int reconnect_ups(void)
 	upsdebugx(4, "===================================================================");
 
 	upsdebugx(4, "Opening comm_driver ...");
-	ret = comm_driver->open_dev(&udev, &curDevice, subdriver_matcher, NULL);
+	ret = comm_driver->open_dev(&udev, &curDevice, subdriver_matcher,
+		reprobe ? &callback : NULL);
 	upsdebugx(4, "Opening comm_driver returns ret=%i", ret);
 	if (ret > 0) {
+		if (reprobe) {
+			active_usb_generation = usb_hid_device_generation();
+		}
 		return 1;
 	}
 

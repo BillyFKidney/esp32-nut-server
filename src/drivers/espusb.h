@@ -41,6 +41,9 @@ esp_err_t espusb_control_get_report(
 /** Return whether ESP-IDF currently has a ready HID device. */
 bool usb_hid_device_ready(void);
 
+/** Return the monotonic USB HID attachment generation. */
+uint32_t usb_hid_device_generation(void);
+
 /* Structures */
 /* #define usb_dev_handle libusb_device_handle */
 // typedef espusb_device_handle usb_dev_handle;

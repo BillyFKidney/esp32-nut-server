@@ -101,6 +101,7 @@ const cmdlist_t *dstate_getcmdlist(void);
 
 void dstate_dataok(void);
 void dstate_datastale(void);
+int dstate_purge_external_values(void);
 void dstate_stale_timeout_check(void);
 int dstate_stale_values_purged(void);
 
