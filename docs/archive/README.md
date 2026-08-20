@@ -24,6 +24,7 @@ when a current document links to it or historical evidence is required.
 | [v2.7.4 validation evidence index](v2.7.4/evidence.md) | APC/CyberPower compatibility, stale/recovery, service-boundary, and token-isolation evidence |
 | [v2.7.5 validation evidence index](v2.7.5/evidence.md) | USB HID/NUT compatibility hardening, tagged OTA validation, APC/CyberPower evidence, and release boundaries |
 | [v2.7.6 validation evidence index](v2.7.6/evidence.md) | USB attachment-generation reprobe, APC/CyberPower replacement evidence, tagged OTA validation, and v2.7.6 release boundaries |
+| [v2.7.7 validation evidence index](v2.7.7/evidence.md) | Release-confirmed Wi-Fi/factory reset, credential invalidation, fault injection, tagged OTA, and release boundaries |
 | [ESP32_CURRENT_STATUS_V2_7_1.md](ESP32_CURRENT_STATUS_V2_7_1.md) | Full v2.7.1 pre-publication status and release-preparation handoff |
 | [ESP32_64K_AGENT_HANDOFF_V2_7_1.md](ESP32_64K_AGENT_HANDOFF_V2_7_1.md) | Full v2.7.1 64k continuation packet before active-slice compaction |
 | [ESP32_DEVELOPMENT_PLAN_V2_7_1.md](ESP32_DEVELOPMENT_PLAN_V2_7_1.md) | Frozen pre-v2.7.1 planning snapshot; active and future roadmap scope is maintained in `docs/ESP32_DEVELOPMENT_PLAN.md` |
