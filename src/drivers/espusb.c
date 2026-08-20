@@ -64,11 +64,11 @@ upsdrv_info_t comm_upsdrv_info = {
 
 size_t __wcstombs(char *s, const wchar_t *pwcs, size_t n)
 {
-    int count = 0;
+    size_t count = 0;
 
-    if (n != 0)
+    if (s != NULL && pwcs != NULL && n > 0)
     {
-        do
+        while (count + 1 < n)
         {
             uint16_t wc = *pwcs++;
             if (wc == 0)
@@ -82,7 +82,8 @@ size_t __wcstombs(char *s, const wchar_t *pwcs, size_t n)
                 *s++ = (uint8_t)wc;
             }
             count++;
-        } while (--n != 0);
+        }
+        *s = '\0';
     }
 
     return count;
@@ -139,7 +140,13 @@ static int nut_espusb_open(espusb_device_handle **udevp,
 {
     usb_host_lib_info_t lib_info;
     hid_host_device_handle_t hid_device_handle = espusb_hid_device_handle;
-    ESP_ERROR_CHECK(usb_host_lib_info(&lib_info));
+    esp_err_t err = usb_host_lib_info(&lib_info);
+
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Unable to inspect USB host state: %s", esp_err_to_name(err));
+        return -1;
+    }
 
     if (hid_device_handle != NULL)
     {
@@ -151,8 +158,21 @@ static int nut_espusb_open(espusb_device_handle **udevp,
         }
         cur_device->parent_dev = hid_device_handle;
 
-        ESP_ERROR_CHECK(hid_host_device_get_params(hid_device_handle, &cur_device->dev_params));
-        ESP_ERROR_CHECK(hid_host_get_device_info(hid_device_handle, &cur_device->dev_info));
+        err = hid_host_device_get_params(hid_device_handle, &cur_device->dev_params);
+        if (err != ESP_OK)
+        {
+            ESP_LOGW(TAG, "Unable to inspect HID device parameters: %s", esp_err_to_name(err));
+            free(cur_device);
+            return -1;
+        }
+
+        err = hid_host_get_device_info(hid_device_handle, &cur_device->dev_info);
+        if (err != ESP_OK)
+        {
+            ESP_LOGW(TAG, "Unable to inspect HID device information: %s", esp_err_to_name(err));
+            free(cur_device);
+            return -1;
+        }
 
         snprintf(cur_device->interface, 4, "%03u", cur_device->dev_params.iface_num);
         snprintf(cur_device->device, 4, "%03u", cur_device->dev_params.addr);
@@ -191,7 +211,7 @@ static int nut_espusb_open(espusb_device_handle **udevp,
 
         /* report descriptor */
         uint8_t *rdbuf;
-        size_t rdlen;
+        size_t rdlen = 0;
 
         for (m = matcher; m; m = m->next)
         {
@@ -242,6 +262,15 @@ static int nut_espusb_open(espusb_device_handle **udevp,
         rdbuf = hid_host_get_report_descriptor(
             hid_device_handle,
             &rdlen);
+
+        if (rdbuf == NULL || rdlen == 0 || rdlen > MAX_REPORT_SIZE)
+        {
+            ESP_LOGW(TAG, "HID report descriptor unavailable or invalid (length=%u)",
+                     (unsigned int)rdlen);
+            free(curHandle);
+            free(cur_device);
+            return -1;
+        }
 
         res = callback(curHandle, curDevice, rdbuf, (usb_ctrl_charbufsize)rdlen);
         if (res < 1)

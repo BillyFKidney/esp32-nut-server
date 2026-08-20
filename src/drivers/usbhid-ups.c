@@ -122,6 +122,38 @@ typedef enum {
 /* pointer to the active subdriver object (changed in callback() function) */
 static subdriver_t *subdriver = NULL;
 
+/* Keep an enumerated but unsupported or malformed HID device alive as a
+ * stale, read-only driver instance.  This avoids turning a recoverable claim
+ * or descriptor failure into a driver-process restart. */
+static bool_t unsupported_device = FALSE;
+static hid_info_t unsupported_hid2nut[] = {
+	{ NULL, 0, 0, NULL, NULL, NULL, 0, NULL }
+};
+static usage_tables_t unsupported_utab[] = { NULL };
+
+static int unsupported_claim(HIDDevice_t *arg_hd)
+{
+	NUT_UNUSED_VARIABLE(arg_hd);
+	return 1;
+}
+
+static const char *unsupported_format(HIDDevice_t *arg_hd)
+{
+	NUT_UNUSED_VARIABLE(arg_hd);
+	return NULL;
+}
+
+static subdriver_t unsupported_subdriver = {
+	"unsupported-hid",
+	unsupported_claim,
+	unsupported_utab,
+	unsupported_hid2nut,
+	unsupported_format,
+	unsupported_format,
+	unsupported_format,
+	fix_report_desc,
+};
+
 /* Global vars */
 static HIDDevice_t *hd = NULL;
 static HIDDevice_t curDevice = { 0x0000, 0x0000, NULL, NULL, NULL, NULL, 0, NULL
@@ -263,6 +295,7 @@ static int ups_infoval_set(hid_info_t *item, double value);
 static void restore_cached_identity(void);
 static int callback(hid_dev_handle_t argudev, HIDDevice_t *arghd,
 					usb_ctrl_charbuf rdbuf, usb_ctrl_charbufsize rdlen);
+static int reject_unsupported_device(void);
 #ifdef DEBUG
 static double interval(void);
 #endif
@@ -271,6 +304,21 @@ static double interval(void);
 HIDDesc_t	*pDesc = NULL;		/* parsed Report Descriptor */
 reportbuf_t	*reportbuf = NULL;	/* buffer for most recent reports */
 int disable_fix_report_desc = 0; /* by default we apply fix-ups for broken USB encoding, etc. */
+
+static int reject_unsupported_device(void)
+{
+	unsupported_device = TRUE;
+	subdriver = &unsupported_subdriver;
+	Free_ReportDesc(pDesc);
+	pDesc = NULL;
+	free_report_buffer(reportbuf);
+	reportbuf = NULL;
+#if !((defined SHUT_MODE) && SHUT_MODE)
+	USBFreeExactMatcher(exact_matcher);
+	exact_matcher = NULL;
+#endif
+	return 1;
+}
 
 /* --------------------------------------------------------------- */
 /* Struct & data for boolean processing                            */
@@ -1184,6 +1232,11 @@ void upsdrv_updateinfo(void)
 	upsdebugx(1, "upsdrv_updateinfo...");
 
 	time(&now);
+	if (unsupported_device && hd != NULL) {
+		dstate_datastale();
+		dstate_stale_timeout_check();
+		return;
+	}
 	if (dstate_is_stale()) {
 		dstate_datastale();
 	}
@@ -1535,14 +1588,23 @@ void upsdrv_initups(void)
 	/* Search for the first supported UPS matching the
 	   regular expression (USB) or device_path (SHUT) */
 	ret = comm_driver->open_dev(&udev, &curDevice, subdriver_matcher, &callback);
-	if (ret < 1)
-		fatalx(EXIT_FAILURE, "No matching HID UPS found");
+	if (ret < 1) {
+		upslogx(LOG_WARNING,
+			"No supported HID UPS is currently available; keeping NUT data stale");
+		unsupported_device = TRUE;
+		subdriver = &unsupported_subdriver;
+		hd = NULL;
+	} else {
+		hd = &curDevice;
+	}
 
-	hd = &curDevice;
-
-	upsdebugx(1, "Detected a UPS: %s/%s",
-		hd->Vendor ? hd->Vendor : "unknown",
-		hd->Product ? hd->Product : "unknown");
+	if (hd != NULL) {
+		upsdebugx(1, "Detected a UPS: %s/%s",
+			hd->Vendor ? hd->Vendor : "unknown",
+			hd->Product ? hd->Product : "unknown");
+	} else {
+		upsdebugx(1, "No HID UPS detected yet");
+	}
 
 	/* Later activate the relatively cosmetic tweaks */
 
@@ -1842,7 +1904,7 @@ static int callback(
 #ifdef HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_UNSIGNED_ZERO_COMPARE
 # pragma GCC diagnostic ignored "-Wtautological-unsigned-zero-compare"
 #endif
-	if ((uintmax_t)rdlen < (uintmax_t)SIZE_MAX) {
+	if (rdbuf != NULL && (uintmax_t)rdlen < (uintmax_t)SIZE_MAX) {
 		upsdebug_hex(3, "Report Descriptor", rdbuf, (size_t)rdlen);
 	}
 #if (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_PUSH_POP) && ( (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TYPE_LIMITS) || (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_CONSTANT_OUT_OF_RANGE_COMPARE) || (defined HAVE_PRAGMA_GCC_DIAGNOSTIC_IGNORED_TAUTOLOGICAL_UNSIGNED_ZERO_COMPARE) )
@@ -1855,10 +1917,11 @@ static int callback(
 
 	/* Parse Report Descriptor */
 	Free_ReportDesc(pDesc);
+	pDesc = NULL;
 	pDesc = Parse_ReportDesc(rdbuf, rdlen);
 	if (!pDesc) {
 		upsdebug_with_errno(1, "Failed to parse report descriptor!");
-		return 0;
+		return reject_unsupported_device();
 	}
 
 	/* prepare report buffer */
@@ -1867,7 +1930,8 @@ static int callback(
 	if (!reportbuf) {
 		upsdebug_with_errno(1, "Failed to allocate report buffer!");
 		Free_ReportDesc(pDesc);
-		return 0;
+		pDesc = NULL;
+		return reject_unsupported_device();
 	}
 
 	/* select the subdriver for this device */
@@ -1884,7 +1948,7 @@ static int callback(
 
 	if (!subdriver) {
 		upsdebugx(1, "Manufacturer not supported!");
-		return 0;
+		return reject_unsupported_device();
 	}
 
 	upslogx(LOG_INFO, "Using subdriver: %s", subdriver->name);
@@ -1900,7 +1964,7 @@ static int callback(
 	ret = USBNewExactMatcher(&exact_matcher, hd);
 	if (ret) {
 		upsdebug_with_errno(1, "USBNewExactMatcher()");
-		return 0;
+		return reject_unsupported_device();
 	}
 
 	regex_matcher->next = exact_matcher;
@@ -1939,6 +2003,7 @@ static int callback(
 	dstate_setinfo("ups.productid", "%04x", hd->ProductID);
 	dstate_setinfo("driver.cached.ups.vendorid", "%04x", hd->VendorID);
 	dstate_setinfo("driver.cached.ups.productid", "%04x", hd->ProductID);
+	unsupported_device = FALSE;
 
 	return 1;
 }

@@ -10,14 +10,14 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `main` / `origin/main` at `9c5c5b1db` (v2.7.4 merge at `8a52c8991`) |
+| Canonical branch | `feature/nut-compatibility-hardening` from `main` at `c728c750a` |
 | Published release | `v2.7.4` on `main` at merge commit `8a52c8991` |
-| Active preparation | v2.7.4 APC Back-UPS RS 1500G compatibility fix is released and target-installed; v2.7.5 is the next planned slice |
-| Validation | ESP-IDF v6.0.2 `esp32s3` build and `git diff --check` pass. The candidate was OTA-installed, enumerated the APC, completed full polls, and remained healthy for more than 17 minutes of continuous authenticated status observation. Three APC disconnect/reconnect cycles, a CyberPower boot/disconnect/stale-invalidation/full-poll recovery cycle, browser dashboard presentation, service ports, and token isolation passed. One earlier observation had an unexpected reboot near 13 minutes and did not reproduce during the extended run; the release decision explicitly accepts this observed but unreproduced event. |
+| Active preparation | v2.7.5 NUT compatibility hardening is implemented on this branch and is authorized for final build, OTA validation, and publication |
+| Validation | `git diff --check`, ESP-IDF v6.0.2 `esp32s3` build, and commit-matched OTA validation pass. CyberPower and APC healthy full-poll evidence is available; the APC sample reports `American Power Conversion` / `Back-UPS RS 1500G`, NUT 3493 is reachable, and retired 8080 is closed. Unsupported/malformed HID hardware remains not target-tested. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
-| Last observed target result | Clean `v2.7.4` reports `update=installed`, CyberPower identity, `OL`, healthy read-only NUT data, and dashboard values after OTA reboot. |
+| Last observed target result | Commit-matched candidate `v2.7.4-4-g95edd8a5d` is OTA-installed and healthy with the APC connected: `available=true`, `data_stale=false`, `health=ok`, and populated APC identity/measurements. |
 
 ## Current objective
 
@@ -27,8 +27,15 @@ monotonic five-minute stale-data purge, owned only by the normal driver poll
 path. v2.7.4 removed the restrictive CyberPower-only HID filters while
 preserving the established NUT service name, allowing the evidenced APC HID
 subdriver to claim the device. The release is published and installed; the
-earlier unreproduced reboot is retained as historical evidence. Next: begin
-v2.7.5 only from this published, target-installed v2.7.4 baseline.
+earlier unreproduced reboot is retained as historical evidence. v2.7.5 now
+begins from this published, target-installed v2.7.4 baseline. The candidate
+hardens descriptor bounds, allocation cleanup, metadata termination, and
+unsupported/malformed HID handling without changing the read-only service or
+reconnect cadence. A valid report descriptor can exceed 255 bits before its
+later fields; the candidate now uses 16-bit report offsets while retaining
+overflow bounds. The supported-device release gate is ready; unsupported or
+malformed hardware remains explicitly not target-tested. Next: publish the
+validated v2.7.5 image, then begin the v2.7.6 replacement-UPS slice.
 
 ## Read only when needed
 
