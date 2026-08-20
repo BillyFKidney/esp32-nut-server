@@ -65,8 +65,8 @@ through the Mac mini. Root causes remain to be established per slice.
 | Release | Prospective branch | Required outcome |
 | --- | --- | --- |
 | `v2.7.3` | Released | Uses monotonic dstate timing to purge external UPS values after five minutes stale. A full successful poll alone resets timing; Agent and physical acceptance preserve immediate stale protection. |
-| `v2.7.4` | `feature/apc-br1500g-support` | From factory-reset state, an APC Back-UPS RS 1500G communicates without freeze/reboot and reports only validated identity, status, and available measurements. |
-| `v2.7.5` | `feature/nut-compatibility-hardening` | Expand compatibility handling with graceful unsupported-device behavior, bounded resources, and a documented validation matrix; do not claim universal support without evidence. |
+| `v2.7.4` | Released | [APC Back-UPS RS 1500G compatibility](archive/v2.7.4/ESP32_V2_7_4_APC_BR1500G_SPEC.md): from normal post-factory-reset configuration, it communicates without freeze/reboot and reports only validated identity, status, and available measurements. |
+| `v2.7.5` | `feature/nut-compatibility-hardening` | [NUT compatibility hardening](ESP32_V2_7_5_NUT_COMPATIBILITY_SPEC.md): expand compatibility handling with graceful unsupported-device behavior, bounded resources, and a documented validation matrix; do not claim universal support without evidence. |
 | `v2.7.6` | `feature/ups-change-without-wait` | A replacement UPS can be reprobed immediately; prior identity and values cannot leak into the new device state. |
 | `v2.7.7` | `feature/factory-reset-clears-state` | A 15-second-plus factory reset erases all defined saved user values, including UPS identity/cache state, while preserving firmware and documented recovery boundaries. |
 
