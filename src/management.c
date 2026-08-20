@@ -82,9 +82,18 @@ esp_err_t management_factory_reset(void)
         result = nvs_commit(handle);
     }
     nvs_close(handle);
+    if (result != ESP_OK)
+    {
+        return result;
+    }
+
+    return ESP_OK;
+}
+
+void management_factory_reset_complete(void)
+{
     management_session_clear();
     management_session_record_login_success();
-    return result;
 }
 
 esp_err_t management_server_start(void)
