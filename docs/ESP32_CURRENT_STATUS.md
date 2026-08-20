@@ -10,7 +10,7 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `feature/apc-br1500g-support` from `main` at `55d0aa4dd16b` |
+| Canonical branch | `main` / `origin/main` at `9c5c5b1db` (v2.7.4 merge at `8a52c8991`) |
 | Published release | `v2.7.4` on `main` at merge commit `8a52c8991` |
 | Active preparation | v2.7.4 APC Back-UPS RS 1500G compatibility fix is released and target-installed; v2.7.5 is the next planned slice |
 | Validation | ESP-IDF v6.0.2 `esp32s3` build and `git diff --check` pass. The candidate was OTA-installed, enumerated the APC, completed full polls, and remained healthy for more than 17 minutes of continuous authenticated status observation. Three APC disconnect/reconnect cycles, a CyberPower boot/disconnect/stale-invalidation/full-poll recovery cycle, browser dashboard presentation, service ports, and token isolation passed. One earlier observation had an unexpected reboot near 13 minutes and did not reproduce during the extended run; the release decision explicitly accepts this observed but unreproduced event. |
