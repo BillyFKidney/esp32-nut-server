@@ -33,8 +33,11 @@ replacement reprobe remains the v2.7.6 scope.
 
 ## Provenance
 
-The release commit, tag, firmware SHA-256, and GitHub release URL are recorded
-in the publication handoff after the clean tag and final OTA verification.
+- Merge commit: `8a52c8991`
+- Release tag: `v2.7.4`
+- Clean application image SHA-256: `dfc3233134d7008bc2ac0cff05e7f2c3af3791984768f59afdfccc6d587d859c`
+- GitHub release: https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.7.4
+- Final target image identity: `v2.7.4`, with OTA result `installed`
 
 No credentials, tokens, cookies, Authorization headers, private keys, serial
 numbers, IP addresses, or verification endpoints are recorded here.

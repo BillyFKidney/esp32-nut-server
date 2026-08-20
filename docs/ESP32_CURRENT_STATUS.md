@@ -11,25 +11,24 @@ archive, source tree, or project chat. Completed release evidence is in
 | Field | Current fact |
 | --- | --- |
 | Canonical branch | `feature/apc-br1500g-support` from `main` at `55d0aa4dd16b` |
-| Published release | `v2.7.3`; v2.7.4 publication is authorized and in progress |
-| Active preparation | v2.7.4 APC Back-UPS RS 1500G compatibility fix is implemented and target-accepted on this branch |
+| Published release | `v2.7.4` on `main` at merge commit `8a52c8991` |
+| Active preparation | v2.7.4 APC Back-UPS RS 1500G compatibility fix is released and target-installed; v2.7.5 is the next planned slice |
 | Validation | ESP-IDF v6.0.2 `esp32s3` build and `git diff --check` pass. The candidate was OTA-installed, enumerated the APC, completed full polls, and remained healthy for more than 17 minutes of continuous authenticated status observation. Three APC disconnect/reconnect cycles, a CyberPower boot/disconnect/stale-invalidation/full-poll recovery cycle, browser dashboard presentation, service ports, and token isolation passed. One earlier observation had an unexpected reboot near 13 minutes and did not reproduce during the extended run; the release decision explicitly accepts this observed but unreproduced event. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
-| Last observed target result | The v2.7.4 candidate reports CyberPower identity, `OL`, healthy read-only NUT data, and dashboard values after the final reboot/recovery check. |
+| Last observed target result | Clean `v2.7.4` reports `update=installed`, CyberPower identity, `OL`, healthy read-only NUT data, and dashboard values after OTA reboot. |
 
 ## Current objective
 
 v2.7.2 is complete: USB/HID loss, driver staleness, and bounded diagnostic
 simulation use one management-data invalidation boundary. v2.7.3 adds a
 monotonic five-minute stale-data purge, owned only by the normal driver poll
-path. v2.7.4 now removes the restrictive CyberPower-only HID filters while
+path. v2.7.4 removed the restrictive CyberPower-only HID filters while
 preserving the established NUT service name, allowing the evidenced APC HID
-subdriver to claim the device. Next: review the candidate diff and decide
-whether to authorize commit/publication; CyberPower regression and browser
-dashboard presentation passed; the earlier unreproduced reboot is retained as
-historical evidence, with publication explicitly authorized by the maintainer.
+subdriver to claim the device. The release is published and installed; the
+earlier unreproduced reboot is retained as historical evidence. Next: begin
+v2.7.5 only from this published, target-installed v2.7.4 baseline.
 
 ## Read only when needed
 
