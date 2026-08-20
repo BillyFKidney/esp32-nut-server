@@ -10,14 +10,14 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `feature/ups-change-without-wait` at v2.7.5 closeout commit `c5e23bf99` (published main base) |
-| Published release | `v2.7.5` tagged at `396831d96769088c05504e1ee1fd7bd8a1809a21` |
-| Active preparation | v2.7.6 replacement-UPS reprobe implementation; OTA, Git publication, merge, tag, and release are authorized by the current request |
-| Validation | Candidate `git diff --check`, ESP-IDF v6.0.2 `esp32s3` build, OTA install/validity, diagnostic simulation, and bearer-scope isolation pass. Both physical directions captured stale/unavailable responses before current replacement data: CyberPower-to-APC and APC-to-CyberPower. |
+| Canonical branch | `main` at merged v2.7.6 source commit `6616a5311` |
+| Published release | `v2.7.6` tagged at the merged main commit; release evidence is archived in [archive/v2.7.6/evidence.md](archive/v2.7.6/evidence.md) |
+| Active preparation | v2.7.7 factory-reset state-clearing specification; no implementation or target mutation is active |
+| Validation | v2.7.6 `git diff --check`, ESP-IDF v6.0.2 `esp32s3` build, tagged artifact checksum, authenticated OTA install/validity, diagnostic simulation, bearer-scope isolation, and both physical UPS replacement directions pass. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
-| Last observed target result | v2.7.6 candidate `v2.7.5-1-gc5e23bf99-dirty` is OTA-installed and currently reports healthy CyberPower data after the APC-to-CyberPower replacement; no reboot was issued for the replacement test. |
+| Last observed target result | Clean `v2.7.6` is OTA-installed and, after reboot, reports healthy CyberPower data following a full successful poll. |
 
 ## Current objective
 
@@ -42,10 +42,9 @@ The candidate is built with ESP-IDF v6.0.2 and installed through authorized
 OTA. Automated simulation and token-isolation checks pass. Both physical
 directions were observed: each first returned stale/unavailable data, then
 exposed only the replacement after a successful reprobe/full poll. No
-unsupported or malformed replacement hardware is target-tested. The current
-request authorizes commit, push, merge, v2.7.6 tag/release, and OTA install.
-Next exact action: publish the clean v2.7.6 artifact, install it OTA, and
-record final release evidence before handing off to v2.7.7.
+unsupported or malformed replacement hardware is target-tested. The clean
+tagged artifact is published and OTA-installed. Next exact action: begin the
+v2.7.7 factory-reset implementation from published, target-accepted v2.7.6.
 
 ## Read only when needed
 
@@ -55,7 +54,7 @@ record final release evidence before handing off to v2.7.7.
 | Active v2.7.3 implementation and acceptance contract | [ESP32_V2_7_3_STALE_TIMEOUT_SPEC.md](ESP32_V2_7_3_STALE_TIMEOUT_SPEC.md) |
 | Released v2.7.4 APC compatibility evidence | [archive/v2.7.4/evidence.md](archive/v2.7.4/evidence.md) |
 | Released v2.7.5 compatibility hardening | [archive/v2.7.5/evidence.md](archive/v2.7.5/evidence.md) |
-| v2.7.6 replacement-UPS reprobe | [ESP32_V2_7_6_UPS_REPLACEMENT_SPEC.md](ESP32_V2_7_6_UPS_REPLACEMENT_SPEC.md) |
+| Released v2.7.6 replacement-UPS reprobe | [archive/v2.7.6/ESP32_V2_7_6_UPS_REPLACEMENT_SPEC.md](archive/v2.7.6/ESP32_V2_7_6_UPS_REPLACEMENT_SPEC.md) |
 | Released v2.7.2 acceptance evidence | [archive/v2.7.2/evidence.md](archive/v2.7.2/evidence.md) |
 | Hardware, LAN, COM, build, flash, or OTA | [ESP32_PREFLIGHT.md](ESP32_PREFLIGHT.md) |
 | Authority for physical, destructive, or external actions | [ESP32_DEVELOPMENT_ROLES.md](ESP32_DEVELOPMENT_ROLES.md) |
