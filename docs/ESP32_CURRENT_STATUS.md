@@ -11,21 +11,21 @@ archive, source tree, or project chat. Completed release evidence is in
 | Field | Current fact |
 | --- | --- |
 | Canonical branch | `main` / `origin/main` |
-| Published release | `v2.7.2` at `abf517f16`; resolve live Git before acting |
-| Active preparation | `feature/nut-stale-timeout`, based from published `v2.7.2`; v2.7.3 implementation and target acceptance are complete locally but uncommitted |
+| Published release | `v2.7.3`; resolve live Git before acting |
+| Active preparation | None; v2.7.3 stale-timeout work is merged and target-accepted |
 | Validation | ESP-IDF v6.0.2 `esp32s3` build and `git diff --check` pass. The scoped Agent candidate captured one-time five-minute purge of 37 external values, stale protection, and expiry/full-poll recovery. A physical disconnect held beyond five minutes showed immediate stale invalidation and NUT `DATA-STALE`; uptime remained continuous and reconnect recovered only after a full poll. The bounded physical log snapshot rotated before it could retain the one-time message. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
-| Last observed target result | The corrected v2.7.3 OTA candidate completed physical disconnect/reconnect and simulated expiry/recovery checks, then reported healthy read-only NUT data. Browser dashboard presentation was not rechecked on this candidate. |
+| Last observed target result | The v2.7.3 OTA candidate completed physical disconnect/reconnect and simulated expiry/recovery checks, then reported healthy read-only NUT data. Browser dashboard presentation was not rechecked on this release candidate. |
 
 ## Current objective
 
 v2.7.2 is complete: USB/HID loss, driver staleness, and bounded diagnostic
 simulation use one management-data invalidation boundary. v2.7.3 adds a
 monotonic five-minute stale-data purge, owned only by the normal driver poll
-path. Next: review the uncommitted slice, commit it, and request publication
-authority; do not publish until explicitly authorized.
+path. Next: select and authorize the next release scope; do not start a new
+implementation slice from this handoff alone.
 
 ## Read only when needed
 

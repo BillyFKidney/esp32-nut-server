@@ -64,7 +64,7 @@ through the Mac mini. Root causes remain to be established per slice.
 
 | Release | Prospective branch | Required outcome |
 | --- | --- | --- |
-| `v2.7.3` | `feature/nut-stale-timeout` | Starting only from published, target-accepted v2.7.2, use monotonic dstate timing to purge external UPS values after five minutes stale. Existing `diagnostics.nut` and 1Password-backed Agent testing provide pre-physical evidence; a full successful poll alone resets timing. |
+| `v2.7.3` | Released | Uses monotonic dstate timing to purge external UPS values after five minutes stale. A full successful poll alone resets timing; Agent and physical acceptance preserve immediate stale protection. |
 | `v2.7.4` | `feature/apc-br1500g-support` | From factory-reset state, an APC Back-UPS RS 1500G communicates without freeze/reboot and reports only validated identity, status, and available measurements. |
 | `v2.7.5` | `feature/nut-compatibility-hardening` | Expand compatibility handling with graceful unsupported-device behavior, bounded resources, and a documented validation matrix; do not claim universal support without evidence. |
 | `v2.7.6` | `feature/ups-change-without-wait` | A replacement UPS can be reprobed immediately; prior identity and values cannot leak into the new device state. |
