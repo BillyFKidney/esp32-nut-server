@@ -10,8 +10,8 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `main` at merged v2.7.6 source commit `6616a5311` |
-| Published release | `v2.7.6` tagged at the merged main commit; release evidence is archived in [archive/v2.7.6/evidence.md](archive/v2.7.6/evidence.md) |
+| Canonical branch | `main` at documentation closeout merge commit `a85b30f59` |
+| Published release | `v2.7.6` tag points to source merge commit `6616a5311`; release evidence is archived in [archive/v2.7.6/evidence.md](archive/v2.7.6/evidence.md) |
 | Active preparation | v2.7.7 factory-reset state-clearing specification; no implementation or target mutation is active |
 | Validation | v2.7.6 `git diff --check`, ESP-IDF v6.0.2 `esp32s3` build, tagged artifact checksum, authenticated OTA install/validity, diagnostic simulation, bearer-scope isolation, and both physical UPS replacement directions pass. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
