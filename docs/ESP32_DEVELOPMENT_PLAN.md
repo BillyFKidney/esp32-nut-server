@@ -71,6 +71,7 @@ through the Mac mini. Root causes remain to be established per slice.
 | `v2.7.7` | Released | [Factory-reset evidence](archive/v2.7.7/evidence.md): release-confirmed reset of all defined user values, including UPS identity/cache state, while preserving firmware and documented recovery boundaries. |
 | `v2.7.8` | `feature/status-naming-and-device-status-ui` | [Status naming and Device Status presentation](ESP32_V2_7_8_STATUS_UI_SPEC.md): rename `nut.ups_name` to `nut.ups`, correct dashboard Model, and default raw JSON to expanded. |
 | `v2.7.9` | `feature/device-identity-and-log-level` | [Device identity and log level](ESP32_V2_7_9_DEVICE_CONFIGURATION_SPEC.md): configurable `device_name`, safe derived hostname, and reboot-persistent log-level dropdown. |
+| `v2.7.10` | `feature/status-ui-polish` | Browser-only status presentation polish, beginning with an explicit friendly-label mapping for the NUT CyberPower fallback `CPS` to `CyberPower Systems`. Preserve raw API values, stale/unavailable handling, NUT service identity, and all authorization/service boundaries. |
 
 Factory-reset state clearing remains the final persisted-state-clearing slice;
 the following identity and presentation slices do not expand its reset scope.

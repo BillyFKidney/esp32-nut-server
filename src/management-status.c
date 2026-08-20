@@ -82,7 +82,7 @@ void management_status_collect_nut_snapshot(ManagementStatusNutSnapshot *snapsho
                       snapshot->disconnect_simulated;
     const char *status = dstate_getinfo("ups.status");
     snapshot->available = status != NULL && !snapshot->stale;
-    snprintf(snapshot->ups_name, sizeof(snapshot->ups_name), "%s",
+    snprintf(snapshot->ups, sizeof(snapshot->ups), "%s",
              upsname != NULL && *upsname != '\0' ? upsname : "cyberpower");
     if (snapshot->stale)
     {

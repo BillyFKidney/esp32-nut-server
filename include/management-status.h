@@ -7,7 +7,7 @@
 #include "esp_chip_info.h"
 
 #define MANAGEMENT_STATUS_NUT_VALUE_LENGTH 96U
-#define MANAGEMENT_STATUS_UPS_NAME_LENGTH 32U
+#define MANAGEMENT_STATUS_UPS_LENGTH 32U
 
 /** Read-only snapshot of normalized NUT state for the management response. */
 typedef struct
@@ -15,7 +15,7 @@ typedef struct
     bool available;
     bool stale;
     bool disconnect_simulated;
-    char ups_name[MANAGEMENT_STATUS_UPS_NAME_LENGTH];
+    char ups[MANAGEMENT_STATUS_UPS_LENGTH];
     char manufacturer[MANAGEMENT_STATUS_NUT_VALUE_LENGTH];
     char model[MANAGEMENT_STATUS_NUT_VALUE_LENGTH];
     char serial[MANAGEMENT_STATUS_NUT_VALUE_LENGTH];
