@@ -21,6 +21,7 @@ when a current document links to it or historical evidence is required.
 | [2026-07-29 target candidate smoke validation](2026-07-29-target-candidate-smoke-validation.md) | Browser-OTA, reboot, ADMIN-session, and network-service evidence for the local Wi-Fi-provisioning/header-limit integration candidate |
 | [v2.7.1 validation evidence index](v2.7.1/evidence.md) | Index of the seven archived v2.7.1 planning, route, security, handoff, and validation records |
 | [v2.7.2 validation evidence index](v2.7.2/evidence.md) | Source, automated, and physical acceptance evidence for disconnect invalidation and Agent diagnostics |
+| [v2.7.4 validation evidence index](v2.7.4/evidence.md) | APC/CyberPower compatibility, stale/recovery, service-boundary, and token-isolation evidence |
 | [ESP32_CURRENT_STATUS_V2_7_1.md](ESP32_CURRENT_STATUS_V2_7_1.md) | Full v2.7.1 pre-publication status and release-preparation handoff |
 | [ESP32_64K_AGENT_HANDOFF_V2_7_1.md](ESP32_64K_AGENT_HANDOFF_V2_7_1.md) | Full v2.7.1 64k continuation packet before active-slice compaction |
 | [ESP32_DEVELOPMENT_PLAN_V2_7_1.md](ESP32_DEVELOPMENT_PLAN_V2_7_1.md) | Frozen pre-v2.7.1 planning snapshot; active and future roadmap scope is maintained in `docs/ESP32_DEVELOPMENT_PLAN.md` |

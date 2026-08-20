@@ -115,12 +115,12 @@ void mountFS(void)
     fseek(f, 0, SEEK_END);
     if (0 == ftell(f))
     {
+        /* Keep the established service name for NUT clients, but let the
+         * read-only HID driver select an evidenced supported UPS model. */
         fprintf(f, "[cyberpower]\n");
         fprintf(f, "  driver = usbhid-ups\n");
         fprintf(f, "  port = auto\n");
-        fprintf(f, "  desc = \"CyberPower CST150UC2\"\n");
-        fprintf(f, "  vendorid = 0764\n");
-        fprintf(f, "  productid = 0601\n");
+        fprintf(f, "  desc = \"Read-only USB HID UPS\"\n");
         fprintf(f, "  pollonly\n");
         fprintf(f, "\n");
         fflush(f);
@@ -169,7 +169,7 @@ static void drv_main(void *pvParameter)
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    ESP_LOGI(TAG, "Starting read-only NUT HID driver for CyberPower UPS");
+    ESP_LOGI(TAG, "Starting read-only NUT HID driver for USB HID UPS");
     optind = 0;
     char *args[3] = {"usbhid-ups", "-F", "-acyberpower"};
     int result = drivers_main(3, args);
