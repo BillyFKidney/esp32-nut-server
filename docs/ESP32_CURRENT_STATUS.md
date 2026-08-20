@@ -10,14 +10,14 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `main` at v2.7.7 merge commit `2b94e56fa` |
-| Published release | `v2.7.7` tag points to source merge commit `2b94e56fa`; release evidence is in [archive/v2.7.7/evidence.md](archive/v2.7.7/evidence.md) |
-| Active implementation | v2.7.8 status UI/API naming is the next isolated release slice |
-| Validation | v2.7.7 `git diff --check`, clean ESP-IDF v6.0.2 `esp32s3` build, tagged OTA install, physical reset acceptance, scoped-token recovery, and management-NVS failure injection pass. |
+| Canonical branch | `main` at v2.7.8 merge commit `9fb925954` |
+| Published release | `v2.7.8` tag points to source merge commit `9fb925954`; release evidence is in [archive/v2.7.8/evidence.md](archive/v2.7.8/evidence.md) |
+| Active implementation | v2.7.9 device identity and retained log level is the next isolated release slice |
+| Validation | v2.7.8 `git diff --check`, clean ESP-IDF v6.0.2 `esp32s3` build, tagged OTA install, browser/Agent status, stale/recovery, service-boundary, serial recovery, and v2.7.7 rollback/v2.7.8 restore pass. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
-| Last observed target result | Tagged `v2.7.7` is OTA-installed and, after reboot, reports current read-only NUT data following a full successful poll. |
+| Last observed target result | Tagged `v2.7.8` is OTA-installed on `app1` and, after reboot, reports current read-only NUT data following a full successful poll. |
 
 ## Current objective
 
@@ -48,9 +48,13 @@ until BOOT release; its fifteen-second path erases management then Wi-Fi, clears
 the RAM session only after both succeed, and restarts only after complete
 success. Physical Wi-Fi-only and factory-reset recovery, fresh setup,
 credential invalidation/recovery, and an injected management-erase failure all
-passed. The published evidence records the exact artifact and validation
-boundary. Next exact action: apply the isolated v2.7.8 status UI/API slice to a
-new release branch.
+passed. v2.7.8 intentionally renamed the status service-identity key to
+`nut.ups`, removed `nut.ups_name`, displays physical manufacturer/model without
+the configured service name, and expands raw status by default. The tagged
+artifact was validated through browser and Agent status, stale/recovery,
+serial recovery, and a v2.7.7 rollback followed by a v2.7.8 restore. Next
+exact action: apply the isolated v2.7.9 device-identity and retained-log-level
+slice from this published baseline.
 
 ## Read only when needed
 
@@ -58,7 +62,7 @@ new release branch.
 | --- | --- |
 | Active releases and branch scope | [ESP32_DEVELOPMENT_PLAN.md](ESP32_DEVELOPMENT_PLAN.md) |
 | Released v2.7.7 factory-reset evidence | [archive/v2.7.7/evidence.md](archive/v2.7.7/evidence.md) |
-| v2.7.8 status UI acceptance contract | [ESP32_V2_7_8_STATUS_UI_SPEC.md](ESP32_V2_7_8_STATUS_UI_SPEC.md) |
+| Released v2.7.8 status UI evidence | [archive/v2.7.8/evidence.md](archive/v2.7.8/evidence.md) |
 | Active v2.7.3 implementation and acceptance contract | [ESP32_V2_7_3_STALE_TIMEOUT_SPEC.md](ESP32_V2_7_3_STALE_TIMEOUT_SPEC.md) |
 | Released v2.7.4 APC compatibility evidence | [archive/v2.7.4/evidence.md](archive/v2.7.4/evidence.md) |
 | Released v2.7.5 compatibility hardening | [archive/v2.7.5/evidence.md](archive/v2.7.5/evidence.md) |
