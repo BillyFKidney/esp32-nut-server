@@ -17,5 +17,10 @@ bool management_admin_password_is_configured(void);
 /**
  * Remove administration credentials, API credentials, device identity, and
  * the device HTTPS certificate. Firmware and OTA partitions are untouched.
+ * Call management_factory_reset_complete() only after every factory-reset
+ * namespace has been erased successfully.
  */
 esp_err_t management_factory_reset(void);
+
+/** Clear the in-memory ADMIN session after a complete factory reset. */
+void management_factory_reset_complete(void);

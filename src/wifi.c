@@ -131,7 +131,7 @@ static void wifi_recovery_task(void *argument)
         }
 
         const TickType_t press_started = xTaskGetTickCount();
-        bool wifi_erased = false;
+        bool wifi_reset_requested = false;
         bool factory_requested = false;
         bool factory_erased = false;
 
@@ -140,22 +140,14 @@ static void wifi_recovery_task(void *argument)
         while (gpio_get_level(WIFI_BOOT_BUTTON) == 0)
         {
             const uint32_t held_ms = pdTICKS_TO_MS(xTaskGetTickCount() - press_started);
-            if (!wifi_erased && held_ms >= WIFI_BOOT_RESET_HOLD_MS)
+            if (!wifi_reset_requested && held_ms >= WIFI_BOOT_RESET_HOLD_MS)
             {
-                const esp_err_t result = wifi_credentials_erase();
-                if (result != ESP_OK)
-                {
-                    ESP_LOGE(TAG, "Unable to erase saved Wi-Fi credentials: %s",
-                             esp_err_to_name(result));
-                    break;
-                }
-
-                wifi_erased = true;
-                ESP_LOGW(TAG, "Saved Wi-Fi credentials erased; release BOOT now or keep holding "
-                              "for factory reset at fifteen seconds");
+                wifi_reset_requested = true;
+                ESP_LOGW(TAG, "Wi-Fi reset threshold reached; release BOOT to erase saved "
+                              "Wi-Fi credentials or keep holding for factory reset at fifteen seconds");
             }
 
-            if (wifi_erased && !factory_requested &&
+            if (wifi_reset_requested && !factory_requested &&
                 held_ms >= WIFI_BOOT_FACTORY_RESET_HOLD_MS)
             {
                 factory_requested = true;
@@ -172,34 +164,54 @@ static void wifi_recovery_task(void *argument)
         }
 
         const uint32_t held_ms = pdTICKS_TO_MS(xTaskGetTickCount() - press_started);
-        if (wifi_erased && held_ms >= WIFI_BOOT_FACTORY_RESET_HOLD_MS)
+        if (wifi_reset_requested && held_ms >= WIFI_BOOT_FACTORY_RESET_HOLD_MS)
         {
             factory_requested = true;
         }
 
         if (factory_requested)
         {
-            const esp_err_t result = management_factory_reset();
-            if (result == ESP_OK)
-            {
-                factory_erased = true;
-                ESP_LOGW(TAG, "Factory reset complete; Wi-Fi, ADMIN credentials, API credentials, "
-                              "and device HTTPS identity were erased");
-            }
-            else
+            esp_err_t result = management_factory_reset();
+            if (result != ESP_OK)
             {
                 ESP_LOGE(TAG, "Unable to erase management configuration: %s",
                          esp_err_to_name(result));
+                continue;
             }
+
+            result = wifi_credentials_erase();
+            if (result != ESP_OK)
+            {
+                ESP_LOGE(TAG, "Unable to erase saved Wi-Fi credentials: %s",
+                         esp_err_to_name(result));
+                continue;
+            }
+
+            management_factory_reset_complete();
+            factory_erased = true;
+            ESP_LOGW(TAG, "Factory reset complete; Wi-Fi, ADMIN credentials, API credentials, "
+                          "and device HTTPS identity were erased");
+        }
+        else if (wifi_reset_requested)
+        {
+            const esp_err_t result = wifi_credentials_erase();
+            if (result != ESP_OK)
+            {
+                ESP_LOGE(TAG, "Unable to erase saved Wi-Fi credentials: %s",
+                         esp_err_to_name(result));
+                continue;
+            }
+
+        }
+        else
+        {
+            continue;
         }
 
-        if (wifi_erased)
-        {
-            ESP_LOGW(TAG, "%s recovery complete; restarting into provisioning mode",
-                     factory_erased ? "Factory" : "Wi-Fi");
-            vTaskDelay(pdMS_TO_TICKS(WIFI_RECOVERY_RESTART_DELAY_MS));
-            esp_restart();
-        }
+        ESP_LOGW(TAG, "%s recovery complete; restarting into provisioning mode",
+                 factory_erased ? "Factory" : "Wi-Fi");
+        vTaskDelay(pdMS_TO_TICKS(WIFI_RECOVERY_RESTART_DELAY_MS));
+        esp_restart();
     }
 }
 
