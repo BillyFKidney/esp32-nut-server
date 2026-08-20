@@ -10,14 +10,14 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `main` at merge commit `396831d96769088c05504e1ee1fd7bd8a1809a21` |
+| Canonical branch | `feature/ups-change-without-wait` at v2.7.5 closeout commit `c5e23bf99` (published main base) |
 | Published release | `v2.7.5` tagged at `396831d96769088c05504e1ee1fd7bd8a1809a21` |
-| Active preparation | v2.7.6 replacement-UPS reprobe specification is the next authorized development slice |
-| Validation | v2.7.5 `git diff --check`, ESP-IDF v6.0.2 `esp32s3` build, tagged artifact OTA installation, and target validation pass. CyberPower and APC healthy full-poll evidence is available; NUT 3493 is reachable, retired 8080 is closed, and unsupported/malformed HID hardware remains not target-tested. |
+| Active preparation | v2.7.6 replacement-UPS reprobe implementation; OTA, Git publication, merge, tag, and release are authorized by the current request |
+| Validation | Candidate `git diff --check`, ESP-IDF v6.0.2 `esp32s3` build, OTA install/validity, diagnostic simulation, and bearer-scope isolation pass. Both physical directions captured stale/unavailable responses before current replacement data: CyberPower-to-APC and APC-to-CyberPower. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
-| Last observed target result | Tagged `v2.7.5` is OTA-installed and healthy with the APC connected: `available=true`, `data_stale=false`, `health=ok`, and populated APC identity/measurements. |
+| Last observed target result | v2.7.6 candidate `v2.7.5-1-gc5e23bf99-dirty` is OTA-installed and currently reports healthy CyberPower data after the APC-to-CyberPower replacement; no reboot was issued for the replacement test. |
 
 ## Current objective
 
@@ -34,8 +34,18 @@ unsupported/malformed HID handling without changing the read-only service or
 reconnect cadence. A valid report descriptor can exceed 255 bits before its
 later fields; the candidate now uses 16-bit report offsets while retaining
 overflow bounds. v2.7.5 is published and target-accepted; unsupported or
-malformed hardware remains explicitly not target-tested. Next: begin the
-v2.7.6 replacement-UPS slice from published v2.7.5.
+malformed hardware remains explicitly not target-tested. v2.7.6 now adds a
+USB attachment generation and driver-task-only broad reprobe: replacement
+identity is cleared before probing, old HID mappings and exact matchers are
+discarded, and only a full successful poll can make the replacement current.
+The candidate is built with ESP-IDF v6.0.2 and installed through authorized
+OTA. Automated simulation and token-isolation checks pass. Both physical
+directions were observed: each first returned stale/unavailable data, then
+exposed only the replacement after a successful reprobe/full poll. No
+unsupported or malformed replacement hardware is target-tested. The current
+request authorizes commit, push, merge, v2.7.6 tag/release, and OTA install.
+Next exact action: publish the clean v2.7.6 artifact, install it OTA, and
+record final release evidence before handing off to v2.7.7.
 
 ## Read only when needed
 

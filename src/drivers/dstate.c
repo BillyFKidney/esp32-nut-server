@@ -1812,15 +1812,10 @@ static int dstate_find_external_variable(const st_tree_t *node, char *var, size_
 	return dstate_find_external_variable(node->right, var, var_size);
 }
 
-void dstate_stale_timeout_check(void)
+int dstate_purge_external_values(void)
 {
 	char var[LARGEBUF];
 	unsigned int purged = 0;
-
-	if (!stale || stale_since_us == 0 || stale_values_purged ||
-		esp_timer_get_time() - stale_since_us < DSTATE_STALE_PURGE_DELAY_US) {
-		return;
-	}
 
 	while (dstate_find_external_variable(dtree_root, var, sizeof(var))) {
 		if (dstate_delinfo(var) != 1) {
@@ -1829,8 +1824,22 @@ void dstate_stale_timeout_check(void)
 		purged++;
 	}
 
+	return (int)purged;
+}
+
+void dstate_stale_timeout_check(void)
+{
+	int purged;
+
+	if (!stale || stale_since_us == 0 || stale_values_purged ||
+		esp_timer_get_time() - stale_since_us < DSTATE_STALE_PURGE_DELAY_US) {
+		return;
+	}
+
+	purged = dstate_purge_external_values();
+
 	stale_values_purged = 1;
-	upslogx(LOG_INFO, "UPS data stale for five minutes; purged %u external values", purged);
+	upslogx(LOG_INFO, "UPS data stale for five minutes; purged %d external values", purged);
 }
 
 int dstate_stale_values_purged(void)
