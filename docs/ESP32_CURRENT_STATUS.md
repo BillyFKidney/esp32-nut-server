@@ -12,12 +12,12 @@ archive, source tree, or project chat. Completed release evidence is in
 | --- | --- |
 | Canonical branch | `feature/nut-compatibility-hardening` from `main` at `c728c750a` |
 | Published release | `v2.7.4` on `main` at merge commit `8a52c8991` |
-| Active preparation | v2.7.5 NUT compatibility hardening is authorized; parser/backend safety changes are implemented on this branch and the first ESP-IDF candidate build passes |
-| Validation | `git diff --check` and ESP-IDF v6.0.2 `esp32s3` build pass. The first candidate was initially stale during USB startup; after the normal enumeration/poll delay, the corrected parser-width candidate was OTA-installed and reported healthy CyberPower data (`available=true`, `data_stale=false`, identity and measurements populated). Physical APC evidence remains pending. The published v2.7.4 APC/CyberPower, stale/recovery, dashboard, service-port, and token-isolation evidence remains the baseline. |
+| Active preparation | v2.7.5 NUT compatibility hardening is implemented on this branch and is authorized for final build, OTA validation, and publication |
+| Validation | `git diff --check`, ESP-IDF v6.0.2 `esp32s3` build, and commit-matched OTA validation pass. CyberPower and APC healthy full-poll evidence is available; the APC sample reports `American Power Conversion` / `Back-UPS RS 1500G`, NUT 3493 is reachable, and retired 8080 is closed. Unsupported/malformed HID hardware remains not target-tested. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
-| Last observed target result | Corrected v2.7.5 candidate OTA restarted cleanly. The first status sample was stale during USB startup; a later authenticated sample reported CyberPower `available=true`, `data_stale=false`, `health=ok`, and populated identity/measurements. |
+| Last observed target result | Commit-matched candidate `v2.7.4-4-g95edd8a5d` is OTA-installed and healthy with the APC connected: `available=true`, `data_stale=false`, `health=ok`, and populated APC identity/measurements. |
 
 ## Current objective
 
@@ -33,8 +33,9 @@ hardens descriptor bounds, allocation cleanup, metadata termination, and
 unsupported/malformed HID handling without changing the read-only service or
 reconnect cadence. A valid report descriptor can exceed 255 bits before its
 later fields; the candidate now uses 16-bit report offsets while retaining
-overflow bounds. Next: capture the remaining APC and unsupported/malformed
-device evidence before acceptance.
+overflow bounds. The supported-device release gate is ready; unsupported or
+malformed hardware remains explicitly not target-tested. Next: publish the
+validated v2.7.5 image, then begin the v2.7.6 replacement-UPS slice.
 
 ## Read only when needed
 
