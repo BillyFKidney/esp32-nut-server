@@ -156,12 +156,18 @@ static long FormatValue(uint32_t Value, uint8_t Size)
 static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 {
 	int	Found = -1, i;
+	uint8_t	*report_offset;
 
 	while ((Found < 0) && (pParser->Pos < pParser->ReportDescSize)) {
 		/* Get new pParser->Item if current pParser->Count is empty */
 		if (pParser->Count == 0) {
 			pParser->Item = pParser->ReportDesc[pParser->Pos++];
 			pParser->Value = 0;
+			if (ItemSize[pParser->Item & SIZE_MASK] >
+			    pParser->ReportDescSize - pParser->Pos) {
+				upslogx(LOG_ERR, "%s: truncated HID item", __func__);
+				return -2;
+			}
 			for (i = 0; i < ItemSize[pParser->Item & SIZE_MASK]; i++) {
 				pParser->Value += (uint32_t)(pParser->ReportDesc[(pParser->Pos)+i]) << (8*i);
 			}
@@ -177,6 +183,10 @@ static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 			break;
 
 		case ITEM_USAGE:
+			if (pParser->UsageSize >= USAGE_TAB_SIZE) {
+				upslogx(LOG_ERR, "%s: HID Usage stack exhausted", __func__);
+				return -2;
+			}
 			/* Copy global or local UPage if any, in Usage stack */
 			if ((pParser->Item & SIZE_MASK) > 2) {
 				pParser->UsageTab[pParser->UsageSize] = pParser->Value;
@@ -189,6 +199,10 @@ static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 			break;
 
 		case ITEM_COLLECTION:
+			if (pParser->Data.Path.Size >= PATH_SIZE) {
+				upslogx(LOG_ERR, "%s: HID path too long", __func__);
+				return -2;
+			}
 			/* Get UPage/Usage from UsageTab and store them in pParser->Data.Path */
 			pParser->Data.Path.Node[pParser->Data.Path.Size] = pParser->UsageTab[0];
 			pParser->Data.Path.Size++;
@@ -207,6 +221,10 @@ static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 
 			/* Get Index if any */
 			if (pParser->Value >= 0x80) {
+				if (pParser->Data.Path.Size >= PATH_SIZE) {
+					upslogx(LOG_ERR, "%s: HID path too long", __func__);
+					return -2;
+				}
 				pParser->Data.Path.Node[pParser->Data.Path.Size] = 0x00ff0000 | (pParser->Value & 0x7F);
 				pParser->Data.Path.Size++;
 			}
@@ -215,6 +233,10 @@ static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 			break;
 
 		case ITEM_END_COLLECTION :
+			if (pParser->Data.Path.Size == 0) {
+				upslogx(LOG_ERR, "%s: unmatched HID end collection", __func__);
+				return -2;
+			}
 			pParser->Data.Path.Size--;
 
 			/* Remove Index if any */
@@ -239,9 +261,17 @@ static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 			/* Get new pParser->Count from global value */
 			if(pParser->Count == 0) {
 				pParser->Count = pParser->ReportCount;
+				if (pParser->Count == 0) {
+					upslogx(LOG_ERR, "%s: HID report has zero report count", __func__);
+					return -2;
+				}
 			}
 
 			/* Get UPage/Usage from UsageTab and store them in pParser->Data.Path */
+			if (pParser->Data.Path.Size >= PATH_SIZE) {
+				upslogx(LOG_ERR, "%s: HID path too long", __func__);
+				return -2;
+			}
 			pParser->Data.Path.Node[pParser->Data.Path.Size] = pParser->UsageTab[0];
 			pParser->Data.Path.Size++;
 
@@ -264,7 +294,12 @@ static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 			pParser->Data.Attribute = (uint8_t)pParser->Value;
 
 			/* Store offset */
-			pParser->Data.Offset = *GetReportOffset(pParser, pParser->Data.ReportID, (uint8_t)(pParser->Item & ITEM_MASK));
+			report_offset = GetReportOffset(pParser, pParser->Data.ReportID, (uint8_t)(pParser->Item & ITEM_MASK));
+			if (!report_offset || pParser->Data.Size > UINT8_MAX - *report_offset) {
+				upslogx(LOG_ERR, "%s: HID report offset overflow", __func__);
+				return -2;
+			}
+			pParser->Data.Offset = *report_offset;
 
 			/* Get Object in pData */
 			/* -------------------------------------------------------------------------- */
@@ -272,7 +307,7 @@ static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 			/* -------------------------------------------------------------------------- */
 
 			/* Increment Report Offset */
-			*GetReportOffset(pParser, pParser->Data.ReportID, (uint8_t)(pParser->Item & ITEM_MASK)) += pParser->Data.Size;
+			*report_offset += pParser->Data.Size;
 
 			/* Remove path last node */
 			pParser->Data.Path.Size--;
@@ -437,6 +472,11 @@ static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 
 		case ITEM_LONG :
 			/* can't handle long items, but should at least skip them */
+			if ((pParser->Value & 0xff) >
+			    pParser->ReportDescSize - pParser->Pos) {
+				upslogx(LOG_ERR, "%s: truncated HID long item", __func__);
+				return -2;
+			}
 			pParser->Pos += (uint8_t)(pParser->Value & 0xff);
 			break;
 
@@ -701,9 +741,11 @@ HIDDesc_t *Parse_ReportDesc(const usb_ctrl_charbuf ReportDesc, const usb_ctrl_ch
 #pragma clang diagnostic ignored "-Wtautological-compare"
 #pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
 #endif
-	if (!pDesc_var
-	|| n < 0 || (uintmax_t)n > SIZE_MAX
-	) {
+	if (!pDesc_var || !ReportDesc || n == 0 ||
+		(uintmax_t)n > (uintmax_t)REPORT_DSC_SIZE) {
+		if (pDesc_var) {
+			free(pDesc_var);
+		}
 		return NULL;
 	}
 #ifdef __clang__
@@ -750,6 +792,11 @@ HIDDesc_t *Parse_ReportDesc(const usb_ctrl_charbuf ReportDesc, const usb_ctrl_ch
 			pDesc_var->replen[id] = max;
 		}
 	}
+	if (ret == -2) {
+		free(parser);
+		Free_ReportDesc(pDesc_var);
+		return NULL;
+	}
 
 	/* Sanity check: are there remaining HID objects that can't
 	 * be processed? */
@@ -763,7 +810,15 @@ HIDDesc_t *Parse_ReportDesc(const usb_ctrl_charbuf ReportDesc, const usb_ctrl_ch
 		return NULL;
 	}
 
-	pDesc_var->item = realloc(pDesc_var->item, pDesc_var->nitems * sizeof(*pDesc_var->item));
+	{
+		HIDData_t *items = realloc(pDesc_var->item,
+			pDesc_var->nitems * sizeof(*pDesc_var->item));
+		if (!items) {
+			Free_ReportDesc(pDesc_var);
+			return NULL;
+		}
+		pDesc_var->item = items;
+	}
 
 	return pDesc_var;
 }

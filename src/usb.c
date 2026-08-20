@@ -454,15 +454,25 @@ void hid_host_interface_callback(hid_host_device_handle_t hid_device_handle,
     uint8_t data[64] = {0};
     size_t data_length = 0;
     hid_host_dev_params_t dev_params;
-    ESP_ERROR_CHECK(hid_host_device_get_params(hid_device_handle, &dev_params));
+    esp_err_t err = hid_host_device_get_params(hid_device_handle, &dev_params);
+    if (err != ESP_OK)
+    {
+        ESP_LOGW(TAG, "Unable to inspect HID interface event: %s", esp_err_to_name(err));
+        return;
+    }
 
     switch (event)
     {
     case HID_HOST_INTERFACE_EVENT_INPUT_REPORT:
-        ESP_ERROR_CHECK(hid_host_device_get_raw_input_report_data(hid_device_handle,
-                                                                  data,
-                                                                  64,
-                                                                  &data_length));
+        err = hid_host_device_get_raw_input_report_data(hid_device_handle,
+                                                        data,
+                                                        sizeof(data),
+                                                        &data_length);
+        if (err != ESP_OK)
+        {
+            ESP_LOGW(TAG, "Unable to read HID input report: %s", esp_err_to_name(err));
+            return;
+        }
 
         if (HID_SUBCLASS_BOOT_INTERFACE == dev_params.sub_class)
         {
@@ -484,7 +494,11 @@ void hid_host_interface_callback(hid_host_device_handle_t hid_device_handle,
     case HID_HOST_INTERFACE_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "HID Device, protocol '%d' DISCONNECTED",
                  dev_params.proto);
-        ESP_ERROR_CHECK(hid_host_device_close(hid_device_handle));
+        err = hid_host_device_close(hid_device_handle);
+        if (err != ESP_OK)
+        {
+            ESP_LOGW(TAG, "Unable to close disconnected HID device: %s", esp_err_to_name(err));
+        }
         if (espusb_hid_device_handle == hid_device_handle)
         {
             espusb_hid_device_handle = NULL;
@@ -517,7 +531,12 @@ void hid_host_device_callback(hid_host_device_handle_t hid_device_handle,
     if (event == HID_HOST_DRIVER_EVENT_CONNECTED)
     {
         hid_host_dev_params_t dev_params;
-        ESP_ERROR_CHECK(hid_host_device_get_params(hid_device_handle, &dev_params));
+        esp_err_t err = hid_host_device_get_params(hid_device_handle, &dev_params);
+        if (err != ESP_OK)
+        {
+            ESP_LOGW(TAG, "Unable to inspect connected HID device: %s", esp_err_to_name(err));
+            return;
+        }
 
         ESP_LOGI(TAG, "HID Device, protocol '%d' CONNECTED", dev_params.proto);
 
@@ -525,9 +544,20 @@ void hid_host_device_callback(hid_host_device_handle_t hid_device_handle,
             .callback = hid_host_interface_callback,
             .callback_arg = NULL};
 
-        ESP_ERROR_CHECK(hid_host_device_open(hid_device_handle, &dev_config));
+        err = hid_host_device_open(hid_device_handle, &dev_config);
+        if (err != ESP_OK)
+        {
+            ESP_LOGW(TAG, "Unable to open connected HID device: %s", esp_err_to_name(err));
+            return;
+        }
 
-        ESP_ERROR_CHECK(hid_host_device_start(hid_device_handle));
+        err = hid_host_device_start(hid_device_handle);
+        if (err != ESP_OK)
+        {
+            ESP_LOGW(TAG, "Unable to start connected HID device: %s", esp_err_to_name(err));
+            (void)hid_host_device_close(hid_device_handle);
+            return;
+        }
 
         espusb_hid_device_handle = hid_device_handle;
 
