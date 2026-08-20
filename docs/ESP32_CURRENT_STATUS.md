@@ -10,14 +10,14 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `feature/nut-compatibility-hardening` from `main` at `c728c750a` |
-| Published release | `v2.7.4` on `main` at merge commit `8a52c8991` |
-| Active preparation | v2.7.5 NUT compatibility hardening is implemented on this branch and is authorized for final build, OTA validation, and publication |
-| Validation | `git diff --check`, ESP-IDF v6.0.2 `esp32s3` build, and commit-matched OTA validation pass. CyberPower and APC healthy full-poll evidence is available; the APC sample reports `American Power Conversion` / `Back-UPS RS 1500G`, NUT 3493 is reachable, and retired 8080 is closed. Unsupported/malformed HID hardware remains not target-tested. |
+| Canonical branch | `main` at merge commit `396831d96769088c05504e1ee1fd7bd8a1809a21` |
+| Published release | `v2.7.5` tagged at `396831d96769088c05504e1ee1fd7bd8a1809a21` |
+| Active preparation | v2.7.6 replacement-UPS reprobe specification is the next authorized development slice |
+| Validation | v2.7.5 `git diff --check`, ESP-IDF v6.0.2 `esp32s3` build, tagged artifact OTA installation, and target validation pass. CyberPower and APC healthy full-poll evidence is available; NUT 3493 is reachable, retired 8080 is closed, and unsupported/malformed HID hardware remains not target-tested. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
-| Last observed target result | Commit-matched candidate `v2.7.4-4-g95edd8a5d` is OTA-installed and healthy with the APC connected: `available=true`, `data_stale=false`, `health=ok`, and populated APC identity/measurements. |
+| Last observed target result | Tagged `v2.7.5` is OTA-installed and healthy with the APC connected: `available=true`, `data_stale=false`, `health=ok`, and populated APC identity/measurements. |
 
 ## Current objective
 
@@ -33,9 +33,9 @@ hardens descriptor bounds, allocation cleanup, metadata termination, and
 unsupported/malformed HID handling without changing the read-only service or
 reconnect cadence. A valid report descriptor can exceed 255 bits before its
 later fields; the candidate now uses 16-bit report offsets while retaining
-overflow bounds. The supported-device release gate is ready; unsupported or
-malformed hardware remains explicitly not target-tested. Next: publish the
-validated v2.7.5 image, then begin the v2.7.6 replacement-UPS slice.
+overflow bounds. v2.7.5 is published and target-accepted; unsupported or
+malformed hardware remains explicitly not target-tested. Next: begin the
+v2.7.6 replacement-UPS slice from published v2.7.5.
 
 ## Read only when needed
 
@@ -44,7 +44,8 @@ validated v2.7.5 image, then begin the v2.7.6 replacement-UPS slice.
 | Active releases and branch scope | [ESP32_DEVELOPMENT_PLAN.md](ESP32_DEVELOPMENT_PLAN.md) |
 | Active v2.7.3 implementation and acceptance contract | [ESP32_V2_7_3_STALE_TIMEOUT_SPEC.md](ESP32_V2_7_3_STALE_TIMEOUT_SPEC.md) |
 | Released v2.7.4 APC compatibility evidence | [archive/v2.7.4/evidence.md](archive/v2.7.4/evidence.md) |
-| Next v2.7.5 compatibility hardening | [ESP32_V2_7_5_NUT_COMPATIBILITY_SPEC.md](ESP32_V2_7_5_NUT_COMPATIBILITY_SPEC.md) |
+| Released v2.7.5 compatibility hardening | [archive/v2.7.5/evidence.md](archive/v2.7.5/evidence.md) |
+| v2.7.6 replacement-UPS reprobe | [ESP32_V2_7_6_UPS_REPLACEMENT_SPEC.md](ESP32_V2_7_6_UPS_REPLACEMENT_SPEC.md) |
 | Released v2.7.2 acceptance evidence | [archive/v2.7.2/evidence.md](archive/v2.7.2/evidence.md) |
 | Hardware, LAN, COM, build, flash, or OTA | [ESP32_PREFLIGHT.md](ESP32_PREFLIGHT.md) |
 | Authority for physical, destructive, or external actions | [ESP32_DEVELOPMENT_ROLES.md](ESP32_DEVELOPMENT_ROLES.md) |
