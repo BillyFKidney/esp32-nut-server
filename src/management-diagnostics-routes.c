@@ -48,7 +48,7 @@ esp_err_t management_diagnostic_disconnect_start_handler(httpd_req_t *request)
     if (!valid_duration)
     {
         return management_send_json(request, "400 Bad Request",
-                                    "{\"error\":\"duration_seconds must be an integer from 1 through 300.\"}");
+                                    "{\"error\":\"duration_seconds must be an integer from 1 through 310.\"}");
     }
     return management_send_json(request, "200 OK",
                                 "{\"message\":\"NUT disconnect simulation active.\"}");

@@ -76,11 +76,12 @@ clears on expiry or reboot. Browser pages, browser status, passwords, time,
 token management, logout, Wi-Fi, and local OTA remain ADMIN-session and CSRF
 actions; bearer requests do not refresh browser activity.
 
-Agent helpers read only their scope-specific token from a private environment
-variable and must validate the device certificate with a trusted CA file or a
-verified fingerprint before sending it. Insecure self-signed diagnostics are
-temporary only and must not be used with a valuable credential. Revoke and
-replace a possibly disclosed token; do not attempt to recover it.
+Agent helpers retrieve their scope-specific token and certificate-trust material
+only from the 1Password MCP developer environment, then validate the device
+certificate with a trusted CA file or verified fingerprint before sending a
+request. Insecure self-signed diagnostics are temporary only and must not be
+used with a valuable credential. Revoke and replace a possibly disclosed token;
+do not attempt to recover it.
 
 ## Update, network, and resource safety
 

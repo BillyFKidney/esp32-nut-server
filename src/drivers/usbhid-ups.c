@@ -260,6 +260,7 @@ static void ups_status_set(void);
 static bool_t hid_ups_walk(walkmode_t mode);
 static int reconnect_ups(void);
 static int ups_infoval_set(hid_info_t *item, double value);
+static void restore_cached_identity(void);
 static int callback(hid_dev_handle_t argudev, HIDDevice_t *arghd,
 					usb_ctrl_charbuf rdbuf, usb_ctrl_charbufsize rdlen);
 #ifdef DEBUG
@@ -1176,18 +1177,27 @@ void upsdrv_updateinfo(void)
 	hid_info_t	*item;
 	HIDData_t	*event[MAX_EVENT_NUM], *found_data;
 	int		i, evtCount;
+	bool_t		full_update = FALSE;
 	double		value;
 	time_t		now;
 
 	upsdebugx(1, "upsdrv_updateinfo...");
 
 	time(&now);
+	if (dstate_is_stale()) {
+		dstate_datastale();
+	}
+	dstate_stale_timeout_check();
 	if (nut_diagnostics_disconnect_simulation_active()) {
 		dstate_datastale();
+		dstate_stale_timeout_check();
+		return;
 	}
 
 	/* check for device availability to set datastale! */
 	if (hd == NULL) {
+		dstate_datastale();
+		dstate_stale_timeout_check();
 		/* don't flood reconnection attempts */
 		if (now < (lastpoll + poll_interval)) {
 			return;
@@ -1202,7 +1212,7 @@ void upsdrv_updateinfo(void)
 
 		if (!reconnect_ups()) {
 			lastpoll = now;
-			dstate_datastale();
+			dstate_stale_timeout_check();
 			return;
 		}
 
@@ -1212,6 +1222,8 @@ void upsdrv_updateinfo(void)
 
 		if (hid_ups_walk(HU_WALKMODE_INIT) == FALSE) {
 			hd = NULL;
+			dstate_datastale();
+			dstate_stale_timeout_check();
 			return;
 		}
 	}
@@ -1251,12 +1263,16 @@ void upsdrv_updateinfo(void)
 			/* Uh oh, got to reconnect! */
 			dstate_setinfo("driver.state", "reconnect.trying");
 			hd = NULL;
+			dstate_datastale();
+			dstate_stale_timeout_check();
 			return;
 		case LIBUSB_ERROR_IO:        /* I/O error */
 			/* Uh oh, got to reconnect, with a special suggestion! */
 			dstate_setinfo("driver.state", "reconnect.trying");
 			interrupt_pipe_EIO_count++;
 			hd = NULL;
+			dstate_datastale();
+			dstate_stale_timeout_check();
 			return;
 		default:
 			upsdebugx(1, "Got %i HID objects...", (evtCount >= 0) ? evtCount : 0);
@@ -1318,11 +1334,20 @@ void upsdrv_updateinfo(void)
 	 * or upon data change (ie setvar/instcmd) */
 	if ((now > (lastpoll + pollfreq)) || (data_has_changed == TRUE)) {
 		upsdebugx(1, "Full update...");
+		full_update = TRUE;
 
 		alarm_init();
 
 		if (hid_ups_walk(HU_WALKMODE_FULL_UPDATE) == FALSE)
+		{
+			dstate_datastale();
+			dstate_stale_timeout_check();
 			return;
+		}
+
+		if (dstate_stale_values_purged()) {
+			restore_cached_identity();
+		}
 
 		lastpoll = now;
 		data_has_changed = FALSE;
@@ -1334,14 +1359,18 @@ void upsdrv_updateinfo(void)
 
 		/* Quick poll data only to see if the UPS is still connected */
 		if (hid_ups_walk(HU_WALKMODE_QUICK_UPDATE) == FALSE)
+		{
+			dstate_datastale();
+			dstate_stale_timeout_check();
 			return;
+		}
 	}
 
 	ups_status_set();
 	buzzmode_commit();
 	status_commit();
 
-	if (!nut_diagnostics_disconnect_simulation_active()) {
+	if (full_update == TRUE) {
 		dstate_dataok();
 	}
 #ifdef DEBUG
@@ -1884,26 +1913,62 @@ static int callback(
 
 	if (mfr != NULL) {
 		dstate_setinfo("ups.mfr", "%s", mfr);
+		dstate_setinfo("driver.cached.ups.mfr", "%s", mfr);
 	} else {
 		dstate_delinfo("ups.mfr");
+		dstate_delinfo("driver.cached.ups.mfr");
 	}
 
 	if (model != NULL) {
 		dstate_setinfo("ups.model", "%s", model);
+		dstate_setinfo("driver.cached.ups.model", "%s", model);
 	} else {
 		dstate_delinfo("ups.model");
+		dstate_delinfo("driver.cached.ups.model");
 	}
 
 	if (serial != NULL) {
 		dstate_setinfo("ups.serial", "%s", serial);
+		dstate_setinfo("driver.cached.ups.serial", "%s", serial);
 	} else {
 		dstate_delinfo("ups.serial");
+		dstate_delinfo("driver.cached.ups.serial");
 	}
 
 	dstate_setinfo("ups.vendorid", "%04x", hd->VendorID);
 	dstate_setinfo("ups.productid", "%04x", hd->ProductID);
+	dstate_setinfo("driver.cached.ups.vendorid", "%04x", hd->VendorID);
+	dstate_setinfo("driver.cached.ups.productid", "%04x", hd->ProductID);
 
 	return 1;
+}
+
+static void restore_cached_identity(void)
+{
+	const char *manufacturer = dstate_getinfo("driver.cached.ups.mfr");
+	const char *model = dstate_getinfo("driver.cached.ups.model");
+	const char *serial = dstate_getinfo("driver.cached.ups.serial");
+	const char *vendorid = dstate_getinfo("driver.cached.ups.vendorid");
+	const char *productid = dstate_getinfo("driver.cached.ups.productid");
+
+	if (manufacturer != NULL) {
+		dstate_setinfo("ups.mfr", "%s", manufacturer);
+		dstate_setinfo("device.mfr", "%s", manufacturer);
+	}
+	if (model != NULL) {
+		dstate_setinfo("ups.model", "%s", model);
+		dstate_setinfo("device.model", "%s", model);
+	}
+	if (serial != NULL) {
+		dstate_setinfo("ups.serial", "%s", serial);
+		dstate_setinfo("device.serial", "%s", serial);
+	}
+	if (vendorid != NULL) {
+		dstate_setinfo("ups.vendorid", "%s", vendorid);
+	}
+	if (productid != NULL) {
+		dstate_setinfo("ups.productid", "%s", productid);
+	}
 }
 
 #ifdef DEBUG
