@@ -298,7 +298,7 @@ typedef struct {
 	HIDPath_t	Path;				/* HID Path				*/
 
 	uint8_t		ReportID;			/* Report ID				*/
-	uint8_t		Offset;				/* Offset of data in report	*/
+	uint16_t	Offset;				/* Offset of data in report (bits) */
 	uint8_t		Size;				/* Size of data in bit		*/
 
 	uint8_t		Type;				/* Type : FEATURE / INPUT / OUTPUT */

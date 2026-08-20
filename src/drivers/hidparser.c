@@ -50,7 +50,7 @@ typedef struct {
 
 	HIDData_t	Data;				/* Store current environment	*/
 
-	uint8_t		OffsetTab[MAX_REPORT][4];	/* Store ID, Type, offset & timestamp of report */
+	uint16_t	OffsetTab[MAX_REPORT][4];	/* Store ID, Type, offset & timestamp of report */
 	uint8_t		ReportCount;			/* Store Report Count		*/
 	uint8_t		Count;				/* Store local report count	*/
 
@@ -99,7 +99,7 @@ static void ResetLocalState(HIDParser_t* pParser)
  * Return pointer on current offset value for Report designed by
  * ReportID/ReportType
  * -------------------------------------------------------------------------- */
-static uint8_t *GetReportOffset(HIDParser_t* pParser, const uint8_t ReportID, const uint8_t ReportType)
+static uint16_t *GetReportOffset(HIDParser_t* pParser, const uint8_t ReportID, const uint8_t ReportType)
 {
 	int	Pos;
 
@@ -156,7 +156,7 @@ static long FormatValue(uint32_t Value, uint8_t Size)
 static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 {
 	int	Found = -1, i;
-	uint8_t	*report_offset;
+	uint16_t	*report_offset;
 
 	while ((Found < 0) && (pParser->Pos < pParser->ReportDescSize)) {
 		/* Get new pParser->Item if current pParser->Count is empty */
@@ -295,7 +295,7 @@ static int HIDParse(HIDParser_t *pParser, HIDData_t *pData)
 
 			/* Store offset */
 			report_offset = GetReportOffset(pParser, pParser->Data.ReportID, (uint8_t)(pParser->Item & ITEM_MASK));
-			if (!report_offset || pParser->Data.Size > UINT8_MAX - *report_offset) {
+			if (!report_offset || pParser->Data.Size > UINT16_MAX - *report_offset) {
 				upslogx(LOG_ERR, "%s: HID report offset overflow", __func__);
 				return -2;
 			}
@@ -549,7 +549,7 @@ HIDData_t *FindObject_with_Path(HIDDesc_t *pDesc_arg, HIDPath_t *Path, uint8_t T
  * Get pData item with given ReportID, Offset, and Type. Return NULL
  * if not found.
  * -------------------------------------------------------------------------- */
-HIDData_t *FindObject_with_ID(HIDDesc_t *pDesc_arg, uint8_t ReportID, uint8_t Offset, uint8_t Type)
+HIDData_t *FindObject_with_ID(HIDDesc_t *pDesc_arg, uint8_t ReportID, uint16_t Offset, uint8_t Type)
 {
 	size_t	i;
 
