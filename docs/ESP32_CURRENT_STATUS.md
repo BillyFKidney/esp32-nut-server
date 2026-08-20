@@ -10,14 +10,14 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `main` at `f340fe1aa`; active branch `feature/v2.7.7-factory-reset-release` contains the validated v2.7.7 candidate, while v2.7.8 remains isolated for the next release |
-| Published release | `v2.7.6` tag points to source merge commit `6616a5311`; release evidence is archived in [archive/v2.7.6/evidence.md](archive/v2.7.6/evidence.md) |
-| Active implementation | v2.7.7 release-confirmed factory reset is target-validated; v2.7.8 status UI/API naming is isolated until v2.7.7 publication completes |
-| Validation | `git diff --check` and ESP-IDF v6.0.2 `esp32s3` build pass. Authenticated candidate OTA, three-second Wi-Fi reset, fifteen-second factory reset, fresh setup, credential replacement, and injected management-NVS failure all pass. Clean-build OTA and publication remain. |
+| Canonical branch | `main` at v2.7.7 merge commit `2b94e56fa` |
+| Published release | `v2.7.7` tag points to source merge commit `2b94e56fa`; release evidence is in [archive/v2.7.7/evidence.md](archive/v2.7.7/evidence.md) |
+| Active implementation | v2.7.8 status UI/API naming is the next isolated release slice |
+| Validation | v2.7.7 `git diff --check`, clean ESP-IDF v6.0.2 `esp32s3` build, tagged OTA install, physical reset acceptance, scoped-token recovery, and management-NVS failure injection pass. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
-| Last observed target result | Clean `v2.7.6` is OTA-installed and, after reboot, reports healthy CyberPower data following a full successful poll. |
+| Last observed target result | Tagged `v2.7.7` is OTA-installed and, after reboot, reports current read-only NUT data following a full successful poll. |
 
 ## Current objective
 
@@ -43,23 +43,21 @@ OTA. Automated simulation and token-isolation checks pass. Both physical
 directions were observed: each first returned stale/unavailable data, then
 exposed only the replacement after a successful reprobe/full poll. No
 unsupported or malformed replacement hardware is target-tested. The clean
-tagged artifact is published and OTA-installed. v2.7.7 now defers both reset
-operations until BOOT release. The fifteen-second path erases management first,
-then Wi-Fi, clears the RAM session only after both succeed, and restarts only
-after complete success. The three-second path remains Wi-Fi-only. Candidate
-OTA and physical target validation passed: Wi-Fi-only reset retained ADMIN,
-time, and tokens; factory reset required fresh setup and invalidated old
-credentials; replacement tokens restored scoped access; and a temporary
-management-erase failure left the target online without reset. v2.7.8 remains
-isolated until v2.7.7 publication completes. Next exact action: commit and
-build a clean v2.7.7 image, OTA-install it, then publish release evidence.
+tagged artifact is published and OTA-installed. v2.7.7 defers reset operations
+until BOOT release; its fifteen-second path erases management then Wi-Fi, clears
+the RAM session only after both succeed, and restarts only after complete
+success. Physical Wi-Fi-only and factory-reset recovery, fresh setup,
+credential invalidation/recovery, and an injected management-erase failure all
+passed. The published evidence records the exact artifact and validation
+boundary. Next exact action: apply the isolated v2.7.8 status UI/API slice to a
+new release branch.
 
 ## Read only when needed
 
 | Need | Document |
 | --- | --- |
 | Active releases and branch scope | [ESP32_DEVELOPMENT_PLAN.md](ESP32_DEVELOPMENT_PLAN.md) |
-| v2.7.7 factory-reset acceptance contract | [ESP32_V2_7_7_FACTORY_RESET_SPEC.md](ESP32_V2_7_7_FACTORY_RESET_SPEC.md) |
+| Released v2.7.7 factory-reset evidence | [archive/v2.7.7/evidence.md](archive/v2.7.7/evidence.md) |
 | v2.7.8 status UI acceptance contract | [ESP32_V2_7_8_STATUS_UI_SPEC.md](ESP32_V2_7_8_STATUS_UI_SPEC.md) |
 | Active v2.7.3 implementation and acceptance contract | [ESP32_V2_7_3_STALE_TIMEOUT_SPEC.md](ESP32_V2_7_3_STALE_TIMEOUT_SPEC.md) |
 | Released v2.7.4 APC compatibility evidence | [archive/v2.7.4/evidence.md](archive/v2.7.4/evidence.md) |
