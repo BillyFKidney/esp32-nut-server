@@ -27,9 +27,8 @@ access remains read-only.
 
 ## Current operating model
 
-The validated maintenance release is `v2.7.8`; the current `v2.7.9` release
-slice adds retained device identity, log level, and a validated HTTPS status
-response stack-pressure repair. The current branch,
+The validated maintenance release is `v2.7.9`; the next planned slice is
+v2.7.10 status-UI presentation polish. The current branch,
 repository facts, acceptance boundary, authorization state, and exact next
 action are maintained in [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md).
 Historical release and device evidence is archived rather than carried in that

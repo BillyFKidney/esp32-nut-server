@@ -4,10 +4,11 @@
 
 - Candidate: `v2.7.9` device identity, retained log level, and
   status-response stack-pressure repair
-- Source merge commit: `8ec3b4d49`; final release tag and artifact provenance
-  are recorded after publication
+- Source merge commit: `8ec3b4d49`; release documentation merge commit:
+  `bb92582b7`
+- Release tag: `v2.7.9`
 - Build target: YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3`
-- Current firmware string on target: `v2.7.8-2-g9864b12ab-dirty`
+- Current firmware string on target: `v2.7.9`
 
 ## Implementation boundary
 
@@ -73,9 +74,21 @@ read-only NUT service, or the factory-reset scope.
   read-only NUT port 3493 was open. Ten additional authenticated status
   requests returned HTTP 200 with healthy NUT data and uptime advancing from
   70524 to 70534 seconds.
+- The clean tagged build configured as `v2.7.9`, generated
+  `nut-esp32s3-v2.7.9.bin` at 1,345,920 bytes, and passed checksum validation.
+  SHA-256: `c884fff728e143534b1a19b2c91ff9e24a668a6a62a47a8940b34c934457057f`.
+- The exact tagged image was installed through the Agent OTA route with HTTP
+  200. Serial boot output reported application version `v2.7.9`, and the
+  target later reported `update.last_result=installed` on `app0`.
+- Post-OTA status returned HTTP 200 with `v2.7.9`, retained device identity
+  `3dprinter-cyberpower`, retained `error` log level, healthy NUT data, and 15
+  consecutive healthy status responses with uptime advancing from 113 to 128
+  seconds. The certificate fingerprint matched and NUT port 3493 remained
+  open.
+- GitHub release: https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.7.9
 
 ## Boundaries and gaps
 
-- This evidence records a validated pre-release candidate. A clean tagged
-  build, OTA installation of the tagged artifact, publication, and remote
-  release assets remain separate release steps.
+- Release publication is complete. The next status-UI polish work is tracked
+  separately as v2.7.10 and must preserve the raw API values and authorization
+  boundaries documented here.

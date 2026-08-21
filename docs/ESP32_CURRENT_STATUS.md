@@ -10,14 +10,14 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `main` at merged commit `8ec3b4d49`; v2.7.9 source and evidence are committed, with clean tagged build and publication pending |
-| Published release | `v2.7.8` tag points to source merge commit `9fb925954`; release evidence is in [archive/v2.7.8/evidence.md](archive/v2.7.8/evidence.md) |
-| Active implementation | v2.7.9 device identity, retained log level, and status-response stack-pressure repair are merged and ready for clean tagged build and target installation |
-| Validation | `git diff --check`, clean ESP-IDF v6.0.2 `esp32s3` build, authenticated OTA install, ADMIN save of device name and log level, CSRF rejection on the new admin route, reboot persistence, browser/Agent status, stale/recovery, service-boundary, serial recovery, factory-reset clearing, panic reproduction, heap-buffer fix, token-scope/limit validation, certificate validation, read-only NUT validation, and post-fix status-load validation pass. |
+| Canonical branch | `main` at post-release documentation update based on tagged commit `bb92582b7` |
+| Published release | [`v2.7.9`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.7.9) tag points to `bb92582b7`; release evidence is in [archive/v2.7.9/evidence.md](archive/v2.7.9/evidence.md) |
+| Active implementation | v2.7.9 device identity, retained log level, and status-response stack-pressure repair are published and target-accepted |
+| Validation | `git diff --check`, clean tagged ESP-IDF v6.0.2 `esp32s3` build, exact checksum verification, authenticated OTA install, ADMIN save of device name and log level, CSRF rejection on the new admin route, reboot persistence, browser/Agent status, stale/recovery, service-boundary, serial recovery, factory-reset clearing, panic reproduction, heap-buffer fix, token-scope/limit validation, certificate validation, read-only NUT validation, and post-OTA status-load validation pass. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
-| Last observed target result | The target remains on the previously installed `v2.7.8-2-g9864b12ab-dirty` candidate with `device_name=macmini_apc`, `hostname=macmini-apc`, `log_level=error`, approximately 19.5 hours of uptime, healthy read-only NUT data, and a certificate fingerprint matching the authorized 1Password value. |
+| Last observed target result | The target reports `v2.7.9` on `app0`, `update.last_result=installed`, `device_name=3dprinter-cyberpower`, `hostname=3dprinter-cyberpower`, `log_level=error`, healthy read-only NUT data, and 15 consecutive healthy status responses after OTA. |
 
 ## Current objective
 
@@ -60,9 +60,9 @@ status response; the response buffer was on the HTTPS task stack. The buffer
 now uses heap storage. Authenticated token, diagnostic-boundary, malformed
 input, count-limit, certificate, read-only NUT, and repeated status-load tests
 pass; temporary test credentials were removed and the original token counts
-were preserved. Next exact action: create the clean tagged v2.7.9 build from
-merged commit `8ec3b4d49`, retaining the tag and publication boundary until
-the explicit release-tag gate is satisfied.
+were preserved. The clean tagged `v2.7.9` artifact was built, checksum
+verified, installed through authenticated OTA, and published. Next exact
+action: begin the separately scoped v2.7.10 status-UI polish slice.
 
 ## Read only when needed
 
