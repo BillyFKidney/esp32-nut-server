@@ -10,9 +10,9 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `main` at worktree HEAD `9864b12ab` with an uncommitted v2.7.9 device-identity/log-level slice |
+| Canonical branch | `main` at merged commit `8ec3b4d49`; v2.7.9 source and evidence are committed, with clean tagged build and publication pending |
 | Published release | `v2.7.8` tag points to source merge commit `9fb925954`; release evidence is in [archive/v2.7.8/evidence.md](archive/v2.7.8/evidence.md) |
-| Active implementation | v2.7.9 device identity and retained log level is implemented on-target and ready for publication packaging |
+| Active implementation | v2.7.9 device identity, retained log level, and status-response stack-pressure repair are merged and ready for clean tagged build and target installation |
 | Validation | `git diff --check`, clean ESP-IDF v6.0.2 `esp32s3` build, authenticated OTA install, ADMIN save of device name and log level, CSRF rejection on the new admin route, reboot persistence, browser/Agent status, stale/recovery, service-boundary, serial recovery, factory-reset clearing, panic reproduction, heap-buffer fix, token-scope/limit validation, certificate validation, read-only NUT validation, and post-fix status-load validation pass. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
@@ -53,15 +53,16 @@ passed. v2.7.8 renamed the status service-identity key to `nut.ups`, removed
 service name, and expands raw status by default. The tagged artifact was
 validated through browser and Agent status, stale/recovery, serial recovery,
 and a v2.7.7 rollback followed by a v2.7.8 restore. v2.7.9 adds persisted
-device identity and log-level controls. The target then reproduced a
+device identity and log-level controls. The merged slice also contains the
+status-response stack-pressure repair. The target reproduced a
 `LoadProhibited` panic in `pthread_getspecific()` while sending the 7 KB
 status response; the response buffer was on the HTTPS task stack. The buffer
 now uses heap storage. Authenticated token, diagnostic-boundary, malformed
 input, count-limit, certificate, read-only NUT, and repeated status-load tests
 pass; temporary test credentials were removed and the original token counts
-were preserved. Next exact action: create the clean v2.7.9 release commit and
-build provenance, retaining the untagged firmware boundary until the release
-tag gate is satisfied.
+were preserved. Next exact action: create the clean tagged v2.7.9 build from
+merged commit `8ec3b4d49`, retaining the tag and publication boundary until
+the explicit release-tag gate is satisfied.
 
 ## Read only when needed
 

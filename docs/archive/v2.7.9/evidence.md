@@ -4,8 +4,8 @@
 
 - Candidate: `v2.7.9` device identity, retained log level, and
   status-response stack-pressure repair
-- Source: current pre-release worktree; final merged commit and tag are recorded
-  after publication
+- Source merge commit: `8ec3b4d49`; final release tag and artifact provenance
+  are recorded after publication
 - Build target: YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3`
 - Current firmware string on target: `v2.7.8-2-g9864b12ab-dirty`
 
