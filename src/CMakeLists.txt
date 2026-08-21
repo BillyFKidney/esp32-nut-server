@@ -22,6 +22,8 @@ list(APPEND app_sources
     ${CMAKE_SOURCE_DIR}/src/management-ota-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-authorization.c
+    ${CMAKE_SOURCE_DIR}/src/management-device-config.c
+    ${CMAKE_SOURCE_DIR}/src/management-device-routes.c
     ${CMAKE_SOURCE_DIR}/src/nut-diagnostics.c
     ${CMAKE_SOURCE_DIR}/src/wifi-credentials.c
     ${CMAKE_SOURCE_DIR}/src/wifi-diagnostics.c

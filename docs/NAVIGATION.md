@@ -19,6 +19,7 @@ For branch, release, target, and next-task context, begin with
 | HTTPS admin route registration | `src/management-routes.c:management_routes_register()` |
 | Login, setup, and ADMIN password routes | `src/management-auth-routes.c:management_auth_login_handler()`; `src/management-auth-routes.c:management_auth_password_change_handler()` |
 | Status JSON and dashboard data | `src/management-status-routes.c:management_status_handler()`; `src/management-status.c:management_status_collect_nut_snapshot()` |
+| Device identity and retained log level | `src/management-device-routes.c:management_device_config_handler()`; `src/management-device-config.c:management_device_config_snapshot()`; `src/wifi.c:wifi_provisioning_set_station_hostname()` |
 | Agent diagnostic status and disconnect simulation | `src/management-status-routes.c:management_agent_status_handler()`; `src/management-diagnostics-routes.c:management_diagnostic_disconnect_start_handler()` |
 | Browser session, idle expiry, and CSRF | `src/management-session.c:management_session_is_authorized()`; `src/management-session.c:management_session_csrf_is_valid()` |
 | Shared session / bearer authorization boundary | `src/management-authorization.c:management_require_session()`; `src/management-authorization.c:management_bearer_is_authorized()` |

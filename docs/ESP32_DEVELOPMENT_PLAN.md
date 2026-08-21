@@ -70,7 +70,7 @@ through the Mac mini. Root causes remain to be established per slice.
 | `v2.7.6` | Released | [Replacement-UPS reprobe evidence](archive/v2.7.6/evidence.md): attachment-generation invalidation, driver-task-only reprobe, and full-poll-gated APC/CyberPower replacement recovery. |
 | `v2.7.7` | Released | [Factory-reset evidence](archive/v2.7.7/evidence.md): release-confirmed reset of all defined user values, including UPS identity/cache state, while preserving firmware and documented recovery boundaries. |
 | `v2.7.8` | Released | [Status UI evidence](archive/v2.7.8/evidence.md): `nut.ups` contract rename, physical manufacturer/model dashboard presentation, expanded raw status, and verified v2.7.7 rollback/v2.7.8 restore. |
-| `v2.7.9` | `feature/device-identity-and-log-level` | [Device identity and log level](ESP32_V2_7_9_DEVICE_CONFIGURATION_SPEC.md): configurable `device_name`, safe derived hostname, and reboot-persistent log-level dropdown. |
+| `v2.7.9` | `feature/v2.7.9-device-identity` | [Device identity and log level](ESP32_V2_7_9_DEVICE_CONFIGURATION_SPEC.md): configurable `device_name`, safe derived hostname, reboot-persistent log-level dropdown, and the validated status-response stack-pressure repair. |
 | `v2.7.10` | `feature/status-ui-polish` | Browser-only status presentation polish, beginning with an explicit friendly-label mapping for the NUT CyberPower fallback `CPS` to `CyberPower Systems`. Preserve raw API values, stale/unavailable handling, NUT service identity, and all authorization/service boundaries. |
 
 Factory-reset state clearing remains the final persisted-state-clearing slice;

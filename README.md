@@ -16,7 +16,8 @@ AsciiDoc companion is available in [README.adoc](README.adoc).
 - LAN-only HTTPS administration on TCP `443`
 - Per-device ADMIN authentication with secure sessions, CSRF protection, and
   failed-login throttling
-- Named API tokens scoped to Agent OTA installation
+- Named API tokens scoped to Agent OTA installation and separate diagnostic
+  tokens for bounded NUT diagnostics
 - Wi-Fi provisioning, recovery, diagnostics, and device-owned time settings
 - Authenticated local firmware checking and installation
 
@@ -26,9 +27,9 @@ access remains read-only.
 
 ## Current operating model
 
-The validated maintenance release is `v2.7.1`. The next planned slice is
-`v2.7.2` UPS-disconnect invalidation; factory-reset state clearing is reserved
-for the final planned `v2.7.7` release in this sequence. The current branch,
+The validated maintenance release is `v2.7.8`; the current `v2.7.9` release
+slice adds retained device identity, log level, and a validated HTTPS status
+response stack-pressure repair. The current branch,
 repository facts, acceptance boundary, authorization state, and exact next
 action are maintained in [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md).
 Historical release and device evidence is archived rather than carried in that

@@ -10,14 +10,14 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `main` at v2.7.8 merge commit `9fb925954` |
+| Canonical branch | `main` at worktree HEAD `9864b12ab` with an uncommitted v2.7.9 device-identity/log-level slice |
 | Published release | `v2.7.8` tag points to source merge commit `9fb925954`; release evidence is in [archive/v2.7.8/evidence.md](archive/v2.7.8/evidence.md) |
-| Active implementation | v2.7.9 device identity and retained log level is the next isolated release slice |
-| Validation | v2.7.8 `git diff --check`, clean ESP-IDF v6.0.2 `esp32s3` build, tagged OTA install, browser/Agent status, stale/recovery, service-boundary, serial recovery, and v2.7.7 rollback/v2.7.8 restore pass. |
+| Active implementation | v2.7.9 device identity and retained log level is implemented on-target and ready for publication packaging |
+| Validation | `git diff --check`, clean ESP-IDF v6.0.2 `esp32s3` build, authenticated OTA install, ADMIN save of device name and log level, CSRF rejection on the new admin route, reboot persistence, browser/Agent status, stale/recovery, service-boundary, serial recovery, factory-reset clearing, panic reproduction, heap-buffer fix, token-scope/limit validation, certificate validation, read-only NUT validation, and post-fix status-load validation pass. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
-| Last observed target result | Tagged `v2.7.8` is OTA-installed on `app1` and, after reboot, reports current read-only NUT data following a full successful poll. |
+| Last observed target result | The target remains on the previously installed `v2.7.8-2-g9864b12ab-dirty` candidate with `device_name=macmini_apc`, `hostname=macmini-apc`, `log_level=error`, approximately 19.5 hours of uptime, healthy read-only NUT data, and a certificate fingerprint matching the authorized 1Password value. |
 
 ## Current objective
 
@@ -29,7 +29,7 @@ preserving the established NUT service name, allowing the evidenced APC HID
 subdriver to claim the device. The release is published and installed; the
 earlier unreproduced reboot is retained as historical evidence. v2.7.5 now
 begins from this published, target-installed v2.7.4 baseline. The candidate
-hardens descriptor bounds, allocation cleanup, metadata termination, and
+hardened descriptor bounds, allocation cleanup, metadata termination, and
 unsupported/malformed HID handling without changing the read-only service or
 reconnect cadence. A valid report descriptor can exceed 255 bits before its
 later fields; the candidate now uses 16-bit report offsets while retaining
@@ -44,17 +44,24 @@ directions were observed: each first returned stale/unavailable data, then
 exposed only the replacement after a successful reprobe/full poll. No
 unsupported or malformed replacement hardware is target-tested. The clean
 tagged artifact is published and OTA-installed. v2.7.7 defers reset operations
-until BOOT release; its fifteen-second path erases management then Wi-Fi, clears
-the RAM session only after both succeed, and restarts only after complete
+until BOOT release; its fifteen-second path erases management then Wi-Fi,
+clears the RAM session only after both succeed, and restarts only after complete
 success. Physical Wi-Fi-only and factory-reset recovery, fresh setup,
 credential invalidation/recovery, and an injected management-erase failure all
-passed. v2.7.8 intentionally renamed the status service-identity key to
-`nut.ups`, removed `nut.ups_name`, displays physical manufacturer/model without
-the configured service name, and expands raw status by default. The tagged
-artifact was validated through browser and Agent status, stale/recovery,
-serial recovery, and a v2.7.7 rollback followed by a v2.7.8 restore. Next
-exact action: apply the isolated v2.7.9 device-identity and retained-log-level
-slice from this published baseline.
+passed. v2.7.8 renamed the status service-identity key to `nut.ups`, removed
+`nut.ups_name`, displays physical manufacturer/model without the configured
+service name, and expands raw status by default. The tagged artifact was
+validated through browser and Agent status, stale/recovery, serial recovery,
+and a v2.7.7 rollback followed by a v2.7.8 restore. v2.7.9 adds persisted
+device identity and log-level controls. The target then reproduced a
+`LoadProhibited` panic in `pthread_getspecific()` while sending the 7 KB
+status response; the response buffer was on the HTTPS task stack. The buffer
+now uses heap storage. Authenticated token, diagnostic-boundary, malformed
+input, count-limit, certificate, read-only NUT, and repeated status-load tests
+pass; temporary test credentials were removed and the original token counts
+were preserved. Next exact action: create the clean v2.7.9 release commit and
+build provenance, retaining the untagged firmware boundary until the release
+tag gate is satisfied.
 
 ## Read only when needed
 

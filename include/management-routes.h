@@ -3,7 +3,7 @@
 #include "esp_err.h"
 #include "esp_http_server.h"
 
-#define MANAGEMENT_HTTPS_ROUTE_CAPACITY 23U
+#define MANAGEMENT_HTTPS_ROUTE_CAPACITY 24U
 
 /** Register the fixed HTTPS management route inventory in its existing order. */
 esp_err_t management_routes_register(

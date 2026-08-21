@@ -27,6 +27,7 @@
 #include "mbedtls/platform_util.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "management-device-config.h"
 #include "management.h"
 #include "time_config.h"
 #include "wifi-credentials.h"
@@ -106,6 +107,26 @@ static void wifi_start_management_task(void *argument)
     management_start_scheduled = false;
     taskEXIT_CRITICAL(&wifi_state_lock);
     vTaskDelete(NULL);
+}
+
+esp_err_t wifi_provisioning_set_station_hostname(const char *hostname)
+{
+    if (hostname == NULL || hostname[0] == '\0')
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (station_network_interface == NULL)
+    {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    const esp_err_t result = esp_netif_set_hostname(station_network_interface, hostname);
+    if (result != ESP_OK)
+    {
+        ESP_LOGW(TAG, "Unable to set the station hostname to '%s': %s",
+                 hostname, esp_err_to_name(result));
+    }
+    return result;
 }
 
 static void nvs_initialize(void)
@@ -682,6 +703,7 @@ static bool wifi_connect_with_timeout(const WifiCredentials *credentials,
 void wifi_provisioning_init(void)
 {
     nvs_initialize();
+    management_device_config_initialize();
     wifi_start_recovery_monitor();
 
     wifi_event_group = xEventGroupCreate();
@@ -706,6 +728,16 @@ void wifi_provisioning_init(void)
                                                wifi_event_handler, NULL));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
+
+    ManagementDeviceConfigSnapshot device_config;
+    management_device_config_snapshot(&device_config);
+    const esp_err_t hostname_result =
+        wifi_provisioning_set_station_hostname(device_config.hostname);
+    if (hostname_result != ESP_OK && hostname_result != ESP_ERR_INVALID_STATE)
+    {
+        ESP_LOGW(TAG, "Unable to apply the saved station hostname before reconnecting: %s",
+                 esp_err_to_name(hostname_result));
+    }
 
     WifiCredentials pending_credentials = {0};
     WifiCredentials saved_credentials = {0};
