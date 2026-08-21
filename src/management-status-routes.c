@@ -3,10 +3,12 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "management-authorization.h"
+#include "management-device-config.h"
 #include "management-http.h"
 #include "management-log.h"
 #include "management-session.h"
@@ -21,7 +23,6 @@
 #include "ota.h"
 #include "time_config.h"
 
-#define MANAGEMENT_DEFAULT_DEVICE_NAME "ESP32-NUT"
 #define MANAGEMENT_STATUS_RESPONSE_SIZE 7000U
 
 static esp_err_t management_status_send(httpd_req_t *request)
@@ -37,6 +38,8 @@ static esp_err_t management_status_send(httpd_req_t *request)
     const esp_app_desc_t *app_description = esp_app_get_description();
     const esp_partition_t *running_partition = esp_ota_get_running_partition();
     const esp_partition_t *next_partition = esp_ota_get_next_update_partition(NULL);
+    ManagementDeviceConfigSnapshot device_config;
+    management_device_config_snapshot(&device_config);
     TimeConfigStatus time_status;
     time_config_get_status(&time_status);
     const uint32_t session_remaining_seconds = management_session_remaining_seconds();
@@ -66,18 +69,28 @@ static esp_err_t management_status_send(httpd_req_t *request)
 
     const char *nut_health = nut_snapshot.available ? "ok" :
                              (nut_snapshot.stale ? "stale" : "unavailable");
-    char response[MANAGEMENT_STATUS_RESPONSE_SIZE];
+    char *response = calloc(1, MANAGEMENT_STATUS_RESPONSE_SIZE);
+    if (response == NULL)
+    {
+        return management_send_json(
+            request, "500 Internal Server Error",
+            "{\"error\":\"Unable to allocate device status response.\"}");
+    }
     size_t used = 0;
     bool response_valid = true;
 #define MANAGEMENT_JSON_APPEND(...) \
     response_valid = response_valid && \
-                     management_json_append(response, sizeof(response), &used, __VA_ARGS__)
+                     management_json_append(response, MANAGEMENT_STATUS_RESPONSE_SIZE, &used, __VA_ARGS__)
 #define MANAGEMENT_JSON_STRING(value) \
     response_valid = response_valid && \
-                     management_json_append_string(response, sizeof(response), &used, value)
+                     management_json_append_string(response, MANAGEMENT_STATUS_RESPONSE_SIZE, &used, value)
 
     MANAGEMENT_JSON_APPEND("{\"device_name\":");
-    MANAGEMENT_JSON_STRING(MANAGEMENT_DEFAULT_DEVICE_NAME);
+    MANAGEMENT_JSON_STRING(device_config.device_name);
+    MANAGEMENT_JSON_APPEND(",\"hostname\":");
+    MANAGEMENT_JSON_STRING(device_config.hostname);
+    MANAGEMENT_JSON_APPEND(",\"log_level\":");
+    MANAGEMENT_JSON_STRING(management_device_config_log_level_name(device_config.log_level));
     MANAGEMENT_JSON_APPEND(",\"firmware\":");
     MANAGEMENT_JSON_STRING(app_description != NULL ? app_description->version : "unknown");
     MANAGEMENT_JSON_APPEND(",\"uptime_seconds\":%lld,\"wifi\":{\"ip\":",
@@ -161,7 +174,7 @@ static esp_err_t management_status_send(httpd_req_t *request)
         MANAGEMENT_JSON_APPEND("null");
     }
     MANAGEMENT_JSON_APPEND("}}");
-    if (!management_log_append_snapshot(response, sizeof(response), &used))
+    if (!management_log_append_snapshot(response, MANAGEMENT_STATUS_RESPONSE_SIZE, &used))
     {
         response_valid = false;
     }
@@ -212,13 +225,15 @@ static esp_err_t management_status_send(httpd_req_t *request)
 
     if (!response_valid)
     {
-        mbedtls_platform_zeroize(response, sizeof(response));
+        mbedtls_platform_zeroize(response, MANAGEMENT_STATUS_RESPONSE_SIZE);
+        free(response);
         return management_send_json(
             request, "500 Internal Server Error",
             "{\"error\":\"Unable to prepare device status.\"}");
     }
     const esp_err_t send_result = management_send_json(request, "200 OK", response);
-    mbedtls_platform_zeroize(response, sizeof(response));
+    mbedtls_platform_zeroize(response, MANAGEMENT_STATUS_RESPONSE_SIZE);
+    free(response);
     return send_result;
 }
 

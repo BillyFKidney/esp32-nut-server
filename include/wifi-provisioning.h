@@ -38,3 +38,6 @@ esp_err_t wifi_management_scan(WifiManagementScanResults *results);
 
 /** Stage credentials for a safe reboot-and-validate reconnect. */
 esp_err_t wifi_management_stage_credentials(const char *ssid, const char *password);
+
+/** Apply one hostname to the station interface if it has already been created. */
+esp_err_t wifi_provisioning_set_station_hostname(const char *hostname);

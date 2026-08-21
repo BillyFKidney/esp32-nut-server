@@ -18,15 +18,12 @@
 #define TAG "nut-management"
 
 #define MANAGEMENT_NAMESPACE "management"
-#define MANAGEMENT_DEVICE_NAME_KEY "device-name"
 
 #define MANAGEMENT_HTTPS_PORT 443
 #define MANAGEMENT_HTTPS_REQUEST_HEADER_LIMIT 4096U
 
 _Static_assert(sizeof(MANAGEMENT_NAMESPACE) <= NVS_NS_NAME_MAX_SIZE,
                "Management NVS namespace exceeds the ESP-IDF limit");
-_Static_assert(sizeof(MANAGEMENT_DEVICE_NAME_KEY) <= NVS_KEY_NAME_MAX_SIZE,
-               "Device-name NVS key exceeds the ESP-IDF limit");
 
 static httpd_handle_t management_https_server;
 

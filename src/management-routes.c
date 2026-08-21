@@ -3,6 +3,7 @@
 
 #include "management-auth-routes.h"
 #include "management-diagnostics-routes.h"
+#include "management-device-routes.h"
 #include "management-ota-routes.h"
 #include "management-session-routes.h"
 #include "management-status-routes.h"
@@ -19,6 +20,7 @@ esp_err_t management_routes_register(
     const httpd_uri_t login_page = {.uri = "/login", .method = HTTP_GET, .handler = management_auth_login_page_handler};
     const httpd_uri_t login = {.uri = "/login", .method = HTTP_POST, .handler = management_auth_login_handler};
     const httpd_uri_t password = {.uri = "/api/v1/admin/password", .method = HTTP_POST, .handler = management_auth_password_change_handler};
+    const httpd_uri_t device_configuration = {.uri = "/api/v1/admin/device", .method = HTTP_POST, .handler = management_device_config_handler};
     const httpd_uri_t logout = {.uri = "/logout", .method = HTTP_POST, .handler = management_session_logout_handler};
     const httpd_uri_t status = {.uri = "/api/v1/status", .method = HTTP_GET, .handler = management_status_handler};
     const httpd_uri_t session_activity = {.uri = "/api/v1/admin/session/activity", .method = HTTP_POST, .handler = management_session_activity_handler};
@@ -38,7 +40,7 @@ esp_err_t management_routes_register(
     const httpd_uri_t diagnostic_token_create = {.uri = "/api/v1/admin/diagnostic-tokens", .method = HTTP_POST, .handler = management_diagnostic_token_create_handler};
     const httpd_uri_t diagnostic_token_delete = {.uri = "/api/v1/admin/diagnostic-tokens", .method = HTTP_DELETE, .handler = management_diagnostic_token_delete_handler};
     const httpd_uri_t *routes[] = {
-        &root, &setup, &login_page, &login, &password, &logout, &status,
+        &root, &setup, &login_page, &login, &password, &device_configuration, &logout, &status,
         &session_activity, &time_configuration, &ota_check, &ota, &token_list,
         &token_create, &token_delete, &wifi_scan, &wifi_configuration, &agent_ota,
         &agent_status, &diagnostic_disconnect_start, &diagnostic_disconnect_clear,
