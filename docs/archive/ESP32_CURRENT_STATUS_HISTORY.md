@@ -800,7 +800,9 @@ distributable ZIP was rebuilt from the updated generic files, passed archive
 integrity checks, and contains no `.DS_Store` or `__MACOSX` entries.
 
 The complete documentation and workflow update was merged to `main` through PR
-# 13 at `0252977e6320c0200dd6bcaed561146395ad86a5` and published as `v2.0.1`.
+
+# 13 at `0252977e6320c0200dd6bcaed561146395ad86a5` and published as `v2.0.1`
+
 No firmware source or behavior changed from `v2.0.0`; the optional release image
 was rebuilt from the exact tag with ESP-IDF v6.0.2 so it reports `v2.0.1`. The
 image is 1,248,944 bytes (`0x130eb0`) and has SHA-256
