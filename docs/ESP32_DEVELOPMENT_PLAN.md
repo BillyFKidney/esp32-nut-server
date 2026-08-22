@@ -35,12 +35,7 @@ target installation remains a separate authorization boundary.
 
 ## Published baseline
 
-`v2.7.2` is published and target-tested. It invalidates stale external UPS
-data across physical HID loss, driver staleness, and bounded diagnostics while
-keeping OTA and diagnostics credentials isolated. `v2.7.1` completed the
-management route families, credential-promotion safety repair, and browser-log
-handshake filter without changing the protected service, authorization, Wi-Fi,
-or read-only UPS boundaries.
+`v2.7.9` is published and target-tested.
 
 ## Operational Management completion — `v2.x`
 
@@ -51,7 +46,7 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 
 | Release | Prospective branch | Required outcome |
 | --- | --- | --- |
-| `v2.8.0` | `feature/physical-recovery` | Complete and validate the three-second Wi-Fi reset and fifteen-second factory-reset behavior and scope. |
+| `v2.8.0` | `feature/optimization` | Review entire codebase and optimize; Proper memory / heap usage, Leverage both CPU cores to provide better UX, Improve logging |
 | `v2.9.0` | `feature/operational-management-acceptance` | Validate the locked definition of done from iPhone and MacBook Air and publish the final `v2.x` acceptance release. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
@@ -70,8 +65,8 @@ through the Mac mini. Root causes remain to be established per slice.
 | `v2.7.6` | Released | [Replacement-UPS reprobe evidence](archive/v2.7.6/evidence.md): attachment-generation invalidation, driver-task-only reprobe, and full-poll-gated APC/CyberPower replacement recovery. |
 | `v2.7.7` | Released | [Factory-reset evidence](archive/v2.7.7/evidence.md): release-confirmed reset of all defined user values, including UPS identity/cache state, while preserving firmware and documented recovery boundaries. |
 | `v2.7.8` | Released | [Status UI evidence](archive/v2.7.8/evidence.md): `nut.ups` contract rename, physical manufacturer/model dashboard presentation, expanded raw status, and verified v2.7.7 rollback/v2.7.8 restore. |
-| `v2.7.9` | Released | [Device identity and log level](ESP32_V2_7_9_DEVICE_CONFIGURATION_SPEC.md): configurable `device_name`, safe derived hostname, reboot-persistent log-level dropdown, and the validated status-response stack-pressure repair. |
-| `v2.7.10` | `feature/status-ui-polish` | Browser-only status presentation polish, beginning with an explicit friendly-label mapping for the NUT CyberPower fallback `CPS` to `CyberPower Systems`. Preserve raw API values, stale/unavailable handling, NUT service identity, and all authorization/service boundaries. |
+| `v2.7.9` | Released | [Device identity and log level](archive/v2.7.9/ESP32_V2_7_9_DEVICE_CONFIGURATION_SPEC.md): configurable `device_name`, safe derived hostname, reboot-persistent log-level dropdown, and the validated status-response stack-pressure repair. |
+| `v2.7.10` | `feature/status-ui-polish` | Browser-only status presentation polish, beginning with an explicit friendly-label mapping for the NUT CyberPower fallback `CPS` to `CyberPower Systems`. Preserve raw API values, stale/unavailable handling, NUT service identity, and all authorization/service boundaries. Move `Device display name`, `Application Log Level`, `Save Device settings` to the `Device Status` page below the page title but above the JSON. On `Device Status` page, remove the `Raw status JSON` toggle but retain the raw JSON text. Create a `Copy JSON` button to the right of `Device Status` (the page title) and when clicked copies the entire JSON to the user's clipboard. Create a `Copy Logs` button to the right of `Copy JSON` and when clicked copies all retreivable logs (if there are more available than in the JSON) |
 
 Factory-reset state clearing remains the final persisted-state-clearing slice;
 the following identity and presentation slices do not expand its reset scope.

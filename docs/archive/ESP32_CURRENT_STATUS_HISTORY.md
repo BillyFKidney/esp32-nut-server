@@ -63,6 +63,48 @@ dashboard SSID display, and scan-selection collapse/focus behavior. Continue to
 preserve LAN-only HTTPS, read-only NUT, and the existing ADMIN and Agent
 authorization boundaries. UPS access remains read-only.
 
+v2.7.2 is complete: USB/HID loss, driver staleness, and bounded diagnostic
+simulation use one management-data invalidation boundary. v2.7.3 adds a
+monotonic five-minute stale-data purge, owned only by the normal driver poll
+path. v2.7.4 removed the restrictive CyberPower-only HID filters while
+preserving the established NUT service name, allowing the evidenced APC HID
+subdriver to claim the device. The release is published and installed; the
+earlier unreproduced reboot is retained as historical evidence. v2.7.5 now
+begins from this published, target-installed v2.7.4 baseline. The candidate
+hardened descriptor bounds, allocation cleanup, metadata termination, and
+unsupported/malformed HID handling without changing the read-only service or
+reconnect cadence. A valid report descriptor can exceed 255 bits before its
+later fields; the candidate now uses 16-bit report offsets while retaining
+overflow bounds. v2.7.5 is published and target-accepted; unsupported or
+malformed hardware remains explicitly not target-tested. v2.7.6 now adds a
+USB attachment generation and driver-task-only broad reprobe: replacement
+identity is cleared before probing, old HID mappings and exact matchers are
+discarded, and only a full successful poll can make the replacement current.
+The candidate is built with ESP-IDF v6.0.2 and installed through authorized
+OTA. Automated simulation and token-isolation checks pass. Both physical
+directions were observed: each first returned stale/unavailable data, then
+exposed only the replacement after a successful reprobe/full poll. No
+unsupported or malformed replacement hardware is target-tested. The clean
+tagged artifact is published and OTA-installed. v2.7.7 defers reset operations
+until BOOT release; its fifteen-second path erases management then Wi-Fi,
+clears the RAM session only after both succeed, and restarts only after complete
+success. Physical Wi-Fi-only and factory-reset recovery, fresh setup,
+credential invalidation/recovery, and an injected management-erase failure all
+passed. v2.7.8 renamed the status service-identity key to `nut.ups`, removed
+`nut.ups_name`, displays physical manufacturer/model without the configured
+service name, and expands raw status by default. The tagged artifact was
+validated through browser and Agent status, stale/recovery, serial recovery,
+and a v2.7.7 rollback followed by a v2.7.8 restore. v2.7.9 adds persisted
+device identity and log-level controls. The merged slice also contains the
+status-response stack-pressure repair. The target reproduced a
+`LoadProhibited` panic in `pthread_getspecific()` while sending the 7 KB
+status response; the response buffer was on the HTTPS task stack. The buffer
+now uses heap storage. Authenticated token, diagnostic-boundary, malformed
+input, count-limit, certificate, read-only NUT, and repeated status-load tests
+pass; temporary test credentials were removed and the original token counts
+were preserved. The clean tagged `v2.7.9` artifact was built, checksum
+verified, installed through authenticated OTA, and published.
+
 The merged repository-layout cleanup is a source and documentation change only.
 It does not alter the HTTPS/NUT service boundaries, authorization behavior,
 partition contents, or release assets. The CPU-free hardware-diagnostics and
@@ -758,7 +800,7 @@ distributable ZIP was rebuilt from the updated generic files, passed archive
 integrity checks, and contains no `.DS_Store` or `__MACOSX` entries.
 
 The complete documentation and workflow update was merged to `main` through PR
-#13 at `0252977e6320c0200dd6bcaed561146395ad86a5` and published as `v2.0.1`.
+# 13 at `0252977e6320c0200dd6bcaed561146395ad86a5` and published as `v2.0.1`.
 No firmware source or behavior changed from `v2.0.0`; the optional release image
 was rebuilt from the exact tag with ESP-IDF v6.0.2 so it reports `v2.0.1`. The
 image is 1,248,944 bytes (`0x130eb0`) and has SHA-256
