@@ -22,6 +22,15 @@ esp_err_t management_send_html_status(httpd_req_t *request, const char *status,
 esp_err_t management_send_json(httpd_req_t *request, const char *status,
                                const char *json);
 
+/** Start a chunked JSON response with the management service's defensive headers. */
+esp_err_t management_start_json_chunks(httpd_req_t *request, const char *status);
+
+/** Send one NUL-terminated JSON chunk after management_start_json_chunks(). */
+esp_err_t management_send_json_chunk(httpd_req_t *request, const char *json);
+
+/** Finish a chunked JSON response started by management_start_json_chunks(). */
+esp_err_t management_end_json_chunks(httpd_req_t *request);
+
 /** Send the management service's existing POST/redirect/get response. */
 esp_err_t management_send_redirect(httpd_req_t *request, const char *location);
 

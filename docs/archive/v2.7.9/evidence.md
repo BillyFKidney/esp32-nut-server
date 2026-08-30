@@ -92,3 +92,29 @@ read-only NUT service, or the factory-reset scope.
 - Release publication is complete. The next status-UI polish work is tracked
   separately as v2.7.10 and must preserve the raw API values and authorization
   boundaries documented here.
+
+## Provenance reconciliation and not-tested list
+
+On 2026-08-21, the published GitHub `v2.7.9` assets were downloaded without
+changing target or repository state. The release contains
+`nut-esp32s3-v2.7.9.bin` (1,345,920 bytes) and
+`nut-esp32s3-v2.7.9.bin.sha256`. The downloaded image passed the published
+sidecar check and reproduced the SHA-256 already recorded above:
+`c884fff728e143534b1a19b2c91ff9e24a668a6a62a47a8940b34c934457057f`.
+The annotated `v2.7.9` tag resolves to release documentation commit
+`bb92582b7e131b683199d96b879d0afeee4e02ce`, which remains an ancestor of
+`main` at this reconciliation.
+
+The following checks were **not performed by this reconciliation** and must
+not be inferred from the asset verification:
+
+- A new target HTTPS root response check on TCP `443`.
+- A new target read-only NUT service check on TCP `3493`.
+- A new target refusal check for retired TCP `8080`.
+- A new browser, ADMIN-session, CSRF, certificate-fingerprint, OTA, serial,
+  factory-reset, UPS, or physical-cable/LED test.
+- A new clean build from the tag; the existing build evidence above remains the
+  release-build record.
+
+The original v2.7.9 validation bullets remain historical evidence. This list
+only identifies what the later provenance reconciliation did not repeat.

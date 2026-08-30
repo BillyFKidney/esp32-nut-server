@@ -11,6 +11,7 @@ list(APPEND app_sources
     ${CMAKE_SOURCE_DIR}/src/management-diagnostics-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-http.c
     ${CMAKE_SOURCE_DIR}/src/management-log.c
+    ${CMAKE_SOURCE_DIR}/src/management-log-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-pages.c
     ${CMAKE_SOURCE_DIR}/src/management-session.c
     ${CMAKE_SOURCE_DIR}/src/management-session-routes.c
@@ -36,6 +37,19 @@ idf_component_register(
     INCLUDE_DIRS ../include ../lib/af_unix_socket ../lib/libusb ../lib/syslog
     PRIV_REQUIRES usb nvs_flash openthread esp_coex esp_event driver esp_driver_tsens esp_hw_support heap spi_flash
     REQUIRES fatfs vfs esp_wifi esp_http_server esp_https_server esp_netif esp_timer lwip app_update)
+
+# The administration page is embedded JavaScript; validate its generated script
+# before compiling on macOS, where JXA is available without a Node dependency.
+if(CMAKE_HOST_APPLE)
+    find_program(OSASCRIPT_EXECUTABLE osascript)
+    if(OSASCRIPT_EXECUTABLE)
+        add_custom_target(management_page_js_validation ALL
+            COMMAND ${OSASCRIPT_EXECUTABLE} -l JavaScript
+                    ${CMAKE_SOURCE_DIR}/tools/validate-management-page-js.mjs
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+        add_dependencies(${COMPONENT_LIB} management_page_js_validation)
+    endif()
+endif()
 
 fatfs_create_spiflash_image(var ../fatfs/var FLASH_IN_PROJECT)
 fatfs_create_spiflash_image(usr ../fatfs/usr FLASH_IN_PROJECT)
