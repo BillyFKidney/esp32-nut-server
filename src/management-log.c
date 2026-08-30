@@ -11,20 +11,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/portmacro.h"
 
-#define MANAGEMENT_LOG_ENTRY_CAPACITY 24U
-#define MANAGEMENT_LOG_MESSAGE_LENGTH 192U
 #define MANAGEMENT_LOG_CHUNK_LENGTH 256U
-#define MANAGEMENT_LOG_RESPONSE_LIMIT 6U
 #define MANAGEMENT_LOG_VALID_EPOCH 1704067200LL
 #define MANAGEMENT_LOG_HTTPS_HANDSHAKE_MESSAGE "performing session handshake"
 
-typedef struct
-{
-    uint64_t uptime_ms;
-    time_t epoch_seconds;
-    char level;
-    char message[MANAGEMENT_LOG_MESSAGE_LENGTH];
-} ManagementLogEntry;
+typedef ManagementLogSnapshotEntry ManagementLogEntry;
 
 static portMUX_TYPE management_log_lock = portMUX_INITIALIZER_UNLOCKED;
 static ManagementLogEntry management_log_entries[MANAGEMENT_LOG_ENTRY_CAPACITY];
@@ -391,13 +382,13 @@ static bool management_log_format_timestamps(time_t epoch_seconds,
 bool management_log_append_snapshot(char *destination, size_t destination_size,
                                     size_t *used)
 {
-    ManagementLogEntry entries[MANAGEMENT_LOG_RESPONSE_LIMIT];
+    ManagementLogEntry entries[MANAGEMENT_LOG_STATUS_WINDOW];
     management_log_flush_pending();
 
     taskENTER_CRITICAL(&management_log_lock);
-    const size_t entry_count = management_log_count < MANAGEMENT_LOG_RESPONSE_LIMIT
+    const size_t entry_count = management_log_count < MANAGEMENT_LOG_STATUS_WINDOW
                                    ? management_log_count
-                                   : MANAGEMENT_LOG_RESPONSE_LIMIT;
+                                   : MANAGEMENT_LOG_STATUS_WINDOW;
     const size_t first_entry =
         (management_log_next + MANAGEMENT_LOG_ENTRY_CAPACITY - entry_count) %
         MANAGEMENT_LOG_ENTRY_CAPACITY;
@@ -447,4 +438,30 @@ bool management_log_append_snapshot(char *destination, size_t destination_size,
         }
     }
     return management_log_json_append(destination, destination_size, used, "]");
+}
+
+bool management_log_copy_snapshot(ManagementLogSnapshotEntry *entries,
+                                  size_t entries_capacity, size_t *entry_count)
+{
+    if (entries == NULL || entry_count == NULL || entries_capacity < MANAGEMENT_LOG_ENTRY_CAPACITY)
+    {
+        return false;
+    }
+
+    management_log_flush_pending();
+
+    taskENTER_CRITICAL(&management_log_lock);
+    const size_t retained_count = management_log_count;
+    const size_t first_entry =
+        (management_log_next + MANAGEMENT_LOG_ENTRY_CAPACITY - retained_count) %
+        MANAGEMENT_LOG_ENTRY_CAPACITY;
+    for (size_t index = 0; index < retained_count; index++)
+    {
+        entries[index] = management_log_entries[
+            (first_entry + index) % MANAGEMENT_LOG_ENTRY_CAPACITY];
+    }
+    taskEXIT_CRITICAL(&management_log_lock);
+
+    *entry_count = retained_count;
+    return true;
 }

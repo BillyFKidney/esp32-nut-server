@@ -41,6 +41,31 @@ esp_err_t management_send_json(httpd_req_t *request, const char *status,
     return httpd_resp_sendstr(request, json);
 }
 
+esp_err_t management_start_json_chunks(httpd_req_t *request, const char *status)
+{
+    management_set_response_headers(request);
+    esp_err_t result = httpd_resp_set_status(request, status);
+    if (result != ESP_OK)
+    {
+        return result;
+    }
+    return httpd_resp_set_type(request, "application/json");
+}
+
+esp_err_t management_send_json_chunk(httpd_req_t *request, const char *json)
+{
+    if (json == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    return httpd_resp_send_chunk(request, json, HTTPD_RESP_USE_STRLEN);
+}
+
+esp_err_t management_end_json_chunks(httpd_req_t *request)
+{
+    return httpd_resp_send_chunk(request, NULL, 0);
+}
+
 esp_err_t management_send_redirect(httpd_req_t *request, const char *location)
 {
     management_set_response_headers(request);

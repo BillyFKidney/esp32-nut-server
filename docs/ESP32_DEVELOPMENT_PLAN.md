@@ -26,10 +26,11 @@ target installation remains a separate authorization boundary.
 3. Create the annotated release tag `vX.Y.Z` with a link to the
    release-evidence index.
 4. Build the firmware from that tagged commit for the intended target.
-5. Generate and verify the SHA-256 checksum against the exact
-   `build/esp32-nut-server.bin` artifact.
-6. Publish the GitHub release with `build/esp32-nut-server.bin` and
-   `build/esp32-nut-server.bin.sha256`, and link the release evidence.
+5. Generate and verify the SHA-256 checksum against the exact source build
+   output, `build/nut-esp32s3.bin`.
+6. Publish the versioned asset `nut-esp32s3-vX.Y.Z.bin` and its matching
+   `nut-esp32s3-vX.Y.Z.bin.sha256` sidecar. Record both the source build path
+   and published asset path in release evidence, and link that evidence.
 7. Update [ESP32_CURRENT_STATUS.md](ESP32_CURRENT_STATUS.md) with the
    publication, validation state, and next action.
 
@@ -66,7 +67,7 @@ through the Mac mini. Root causes remain to be established per slice.
 | `v2.7.7` | Released | [Factory-reset evidence](archive/v2.7.7/evidence.md): release-confirmed reset of all defined user values, including UPS identity/cache state, while preserving firmware and documented recovery boundaries. |
 | `v2.7.8` | Released | [Status UI evidence](archive/v2.7.8/evidence.md): `nut.ups` contract rename, physical manufacturer/model dashboard presentation, expanded raw status, and verified v2.7.7 rollback/v2.7.8 restore. |
 | `v2.7.9` | Released | [Device identity and log level](archive/v2.7.9/ESP32_V2_7_9_DEVICE_CONFIGURATION_SPEC.md): configurable `device_name`, safe derived hostname, reboot-persistent log-level dropdown, and the validated status-response stack-pressure repair. |
-| `v2.7.10` | `feature/status-ui-polish` | Browser-only status presentation polish, beginning with an explicit friendly-label mapping for the NUT CyberPower fallback `CPS` to `CyberPower Systems`. Preserve raw API values, stale/unavailable handling, NUT service identity, and all authorization/service boundaries. Move `Device display name`, `Application Log Level`, `Save Device settings` to the `Device Status` page below the page title but above the JSON. On `Device Status` page, remove the `Raw status JSON` toggle but retain the raw JSON text. Create a `Copy JSON` button to the right of `Device Status` (the page title) and when clicked copies the entire JSON to the user's clipboard. Create a `Copy Logs` button to the right of `Copy JSON` and when clicked copies all retreivable logs (if there are more available than in the JSON) |
+| `v2.7.10` | `feature/status-ui-polish` | [Status UI polish and full-log retrieval](ESP32_V2_7_10_STATUS_UI_POLISH_SPEC.md): display-only `CPS` mapping, Device Status settings placement, permanently visible raw JSON, canonical-response `Copy JSON`, and click-only `Copy Logs` via one ADMIN-only read endpoint for the complete retained volatile log window. The August 28 long-term-test recovery exposed a fixed 40,000-byte ADMIN-page allocation regression; it is repaired with a bounded 49,152-byte allocation and a build-enforced rendered-size check (current generated size: 43,137 bytes). The dirty candidate passed API/service/NUT checks, Chrome and iPhone Safari layout/copy acceptance, Wi-Fi scan preservation, and idle-session expiry on the authorized test unit. The clipboard-denial fallback is implemented but not directly forced. Preserve raw API values, stale/unavailable handling, NUT identity, bearer isolation, and all service boundaries. |
 
 Factory-reset state clearing remains the final persisted-state-clearing slice;
 the following identity and presentation slices do not expand its reset scope.
