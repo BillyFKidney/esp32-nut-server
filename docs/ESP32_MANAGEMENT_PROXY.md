@@ -91,6 +91,25 @@ The ESP32-NUT management server currently uses the session cookie,
 headers for authentication or authorization. Do not treat `X-Real-IP` or
 `X-Forwarded-For` as an authentication signal.
 
+## Browser firmware-upload bounds
+
+The stock NGINX request-body limit is too small for current ESP32-NUT application
+images. Apply the following settings only to each ESP32 management hostname (or
+its matching location), not globally:
+
+```nginx
+client_max_body_size 4m;
+proxy_read_timeout 130s;
+proxy_send_timeout 130s;
+```
+
+`4m` is deliberately bounded: it admits current browser uploads while the
+ESP32 independently rejects images larger than its `0x330000` inactive OTA
+partition. The 130-second proxy timeouts exceed the browser's 120-second OTA
+request deadline and the ESP32's 15-second receive-idle timeout without making
+the proxy an unbounded upload service. Preserve the existing HTTPS backend,
+trusted-LAN boundary, and ADMIN/CSRF checks.
+
 ## Verification checklist
 
 For each hostname:
@@ -103,6 +122,8 @@ For each hostname:
 - [ ] A CSRF-protected state change succeeds only with the existing ADMIN
       session and CSRF header.
 - [ ] Local firmware check/install behaves normally through the proxy.
+- [ ] A current application image larger than 1 MiB passes the proxy and is
+      still subject to the ESP32 inactive-partition validation.
 - [ ] The Synology backend target is HTTPS on ESP32 port `443`.
 - [ ] Direct network checks still show ESP32 TCP `443` and read-only NUT TCP
       `3493` available, with retired TCP `8080` refused.
