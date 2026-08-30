@@ -11,10 +11,10 @@ archive, source tree, or project chat. Completed release evidence is in
 | Field | Current fact |
 | --- | --- |
 | Canonical branch | `main` at `4dce455fc`; active worktree is `feature/status-ui-polish` from that base, with uncommitted v2.7.10 implementation, planning, and v2.7.9 provenance reconciliation changes |
-| Published release | [`v2.7.9`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.7.9) tag points to `bb92582b7`; release evidence is in [archive/v2.7.9/evidence.md](archive/v2.7.9/evidence.md) |
-| Active implementation | v2.7.9 device identity, retained log level, and status-response stack-pressure repair are published and target-accepted. v2.7.10 adds ADMIN full-log retrieval and Device Status polish only; it is not released. Its repaired dirty candidate is installed through the scoped OTA route on the authorized `3Dprinter` test unit. |
+| Published release | [`v2.7.10`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.7.10) tag points to `6c901bb94`; its versioned firmware/checksum assets are prepared for authorized GitHub publication, and release evidence is in [archive/v2.7.10/evidence.md](archive/v2.7.10/evidence.md). |
+| Active implementation | v2.7.10 ADMIN full-log retrieval and Device Status polish are merged, tagged, built cleanly, and OTA-accepted on the authorized `3Dprinter` test unit. |
 | v2.7.10 implementation | Full 24-entry volatile log snapshot route, bounded JSON chunking, click-only Copy Logs/Copy JSON UI, presentation-only `CPS` label mapping, Device Status settings placement, and a macOS build-enforced embedded-JavaScript syntax validator are implemented. The ADMIN page now has a bounded 49,152-byte allocation, and the validator rejects a generated page that does not fit it. |
-| v2.7.10 validation | `git diff --check`; ESP-IDF v6.0.2 `esp32s3` reconfigure/build with validator execution; ADMIN page rendered at 43,137 UTF-8 bytes within its 49,152-byte allocation; 60% app-partition headroom. Certificate-pinned 1Password-managed test credentials verified diagnostic status, OTA installation, post-reboot Wi-Fi/NTP retention, running OTA slot, full NUT poll (`OL`), HTTPS `443`, NUT `3493`, and refused `8080`. ADMIN login and status were `200`; the authenticated ADMIN page was `200` with its full-log control and without the fallback; full-log retrieval was `200`, reported the retained capacity/window correctly, and diagnostic bearer access was `401`; the idle session continued counting down across the read. Manual Chrome and iPhone Safari acceptance passed the `CPS` display mapping with raw JSON unchanged, `Copy JSON`, and `Copy Logs`: the latter returned the full 24-entry ring oldest-to-newest, then advanced as expected when newer entries displaced the oldest. Screenshots confirm Device Status places the copy controls before the settings form and continuously visible raw JSON; Dashboard and Device Status render well at desktop and phone viewports, and Wi-Fi scan/selection still works without saving a network change. After the 15-minute idle timeout, the manual Copy Logs attempt returned to normal sign-in before copying content. The observed NUT client-write resets to another LAN host did not make the target stale: its status still reported NUT `ok` and UPS `OL`. The clipboard-denial fallback is implemented and remains the only unexercised UI contingency. |
+| v2.7.10 validation | The tagged `v2.7.10` source clean-built with its rendered-page validator and 60% app-partition headroom. The checksum-verified versioned artifact OTA-installed successfully and now reports `v2.7.10`; its post-reboot full NUT poll is `OL`, HTTPS `443` and NUT `3493` respond, and `8080` remains refused. Full API, authorization, Chrome, iPhone Safari, copy, Wi-Fi scan, session-expiry, and responsive-layout evidence is recorded in [archive/v2.7.10/evidence.md](archive/v2.7.10/evidence.md). The clipboard-denial fallback remains implemented but unforced. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
 | Required boundaries | LAN-only HTTPS `443`; read-only NUT `3493`; retired `8080` refused; ADMIN/CSRF and bearer-scope rules preserved |
 | Management architecture | `management.c` is the root-policy, HTTPS-lifecycle, and factory-reset orchestration boundary; focused modules own the remaining management concerns |
@@ -22,10 +22,9 @@ archive, source tree, or project chat. Completed release evidence is in
 
 ## Current objective
 
-Next exact action: create the clean v2.7.10 source commit and release tag,
-build the tagged image, OTA-install it on the authorized test unit, verify its
-reported version and service boundaries, then publish the tag and matching
-firmware/checksum assets.
+Next exact action: publish the prepared `v2.7.10` GitHub release with its
+checksum-verified versioned firmware asset and sidecar, then record the final
+release URL and assets in this handoff.
 
 ## Read only when needed
 
