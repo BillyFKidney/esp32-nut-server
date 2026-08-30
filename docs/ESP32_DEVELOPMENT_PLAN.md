@@ -68,6 +68,7 @@ through the Mac mini. Root causes remain to be established per slice.
 | `v2.7.8` | Released | [Status UI evidence](archive/v2.7.8/evidence.md): `nut.ups` contract rename, physical manufacturer/model dashboard presentation, expanded raw status, and verified v2.7.7 rollback/v2.7.8 restore. |
 | `v2.7.9` | Released | [Device identity and log level](archive/v2.7.9/ESP32_V2_7_9_DEVICE_CONFIGURATION_SPEC.md): configurable `device_name`, safe derived hostname, reboot-persistent log-level dropdown, and the validated status-response stack-pressure repair. |
 | `v2.7.10` | Released | [Status UI polish and full-log retrieval evidence](archive/v2.7.10/evidence.md): display-only `CPS` mapping, Device Status settings placement, permanently visible raw JSON, canonical-response `Copy JSON`, click-only `Copy Logs`, bounded ADMIN full-log route, and rendered-page allocation regression repair. The clipboard-denial fallback is implemented but was not directly forced; all primary browser, API, service-boundary, OTA, and full-NUT-poll acceptance passed. |
+| `v2.7.11` | In progress | [Browser-based firmware updates](ESP32_V2_7_11_BROWSER_FIRMWARE_UPDATES.md): fix browser OTA check re-entry/error reporting and bound post-install reconnect recovery before beginning v2.8.0 optimization work. |
 
 Factory-reset state clearing remains the final persisted-state-clearing slice;
 the following identity and presentation slices do not expand its reset scope.

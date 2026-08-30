@@ -10,9 +10,9 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `main`; the merged v2.7.10 implementation is tagged at `6c901bb94`, with release-evidence and closeout documentation committed on `main` afterward. |
+| Canonical branch | `main`; active maintenance work is `fix/browser-firmware-updates` from `f258b7b6a` for v2.7.11. |
 | Published release | [`v2.7.10`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.7.10) is published from tag `6c901bb94`, with `nut-esp32s3-v2.7.10.bin` and `nut-esp32s3-v2.7.10.bin.sha256`. The firmware SHA-256 is `4181ced51f61e8b135f721c94904c9fd06d88affefe2b2cbf87dd00de6e6f0d9`; release evidence is in [archive/v2.7.10/evidence.md](archive/v2.7.10/evidence.md). |
-| Active implementation | v2.7.10 ADMIN full-log retrieval and Device Status polish are merged, tagged, built cleanly, and OTA-accepted on the authorized `3Dprinter` test unit. |
+| Active implementation | v2.7.11 fixes browser-local firmware-check re-entry/error reporting and bounds the post-install reconnect loop before v2.8.0 optimization begins. |
 | v2.7.10 implementation | Full 24-entry volatile log snapshot route, bounded JSON chunking, click-only Copy Logs/Copy JSON UI, presentation-only `CPS` label mapping, Device Status settings placement, and a macOS build-enforced embedded-JavaScript syntax validator are implemented. The ADMIN page now has a bounded 49,152-byte allocation, and the validator rejects a generated page that does not fit it. |
 | v2.7.10 validation | The tagged `v2.7.10` source clean-built with its rendered-page validator and 60% app-partition headroom. The checksum-verified versioned artifact OTA-installed successfully and now reports `v2.7.10`; its post-reboot full NUT poll is `OL`, HTTPS `443` and NUT `3493` respond, and `8080` remains refused. Full API, authorization, Chrome, iPhone Safari, copy, Wi-Fi scan, session-expiry, and responsive-layout evidence is recorded in [archive/v2.7.10/evidence.md](archive/v2.7.10/evidence.md). The clipboard-denial fallback remains implemented but unforced. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
@@ -22,9 +22,9 @@ archive, source tree, or project chat. Completed release evidence is in
 
 ## Current objective
 
-Next exact action: monitor the authorized `3Dprinter` long-term test on
-published `v2.7.10`; investigate the unrelated recurring NUT peer-write log
-messages only in a separately scoped change.
+Next exact action: build the v2.7.11 browser-firmware-updates candidate, then
+use the authorized `3Dprinter` target to validate browser check and install
+behavior before handing the browser test back to the Device Operator.
 
 ## Read only when needed
 
@@ -32,6 +32,7 @@ messages only in a separately scoped change.
 | --- | --- |
 | Active releases and branch scope | [ESP32_DEVELOPMENT_PLAN.md](ESP32_DEVELOPMENT_PLAN.md) |
 | v2.7.10 status UI implementation and acceptance | [ESP32_V2_7_10_STATUS_UI_POLISH_SPEC.md](ESP32_V2_7_10_STATUS_UI_POLISH_SPEC.md) |
+| v2.7.11 browser-local OTA fix | [ESP32_V2_7_11_BROWSER_FIRMWARE_UPDATES.md](ESP32_V2_7_11_BROWSER_FIRMWARE_UPDATES.md) |
 | Hardware, LAN, COM, build, flash, or OTA | [ESP32_PREFLIGHT.md](ESP32_PREFLIGHT.md) |
 | Authority for physical, destructive, or external actions | [ESP32_DEVELOPMENT_ROLES.md](ESP32_DEVELOPMENT_ROLES.md) |
 | Security and authorization boundaries | [ESP32_SECURITY.md](ESP32_SECURITY.md) |
