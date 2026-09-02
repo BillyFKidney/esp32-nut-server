@@ -10,9 +10,11 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `main`; the v2.7.11 investigation closes as a documentation-only NGINX proxy incident record. No v2.7.11 maintenance branch or firmware release remains after merge. |
+| Active branch | `feature/optimization` from `main` commit `517980b78`; v2.8.0 is a pushed-candidate workflow until visual browser acceptance closes. |
 | Published release | [`v2.7.10`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.7.10) is published from tag `6c901bb94`, with `nut-esp32s3-v2.7.10.bin` and `nut-esp32s3-v2.7.10.bin.sha256`. The firmware SHA-256 is `4181ced51f61e8b135f721c94904c9fd06d88affefe2b2cbf87dd00de6e6f0d9`; release evidence is in [archive/v2.7.10/evidence.md](archive/v2.7.10/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
+| v2.8.0 candidate | The self-contained ADMIN UI now has a persistent appliance header, single-row responsive navigation, compact auto-refresh control, browser-native battery/load meters, full-width hardware diagnostics, no Dashboard logs, pretty Device Status JSON, and a lazy Logs page backed by the unchanged ADMIN 24-entry route with Copy and Download. Every v1 route/payload and the six-entry `/api/v1/status` log window remain unchanged. The flash-resident 48,363-byte page is streamed through a 768-byte stack buffer instead of allocating a 49,152-byte whole-page heap buffer. |
+| v2.8.0 validation | ESP-IDF v6.0.2 reconfigure/build passed; the 1,356,016-byte dirty candidate has SHA-256 `fa42b37f50b6ae3b0a5b6ac015f537ff883dfc6040c78afee8bab1ad08553156` and 59% app-slot headroom. It is installed on the authorized `3Dprinter` Agent Tests unit in `app0`; after the September 2 power blink and retry reset, the unit reported update `installed`, HTTPS `443`, NUT `3493`, refused `8080`, and a complete 57-variable NUT poll with `ups.status OL`. Live ADMIN validation passed page, status/log, unauthenticated, and invalid-CSRF checks. Browser control was unavailable, so desktop/iPhone layout, real clipboard/download interaction, and visual fidelity remain not tested. Garage did not answer the refreshed post-blink probe and was not modified. |
 | v2.7.11 finding | Diagnostic candidate `7a1239084` was built as `v2.7.10-3-g7a1239084` and OTA-installed on the authorized `3Dprinter` unit. It ran from `app1`, reported update state `installed`, and recovered to a full NUT poll with `health: ok` and UPS `OL`. Its clearer browser error exposed `HTTP 413`; the supplied NGINX site configuration confirms that no `client_max_body_size` is set for either ESP32 management site, so NGINX rejected the image before contacting the ESP32. The diagnostic firmware change is not retained for merge. |
 | v2.7.10 implementation | Full 24-entry volatile log snapshot route, bounded JSON chunking, click-only Copy Logs/Copy JSON UI, presentation-only `CPS` label mapping, Device Status settings placement, and a macOS build-enforced embedded-JavaScript syntax validator are implemented. The ADMIN page now has a bounded 49,152-byte allocation, and the validator rejects a generated page that does not fit it. |
 | v2.7.10 validation | The tagged `v2.7.10` source clean-built with its rendered-page validator and 60% app-partition headroom. The checksum-verified versioned artifact OTA-installed successfully and now reports `v2.7.10`; its post-reboot full NUT poll is `OL`, HTTPS `443` and NUT `3493` respond, and `8080` remains refused. Full API, authorization, Chrome, iPhone Safari, copy, Wi-Fi scan, session-expiry, and responsive-layout evidence is recorded in [archive/v2.7.10/evidence.md](archive/v2.7.10/evidence.md). The clipboard-denial fallback remains implemented but unforced. |
@@ -23,15 +25,19 @@ archive, source tree, or project chat. Completed release evidence is in
 
 ## Current objective
 
-Next exact action: an NGINX operator applies the documented host-specific
-upload bounds to both ESP32 management sites on Shenandoah, then browser
-check/install acceptance is repeated through the respective FQDNs.
+Next exact action: on the pushed `feature/optimization` candidate, complete
+desktop and iPhone browser acceptance for header/navigation/layout, Device
+Status pretty JSON, Logs refresh/copy/download, and clipboard fallback. If it
+passes, build/tag/publish the clean `v2.8.0` release and install that exact
+artifact; Garage remains untouched until it is independently reachable and
+healthy after the September 2 power blink.
 
 ## Read only when needed
 
 | Need | Document |
 | --- | --- |
 | Active releases and branch scope | [ESP32_DEVELOPMENT_PLAN.md](ESP32_DEVELOPMENT_PLAN.md) |
+| v2.8.0 implementation and acceptance | [ESP32_V2_8_0_IMPLEMENTATION_PLAN.md](ESP32_V2_8_0_IMPLEMENTATION_PLAN.md) |
 | v2.7.10 status UI implementation and acceptance | [ESP32_V2_7_10_STATUS_UI_POLISH_SPEC.md](ESP32_V2_7_10_STATUS_UI_POLISH_SPEC.md) |
 | v2.7.11 browser-local OTA fix | [ESP32_V2_7_11_BROWSER_FIRMWARE_UPDATES.md](ESP32_V2_7_11_BROWSER_FIRMWARE_UPDATES.md) |
 | Hardware, LAN, COM, build, flash, or OTA | [ESP32_PREFLIGHT.md](ESP32_PREFLIGHT.md) |

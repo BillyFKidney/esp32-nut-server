@@ -18,6 +18,16 @@ esp_err_t management_send_html(httpd_req_t *request, const char *html);
 esp_err_t management_send_html_status(httpd_req_t *request, const char *status,
                                       const char *html);
 
+/** Start a chunked HTML response with the standard defensive headers and CSP. */
+esp_err_t management_start_html_chunks(httpd_req_t *request, const char *status);
+
+/** Send one bounded HTML chunk after management_start_html_chunks(). */
+esp_err_t management_send_html_chunk(httpd_req_t *request, const char *html,
+                                     size_t length);
+
+/** Finish a chunked HTML response started by management_start_html_chunks(). */
+esp_err_t management_end_html_chunks(httpd_req_t *request);
+
 /** Send a JSON response with the management service's defensive headers. */
 esp_err_t management_send_json(httpd_req_t *request, const char *status,
                                const char *json);

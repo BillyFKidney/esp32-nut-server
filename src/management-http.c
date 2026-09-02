@@ -32,6 +32,34 @@ esp_err_t management_send_html_status(httpd_req_t *request, const char *status,
     return management_send_html(request, html);
 }
 
+esp_err_t management_start_html_chunks(httpd_req_t *request, const char *status)
+{
+    management_set_response_headers(request);
+    httpd_resp_set_hdr(request, "Content-Security-Policy",
+                       "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+    esp_err_t result = httpd_resp_set_status(request, status);
+    if (result != ESP_OK)
+    {
+        return result;
+    }
+    return httpd_resp_set_type(request, "text/html; charset=utf-8");
+}
+
+esp_err_t management_send_html_chunk(httpd_req_t *request, const char *html,
+                                     size_t length)
+{
+    if (html == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    return httpd_resp_send_chunk(request, html, (ssize_t)length);
+}
+
+esp_err_t management_end_html_chunks(httpd_req_t *request)
+{
+    return httpd_resp_send_chunk(request, NULL, 0);
+}
+
 esp_err_t management_send_json(httpd_req_t *request, const char *status,
                                const char *json)
 {

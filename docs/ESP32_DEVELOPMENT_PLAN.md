@@ -36,7 +36,7 @@ target installation remains a separate authorization boundary.
 
 ## Published baseline
 
-`v2.7.9` is published and target-tested.
+`v2.7.10` is published and target-tested.
 
 ## Operational Management completion — `v2.x`
 
@@ -47,7 +47,7 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 
 | Release | Prospective branch | Required outcome |
 | --- | --- | --- |
-| `v2.8.0` | `feature/optimization` | Review entire codebase and optimize; Proper memory / heap usage, Leverage both CPU cores to provide better UX, Improve logging |
+| `v2.8.0` | `feature/optimization` | [Appliance UI and bounded-resource optimization](ESP32_V2_8_0_IMPLEMENTATION_PLAN.md): retain every v1 API contract; remove log rendering from Dashboard; pretty-print the unchanged Device Status JSON including its six-log window; add a lazy 24-entry Logs page with copy/download; stream the ADMIN page without a whole-page heap allocation; validate browser, service, NUT, memory, and rollback behavior. |
 | `v2.9.0` | `feature/operational-management-acceptance` | Validate the locked definition of done from iPhone and MacBook Air and publish the final `v2.x` acceptance release. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
@@ -73,8 +73,14 @@ through the Mac mini. Root causes remain to be established per slice.
 Factory-reset state clearing remains the final persisted-state-clearing slice;
 the following identity and presentation slices do not expand its reset scope.
 
-## Production OTA — `v3.x`
+## API v2, tokens, and Production OTA — `v3.x`
 
+- Begin the major-version family with an explicit API v2 and token-contract
+  review. This is the authorized compatibility boundary for simplifying or
+  removing v1 payload fields, reducing response/allocation pressure, and
+  improving bounded request processing. Inventory every ADMIN, Agent, and
+  browser consumer; define token scopes, migration/rollback behavior, and
+  measurable resource budgets before implementation.
 - Build on the authenticated HTTPS local-upload route; do not restore an
   unauthenticated development listener.
 - Replace the self-signed management certificate with reviewed local-CA trust.
@@ -86,11 +92,12 @@ the following identity and presentation slices do not expand its reset scope.
 
 | Release | Prospective branch | Scope |
 | --- | --- | --- |
-| `v3.0.0` | `feature/local-ca-trust` | Local-CA trust and provisioning model. |
-| `v3.1.0` | `feature/signed-update-metadata` | Signed release metadata or supported signed-image strategy. |
-| `v3.2.0` | `feature/remote-update-client` | Certificate-validated remote check/download with manual approval. |
-| `v3.3.0` | `feature/scheduled-updates` | Opt-in check scheduling; automatic installation remains disabled. |
-| `v3.4.0` | `feature/production-ota-acceptance` | Validate authorization, source resistance, rollback, recovery, and definition of done. |
+| `v3.0.0` | `feature/api-v2-tokens` | [API v2 and token contracts](ESP32_V3_0_API_V2_TOKENS_PLAN.md): the intentional compatibility boundary for management and Agent APIs. Inventory v1 consumers, define route/payload/token changes, reduce bounded response/allocation cost, and validate processing/resource budgets and rollback. The v3.0 planning agent must read the linked plan; detailed evidence is loaded only when that plan directs it. |
+| `v3.1.0` | `feature/local-ca-trust` | Local-CA trust and provisioning model. |
+| `v3.2.0` | `feature/signed-update-metadata` | Signed release metadata or supported signed-image strategy. |
+| `v3.3.0` | `feature/remote-update-client` | Certificate-validated remote check/download with manual approval. |
+| `v3.4.0` | `feature/scheduled-updates` | Opt-in check scheduling; automatic installation remains disabled. |
+| `v3.5.0` | `feature/production-ota-acceptance` | Validate authorization, source resistance, rollback, recovery, and definition of done. |
 
 ## NUT and UPS compatibility hardening — `v4.x`
 

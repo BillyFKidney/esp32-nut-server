@@ -18,7 +18,10 @@ TOKEN_ENVIRONMENT_VARIABLE = "ESP32_NUT_OTA_TOKEN"
 TOKEN_PATTERN = re.compile(r"esp32nut_v1_[0-9a-f]{64}\Z")
 TOKEN_REDACTION_PATTERN = re.compile(r"esp32nut_v1_[0-9a-f]{64}")
 OTA_ROUTE = "/api/v1/agent/ota/install"
-UPLOAD_CHUNK_SIZE = 64 * 1024
+# Match the firmware's bounded TLS/OTA receive buffer. Large writes can
+# overrun the constrained server-side TLS path before HTTP backpressure is
+# observed, while 4 KiB remains efficient for a roughly 1.3 MiB image.
+UPLOAD_CHUNK_SIZE = 4 * 1024
 MAX_RESPONSE_SIZE = 16 * 1024
 
 
