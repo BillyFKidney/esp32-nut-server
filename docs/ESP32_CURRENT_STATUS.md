@@ -12,8 +12,8 @@ archive, source tree, or project chat. Completed release evidence is in
 | --- | --- |
 | Canonical branch | `main`; active maintenance work is `fix/browser-firmware-updates` from `f258b7b6a` for v2.7.11. |
 | Published release | [`v2.7.10`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.7.10) is published from tag `6c901bb94`, with `nut-esp32s3-v2.7.10.bin` and `nut-esp32s3-v2.7.10.bin.sha256`. The firmware SHA-256 is `4181ced51f61e8b135f721c94904c9fd06d88affefe2b2cbf87dd00de6e6f0d9`; release evidence is in [archive/v2.7.10/evidence.md](archive/v2.7.10/evidence.md). |
-| Active implementation | v2.7.11 fixes browser-local firmware-check re-entry/error reporting and bounds the post-install reconnect loop before v2.8.0 optimization begins. |
-| v2.7.11 target state | Clean candidate `7a1239084` was built as `v2.7.10-3-g7a1239084` and OTA-installed on the authorized `3Dprinter` unit. It is running from `app1`, reports update state `installed`, and recovered to a full NUT poll with `health: ok` and UPS `OL`. Browser testing now exposes proxy `HTTP 413` accurately; the Synology host-specific upload-limit/timeout change remains pending before successful browser check/install acceptance. |
+| Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
+| v2.7.11 finding | Diagnostic candidate `7a1239084` was built as `v2.7.10-3-g7a1239084` and OTA-installed on the authorized `3Dprinter` unit. It ran from `app1`, reported update state `installed`, and recovered to a full NUT poll with `health: ok` and UPS `OL`. Its clearer browser error exposed `HTTP 413`; the supplied NGINX site configuration confirms that no `client_max_body_size` is set for either ESP32 management site, so NGINX rejected the image before contacting the ESP32. The diagnostic firmware change is not retained for merge. |
 | v2.7.10 implementation | Full 24-entry volatile log snapshot route, bounded JSON chunking, click-only Copy Logs/Copy JSON UI, presentation-only `CPS` label mapping, Device Status settings placement, and a macOS build-enforced embedded-JavaScript syntax validator are implemented. The ADMIN page now has a bounded 49,152-byte allocation, and the validator rejects a generated page that does not fit it. |
 | v2.7.10 validation | The tagged `v2.7.10` source clean-built with its rendered-page validator and 60% app-partition headroom. The checksum-verified versioned artifact OTA-installed successfully and now reports `v2.7.10`; its post-reboot full NUT poll is `OL`, HTTPS `443` and NUT `3493` respond, and `8080` remains refused. Full API, authorization, Chrome, iPhone Safari, copy, Wi-Fi scan, session-expiry, and responsive-layout evidence is recorded in [archive/v2.7.10/evidence.md](archive/v2.7.10/evidence.md). The clipboard-denial fallback remains implemented but unforced. |
 | Target | YD-ESP32-23 / ESP32-S3-WROOM-1-N16R8, ESP-IDF v6.0.2, `esp32s3` |
@@ -23,9 +23,9 @@ archive, source tree, or project chat. Completed release evidence is in
 
 ## Current objective
 
-Next exact action: apply the documented host-specific Synology proxy upload
-bounds for `esp32nut-3dprinter.28670avenidacondesa.com`, then repeat browser
-check/install acceptance on the authorized `3Dprinter` candidate.
+Next exact action: an NGINX operator applies the documented host-specific
+upload bounds to both ESP32 management sites on Shenandoah, then browser
+check/install acceptance is repeated through the respective FQDNs.
 
 ## Read only when needed
 
