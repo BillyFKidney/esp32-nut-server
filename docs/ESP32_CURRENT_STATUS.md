@@ -10,7 +10,7 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Canonical branch | `main`; active maintenance work is `fix/browser-firmware-updates` from `f258b7b6a` for v2.7.11. |
+| Canonical branch | `main`; the v2.7.11 investigation closes as a documentation-only NGINX proxy incident record. No v2.7.11 maintenance branch or firmware release remains after merge. |
 | Published release | [`v2.7.10`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.7.10) is published from tag `6c901bb94`, with `nut-esp32s3-v2.7.10.bin` and `nut-esp32s3-v2.7.10.bin.sha256`. The firmware SHA-256 is `4181ced51f61e8b135f721c94904c9fd06d88affefe2b2cbf87dd00de6e6f0d9`; release evidence is in [archive/v2.7.10/evidence.md](archive/v2.7.10/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
 | v2.7.11 finding | Diagnostic candidate `7a1239084` was built as `v2.7.10-3-g7a1239084` and OTA-installed on the authorized `3Dprinter` unit. It ran from `app1`, reported update state `installed`, and recovered to a full NUT poll with `health: ok` and UPS `OL`. Its clearer browser error exposed `HTTP 413`; the supplied NGINX site configuration confirms that no `client_max_body_size` is set for either ESP32 management site, so NGINX rejected the image before contacting the ESP32. The diagnostic firmware change is not retained for merge. |
