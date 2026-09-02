@@ -91,6 +91,29 @@ The ESP32-NUT management server currently uses the session cookie,
 headers for authentication or authorization. Do not treat `X-Real-IP` or
 `X-Forwarded-For` as an authentication signal.
 
+## Browser firmware-upload bounds
+
+The stock NGINX request-body limit is too small for current ESP32-NUT application
+images. The supplied NGINX site configurations on Shenandoah for
+`esp32nut-3dprinter.28670avenidacondesa.com` and
+`esp32nut-garage.28670avenidacondesa.com` have no override, which causes NGINX
+to return `413 Request Entity Too Large` before either ESP32 receives the
+upload. Apply the following settings only inside each site's HTTPS `location /`
+block (or an equivalently narrow matching location), not globally:
+
+```nginx
+client_max_body_size 4m;
+proxy_read_timeout 130s;
+proxy_send_timeout 130s;
+```
+
+`4m` is deliberately bounded: it admits current browser uploads while the
+ESP32 independently rejects images larger than its `0x330000` inactive OTA
+partition. The 130-second proxy timeouts exceed the browser's 120-second OTA
+request deadline and the ESP32's 15-second receive-idle timeout without making
+the proxy an unbounded upload service. Preserve the existing HTTPS backend,
+trusted-LAN boundary, and ADMIN/CSRF checks.
+
 ## Verification checklist
 
 For each hostname:
@@ -103,7 +126,9 @@ For each hostname:
 - [ ] A CSRF-protected state change succeeds only with the existing ADMIN
       session and CSRF header.
 - [ ] Local firmware check/install behaves normally through the proxy.
-- [ ] The Synology backend target is HTTPS on ESP32 port `443`.
+- [ ] A current application image larger than 1 MiB passes the proxy and is
+      still subject to the ESP32 inactive-partition validation.
+- [ ] The NGINX backend target is HTTPS on ESP32 port `443`.
 - [ ] Direct network checks still show ESP32 TCP `443` and read-only NUT TCP
       `3493` available, with retired TCP `8080` refused.
 - [ ] The UPS remains read-only and reports the expected `ups.status`.
@@ -117,19 +142,19 @@ live report of the certificate presented by Synology's browser-facing hop.
 When a board receives a new DHCP address:
 
 1. Rediscover the board on the LAN.
-2. Update the matching Synology backend target.
+2. Update the matching NGINX backend target.
 3. Update the AdGuard rewrite only if the browser hostname no longer reaches
-   Synology.
+   NGINX.
 4. Re-run the verification checklist.
 
-If a fifteen-second factory reset regenerates the ESP32 certificate, the
-Synology backend's accepted certificate state may need to be refreshed. Do not
+If a fifteen-second factory reset regenerates the ESP32 certificate, the NGINX
+backend's accepted certificate state may need to be refreshed. Do not
 erase certificate NVS blobs as a migration shortcut; the current firmware
 regenerates another self-signed certificate when the material is missing.
 
 ## Future direct-device trust
 
-If the project later requires Synology to authenticate each ESP32 directly,
+If the project later requires NGINX to authenticate each ESP32 directly,
 use a separate per-device certificate issued by the reviewed local CA. Do not
 install the shared wildcard private key on an ESP32. That future work belongs to
 the `feature/local-ca-trust` / `v3.0.0` slice and requires its own enrollment,
