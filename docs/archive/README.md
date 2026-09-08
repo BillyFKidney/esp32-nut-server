@@ -27,7 +27,7 @@ when a current document links to it or historical evidence is required.
 | [v2.7.7 validation evidence index](v2.7.7/evidence.md) | Release-confirmed Wi-Fi/factory reset, credential invalidation, fault injection, tagged OTA, and release boundaries |
 | [v2.7.8 validation evidence index](v2.7.8/evidence.md) | Status API rename, dashboard/raw-status presentation, stale/recovery, serial recovery, and v2.7.7 rollback/v2.7.8 restore evidence |
 | [v2.7.9 device identity and retained log level validation evidence](v2.7.9/evidence.md) | Persisted device display name, safe hostname derivation, retained log level, reboot persistence, and candidate build validation |
-| [v2.8.0 candidate evidence](v2.8.0/evidence.md) | Appliance UI, streamed ADMIN page, dedicated Logs page, dirty Agent Tests OTA, automated API/security/NUT acceptance, and remaining visual browser gate |
+| [v2.8.0 release evidence](v2.8.0/evidence.md) | Appliance UI, streamed ADMIN page, dedicated Logs page, exact tagged build/checksum, clean Agent Tests OTA, automated API/security/NUT acceptance, and Maintainer browser acceptance |
 | [v3.0.0 API v2 and token research](v3.0.0/ESP32_V3_0_API_V2_TOKENS_RESEARCH.md) | September 2026 API/token, memory, status-log, and self-contained appliance-UI research retained for the v3.0 planner; not normal startup context |
 | [ESP32_CURRENT_STATUS_V2_7_1.md](ESP32_CURRENT_STATUS_V2_7_1.md) | Full v2.7.1 pre-publication status and release-preparation handoff |
 | [ESP32_64K_AGENT_HANDOFF_V2_7_1.md](ESP32_64K_AGENT_HANDOFF_V2_7_1.md) | Full v2.7.1 64k continuation packet before active-slice compaction |

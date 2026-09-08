@@ -91,7 +91,32 @@
   behavior still require explicit browser interaction evidence.
 - **Not tested:** Garage post-update behavior; Garage was unavailable after the
   power blink and intentionally left untouched.
-- **Release state:** The visual browser gate is complete. Clean build, tag,
-  publication, and final artifact facts are intentionally not recorded here
-  until those actions are authorized and completed. The dirty candidate and
-  this evidence remain preserved on the feature branch.
+- **Release state at candidate close:** The visual browser gate was complete;
+  the dirty candidate remains preserved as historical evidence.
+
+## Final v2.8.0 release closeout
+
+- **Observed:** PR #56 merged as `baec0c729e81c4a78c89ab7ace57c5e879c85709`.
+  The annotated `v2.8.0` tag points exactly to that merge commit.
+- **Observed:** The exact tagged ESP-IDF v6.0.2 build produced
+  `nut-esp32s3-v2.8.0.bin`, 1,362,432 bytes, SHA-256
+  `9bc140383d93d140c46da319b95d58db15968d3a91ad167ef90a797501c781f8`.
+  The embedded version resolved exactly to `v2.8.0`; the image has 59% app-slot
+  headroom and the rendered-page validator passed.
+- **Observed:** Certificate-pinned OTA installed that exact artifact on the
+  authorized `3Dprinter` unit. Post-reboot diagnostics report `v2.8.0` in
+  `app0`, update result `installed`, HTTPS `443`, NUT `3493`, and refused
+  `8080`. A full NUT transaction returned 57 variables, `ups.status "OL"`,
+  complete-list, and clean logout.
+- **Observed:** The live ADMIN validator passed the streamed page, favicon,
+  removed notices, unchanged six-entry status logs, 24-entry ADMIN logs,
+  unauthenticated rejection, and CSRF rejection checks.
+- **Observed:** The Project Maintainer accepted the UI in Chrome desktop,
+  iPhone 16 Pro Max, and iPad Pro emulation. The remaining icon issue was
+  accepted. Console 404s were external 1Password richicon requests and not
+  an ESP32 resource failure.
+- **Not tested:** Clipboard success/denial fallback and downloaded-file
+  behavior. Garage post-update behavior also remains untested because Garage
+  was unavailable and was not modified.
+- **Published:** [GitHub release v2.8.0](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.0)
+  contains the versioned binary and matching checksum sidecar.

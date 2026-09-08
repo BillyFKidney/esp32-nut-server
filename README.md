@@ -27,8 +27,8 @@ access remains read-only.
 
 ## Current operating model
 
-The validated maintenance release is `v2.7.10`; the active planned slice is
-v2.8.0 appliance-UI and bounded-resource optimization. The current branch,
+The validated maintenance release is `v2.8.0`; the active planned slice is
+v3.0.0 API v2 and token-contract planning. The current branch,
 repository facts, acceptance boundary, authorization state, and exact next
 action are maintained in [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md).
 Historical release and device evidence is archived rather than carried in that

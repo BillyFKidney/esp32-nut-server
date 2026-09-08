@@ -47,7 +47,7 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 
 | Release | Prospective branch | Required outcome |
 | --- | --- | --- |
-| `v2.8.0` | `feature/optimization` | [Appliance UI and bounded-resource optimization](ESP32_V2_8_0_IMPLEMENTATION_PLAN.md): retain every v1 API contract; remove log rendering from Dashboard; pretty-print the unchanged Device Status JSON including its six-log window; add a lazy 24-entry Logs page with copy/download; stream the ADMIN page without a whole-page heap allocation; validate browser, service, NUT, memory, and rollback behavior. |
+| `v2.8.0` | Released | [Appliance UI and bounded-resource optimization](archive/v2.8.0/evidence.md): retained every v1 API contract, added the responsive appliance UI and lazy 24-entry Logs page, streamed the ADMIN page without a whole-page heap allocation, and passed clean tagged build, OTA, browser, service, and full-NUT validation. |
 | `v2.9.0` | `feature/operational-management-acceptance` | Validate the locked definition of done from iPhone and MacBook Air and publish the final `v2.x` acceptance release. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
