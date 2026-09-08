@@ -14,6 +14,11 @@
 - **Observed:** The self-contained UI uses system fonts, CSS, native `meter`
   indicators, and vanilla JavaScript; it adds no remote or vendored runtime
   dependency.
+- **Observed:** The redundant certificate/LAN-only header notice and ADMIN
+  session footer notice were removed. Setup, sign-in, throttled sign-in, and
+  ADMIN pages declare `/favicon.ico`; that route serves the repository's
+  canonical 60x60 NUT PNG without authentication because it contains no
+  device or session data.
 - **Observed:** FreeRTOS is configured for both ESP32-S3 cores. USB host,
   discovery, HID, driver, and NUT tasks are intentionally pinned to core 0;
   management/network support tasks created without affinity remain available
@@ -26,27 +31,28 @@
 
 ## Resource and build evidence
 
-- **Observed:** The 48,363-byte flash-resident ADMIN page is sent in bounded
+- **Observed:** The 48,089-byte flash-resident ADMIN page is sent in bounded
   chunks using a 768-byte stack buffer. The former 49,152-byte transient
   whole-page heap allocation is no longer present.
 - **Observed:** The macOS embedded-JavaScript validator passed and now checks
   the streamed-page limit, Dashboard/Logs separation, pretty/raw JSON
   behavior, one lazy full-log request, and persistent header controls.
 - **Observed:** ESP-IDF v6.0.2 `idf.py reconfigure && idf.py build` passed.
-  `build/nut-esp32s3.bin` is 1,356,016 bytes; the 0x330000-byte app slots have
+  `build/nut-esp32s3.bin` is 1,362,432 bytes; the 0x330000-byte app slots have
   59% free.
-- **Observed:** `idf.py size` reports 929,658 bytes of flash code, 307,004
+- **Observed:** `idf.py size` reports 929,806 bytes of flash code, 313,276
   bytes of flash data, and 132,899 of 341,760 DIRAM bytes used (38.89%).
 - **Observed:** The installed dirty candidate SHA-256 is
-  `fa42b37f50b6ae3b0a5b6ac015f537ff883dfc6040c78afee8bab1ad08553156`.
+  `323dc2516d21cc5a39b9cf6af8cab3864151acbd0b08c16ece12ed072f80ee03`.
 - **Observed:** The certificate-pinned OTA helper initially encountered a TLS
   record-layer failure while writing 64 KiB chunks. Aligning the helper with
   the firmware's 4 KiB receive buffer produced HTTP 200 and a verified OTA.
 
 ## Device and contract acceptance
 
-- **Observed:** The authorized `3Dprinter` Agent Tests unit installed the dirty
-  candidate in `app0`; it reports update state `installed`.
+- **Observed:** The authorized `3Dprinter` Agent Tests unit installed the
+  notice-removal and NUT-favicon dirty candidate in `app1`; it reports firmware
+  `v2.8.0-evidence-dirty` and update state `installed`.
 - **Observed:** A site power blink occurred during testing. At the Project
   Maintainer's direction, all device retry counts were reset and observations
   after the blink were treated as a fresh baseline. The blink explains the
@@ -57,17 +63,31 @@
   `OK Goodbye`.
 - **Observed after the reset:** The credential-safe live ADMIN validator
   authenticated with a certificate pin, fetched the streamed page, confirmed
-  the unchanged six-entry status-log window and 24-entry ADMIN retention
-  metadata, and confirmed unauthenticated `401` and invalid-CSRF `403`.
+  both notices are absent, confirmed the NUT favicon returns HTTP 200 as a PNG,
+  confirmed the unchanged six-entry status-log window and 24-entry ADMIN
+  retention metadata, and confirmed unauthenticated `401` and invalid-CSRF
+  `403`. The live favicon SHA-256 exactly matched `docs/images/nut-logo.png`:
+  `85aa4a1ca59c51a065fb181c2b41c9a4303d1ac670ed2d6e07d374869ed0ba79`.
+- **Observed after the favicon OTA:** HTTPS `443` and NUT `3493` respond,
+  retired `8080` is refused, and a complete 57-variable NUT transaction ended
+  cleanly with `ups.status "OL"`.
 - **Observed:** Garage did not answer the refreshed post-blink diagnostic
   request. It was not OTA-updated or otherwise modified.
 
 ## Remaining acceptance and release state
 
-- **Not tested:** No browser-control surface was attached to this session.
-  Desktop and iPhone rendered layout, horizontal navigation, visual fidelity,
-  clipboard success/denial fallback, and downloaded file behavior require a
-  real browser pass.
+- **Observed from Project Maintainer screenshots:** Chrome rendered the pushed
+  candidate on desktop and in iPhone 16 Pro Max portrait/landscape and iPad Pro
+  responsive emulation. The appliance header, single-row horizontally
+  scrollable navigation, dashboard cards, full-width diagnostics, pretty JSON,
+  dedicated Logs page, settings forms, API-token page, and OTA page were all
+  visibly rendered. Navigation among those panels was exercised to capture the
+  screenshots. The only reported Inspector error was the missing favicon; the
+  later candidate now serves that resource successfully.
+- **Not tested:** Browser control was unavailable after the notice/favicon
+  refinement, so a post-refinement screenshot and console capture were not
+  recorded. Clipboard success/denial fallback and downloaded file behavior
+  still require explicit browser interaction evidence.
 - **Not tested:** Garage post-update behavior; Garage was unavailable after the
   power blink and intentionally left untouched.
 - **Blocked for final release:** The remaining browser checks prevent a clean

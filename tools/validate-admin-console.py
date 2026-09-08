@@ -68,6 +68,24 @@ def main() -> int:
         return 2
 
     try:
+        status, favicon_headers, favicon_body = request(
+            arguments.device, fingerprint, "GET", "/favicon.ico"
+        )
+        require(status == 200, f"NUT favicon returned HTTP {status}.")
+        favicon_content_type = next(
+            (
+                value
+                for name, value in favicon_headers
+                if name.lower() == "content-type"
+            ),
+            "",
+        )
+        require(favicon_content_type == "image/png", "NUT favicon is not a PNG.")
+        require(
+            favicon_body.startswith(b"\x89PNG\r\n\x1a\n"),
+            "NUT favicon has an invalid PNG signature.",
+        )
+
         login_body = urlencode({"password": password}).encode()
         status, response_headers, _ = request(
             arguments.device,
@@ -107,8 +125,30 @@ def main() -> int:
             require(marker in page, f"ADMIN page is missing {marker!r}.")
         require("dashboardLogs" not in page, "Dashboard still contains log rendering.")
         require(page.count("/api/v1/admin/logs") == 1, "Full-log request is duplicated.")
+        require(
+            "<link rel=icon href=/favicon.ico>" in page,
+            "ADMIN page does not declare the NUT favicon.",
+        )
+        require("HTTPS is active" not in page, "Removed HTTPS notice remains visible.")
+        require(
+            "All management actions remain protected" not in page,
+            "Removed session notice remains visible.",
+        )
         csrf_match = re.search(r"const csrf='([0-9a-f]{64})'", page)
         require(csrf_match is not None, "Rendered ADMIN page has no valid CSRF token.")
+
+        status, favicon_headers, favicon_body = request(
+            arguments.device, fingerprint, "GET", "/favicon.ico"
+        )
+        require(status == 200, f"NUT favicon returned HTTP {status}.")
+        favicon_type = next(
+            (value for name, value in favicon_headers if name.lower() == "content-type"), ""
+        )
+        require(favicon_type == "image/png", "NUT favicon is not served as image/png.")
+        require(
+            favicon_body.startswith(b"\x89PNG\r\n\x1a\n"),
+            "NUT favicon response is not a PNG image.",
+        )
 
         status, _, status_body = request(
             arguments.device,
@@ -156,8 +196,9 @@ def main() -> int:
         require(status == 403, f"Invalid CSRF request returned HTTP {status}.")
 
         print(
-            "PASS: authenticated streamed page, unchanged six-entry status logs, "
-            "24-entry ADMIN logs, unauthenticated rejection, and CSRF rejection."
+            "PASS: authenticated streamed page, NUT favicon, removed notices, unchanged "
+            "six-entry status logs, 24-entry ADMIN logs, unauthenticated rejection, "
+            "and CSRF rejection."
         )
         return 0
     except (OSError, ssl.SSLError, http.client.HTTPException, ValueError, RuntimeError) as error:

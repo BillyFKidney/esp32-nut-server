@@ -14,6 +14,8 @@ reset or a general redesign of the NUT architecture.
 - Redesign the device-hosted UI as a polished, responsive appliance console
   using self-contained vanilla HTML/CSS/JavaScript. Do not add a framework,
   CDN, remote font, external icon pack, or runtime dependency.
+- Reuse the repository's canonical NUT logo as the device-served favicon; do
+  not add a remote icon request or duplicate artwork in the ADMIN page.
 - Dashboard is an operational summary and does not display logs.
 - Device Status retains raw JSON and its six-entry `logs` array exactly as the
   v1 response provides it; display the JSON pretty-printed for diagnosis.

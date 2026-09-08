@@ -70,6 +70,13 @@ if (!page.includes('class=app-header') || !page.includes('id=headerStatus') ||
     !page.includes('onclick=logout()')) {
   throw new Error('Persistent appliance header controls are incomplete.');
 }
+if (!page.includes('<link rel=icon href=/favicon.ico>')) {
+  throw new Error('ADMIN page must declare the self-hosted NUT favicon.');
+}
+if (page.includes('HTTPS is active') ||
+    page.includes('All management actions remain protected')) {
+  throw new Error('Removed management notices must not appear in the ADMIN page.');
+}
 if (page.includes('loadStatus();loadLogs();')) {
   throw new Error('Retained logs must load lazily, not during initial page setup.');
 }
