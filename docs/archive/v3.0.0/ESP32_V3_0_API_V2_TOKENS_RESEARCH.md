@@ -40,6 +40,11 @@ must re-audit both files rather than treating this table as complete evidence.
 
 ## Storage and runtime-memory findings
 
+The companion [ESP32-NUT storage and memory chart](esp32nut-storage-memory.html)
+is preserved here as an educational visual for the flash, OTA-slot, internal
+heap, PSRAM, and bounded request-buffer comparison. It is explanatory only;
+the measured values and caveats in this archive remain authoritative.
+
 | Item | Observed source/configuration | Consequence |
 | --- | --- | --- |
 | Flash | 16 MiB configured/detected; only the lower 8 MiB is partitioned | Physical flash is not available as an app-slot budget without partition work. |
