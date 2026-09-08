@@ -82,15 +82,16 @@
   scrollable navigation, dashboard cards, full-width diagnostics, pretty JSON,
   dedicated Logs page, settings forms, API-token page, and OTA page were all
   visibly rendered. Navigation among those panels was exercised to capture the
-  screenshots. The only reported Inspector error was the missing favicon; the
-  later candidate now serves that resource successfully.
-- **Not tested:** Browser control was unavailable after the notice/favicon
-  refinement, so a post-refinement screenshot and console capture were not
-  recorded. Clipboard success/denial fallback and downloaded file behavior
-  still require explicit browser interaction evidence.
+  screenshots. The Project Maintainer's final Chrome check accepted the UI as
+  great and accepted the remaining icon issue, closing the visual browser gate.
+  The two screenshot console 404s were requests to external
+  `c.1password.com/richicons/...` images for 1Password entries, not the ESP32
+  `/favicon.ico`; they do not indicate a device favicon failure.
+- **Not tested:** Clipboard success/denial fallback and downloaded file
+  behavior still require explicit browser interaction evidence.
 - **Not tested:** Garage post-update behavior; Garage was unavailable after the
   power blink and intentionally left untouched.
-- **Blocked for final release:** The remaining browser checks prevent a clean
-  `v2.8.0` tag and GitHub release. The dirty candidate and this evidence are
-  preserved on the pushed feature branch for data-loss prevention. No final
-  release tag or published asset is claimed by this record.
+- **Release state:** The visual browser gate is complete. Clean build, tag,
+  publication, and final artifact facts are intentionally not recorded here
+  until those actions are authorized and completed. The dirty candidate and
+  this evidence remain preserved on the feature branch.

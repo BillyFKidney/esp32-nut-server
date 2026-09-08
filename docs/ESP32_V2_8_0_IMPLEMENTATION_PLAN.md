@@ -97,6 +97,14 @@ Evidence must label each result **observed**, **inferred**, or **not tested**.
 
 ### Rollback and release gates
 
+- **Observed:** The Project Maintainer's final Chrome check accepted the UI as
+  great and accepted the remaining icon issue; the visual browser gate is
+  closed. The two screenshot console 404s were external
+  `c.1password.com/richicons/...` requests for 1Password entry images, not the
+  ESP32 `/favicon.ico` route.
+- **Not tested:** Clipboard success/denial fallback and downloaded-file
+  behavior remain untested and must not be represented as release evidence.
+
 - Preserve a known-good v2.7.10 artifact and document downgrade/rollback,
   failure symptoms, and recovery steps before installation.
 - A failed browser, security, NUT, resource, or reboot/full-poll gate blocks
