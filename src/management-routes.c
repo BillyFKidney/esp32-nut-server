@@ -12,11 +12,24 @@
 #include "management-token-routes.h"
 #include "management-wifi-routes.h"
 
+extern const unsigned char nut_logo_png_start[] asm("_binary_nut_logo_png_start");
+extern const unsigned char nut_logo_png_end[] asm("_binary_nut_logo_png_end");
+
+static esp_err_t management_favicon_handler(httpd_req_t *request)
+{
+    httpd_resp_set_type(request, "image/png");
+    httpd_resp_set_hdr(request, "Cache-Control", "public, max-age=86400");
+    httpd_resp_set_hdr(request, "X-Content-Type-Options", "nosniff");
+    return httpd_resp_send(request, (const char *)nut_logo_png_start,
+                           nut_logo_png_end - nut_logo_png_start);
+}
+
 esp_err_t management_routes_register(
     httpd_handle_t server,
     esp_err_t (*root_handler)(httpd_req_t *request))
 {
     const httpd_uri_t root = {.uri = "/", .method = HTTP_GET, .handler = root_handler};
+    const httpd_uri_t favicon = {.uri = "/favicon.ico", .method = HTTP_GET, .handler = management_favicon_handler};
     const httpd_uri_t setup = {.uri = "/setup", .method = HTTP_POST, .handler = management_auth_setup_handler};
     const httpd_uri_t login_page = {.uri = "/login", .method = HTTP_GET, .handler = management_auth_login_page_handler};
     const httpd_uri_t login = {.uri = "/login", .method = HTTP_POST, .handler = management_auth_login_handler};
@@ -42,7 +55,7 @@ esp_err_t management_routes_register(
     const httpd_uri_t diagnostic_token_create = {.uri = "/api/v1/admin/diagnostic-tokens", .method = HTTP_POST, .handler = management_diagnostic_token_create_handler};
     const httpd_uri_t diagnostic_token_delete = {.uri = "/api/v1/admin/diagnostic-tokens", .method = HTTP_DELETE, .handler = management_diagnostic_token_delete_handler};
     const httpd_uri_t *routes[] = {
-        &root, &setup, &login_page, &login, &password, &device_configuration, &logout, &status,
+        &root, &favicon, &setup, &login_page, &login, &password, &device_configuration, &logout, &status,
         &logs, &session_activity, &time_configuration, &ota_check, &ota, &token_list,
         &token_create, &token_delete, &wifi_scan, &wifi_configuration, &agent_ota,
         &agent_status, &diagnostic_disconnect_start, &diagnostic_disconnect_clear,

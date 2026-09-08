@@ -36,7 +36,8 @@ idf_component_register(
     SRCS ${app_sources} ../lib/af_unix_socket/af_unix_socket.c ../lib/syslog/syslog.c
     INCLUDE_DIRS ../include ../lib/af_unix_socket ../lib/libusb ../lib/syslog
     PRIV_REQUIRES usb nvs_flash openthread esp_coex esp_event driver esp_driver_tsens esp_hw_support heap spi_flash
-    REQUIRES fatfs vfs esp_wifi esp_http_server esp_https_server esp_netif esp_timer lwip app_update)
+    REQUIRES fatfs vfs esp_wifi esp_http_server esp_https_server esp_netif esp_timer lwip app_update
+    EMBED_FILES ${CMAKE_SOURCE_DIR}/docs/images/nut-logo.png)
 
 # The administration page is embedded JavaScript; validate its generated script
 # before compiling on macOS, where JXA is available without a Node dependency.

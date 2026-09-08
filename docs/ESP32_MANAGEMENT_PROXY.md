@@ -157,5 +157,5 @@ regenerates another self-signed certificate when the material is missing.
 If the project later requires NGINX to authenticate each ESP32 directly,
 use a separate per-device certificate issued by the reviewed local CA. Do not
 install the shared wildcard private key on an ESP32. That future work belongs to
-the `feature/local-ca-trust` / `v3.0.0` slice and requires its own enrollment,
+the `feature/local-ca-trust` / `v3.1.0` slice and requires its own enrollment,
 renewal, reset, and revocation review.
