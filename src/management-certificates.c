@@ -23,6 +23,9 @@
 #define MANAGEMENT_PRIVATE_KEY_KEY "https-key"
 #define MANAGEMENT_CERTIFICATE_BUFFER_SIZE 2048U
 #define MANAGEMENT_PRIVATE_KEY_BUFFER_SIZE 1024U
+#define MANAGEMENT_CERTIFICATE_SERIAL_BYTES 16
+#define MANAGEMENT_CERTIFICATE_VALIDITY_START "20260101000000"
+#define MANAGEMENT_CERTIFICATE_VALIDITY_END "20500101000000"
 
 _Static_assert(sizeof(MANAGEMENT_CERTIFICATES_NAMESPACE) <= NVS_NS_NAME_MAX_SIZE,
                "Management NVS namespace exceeds the ESP-IDF limit");
@@ -177,7 +180,7 @@ static esp_err_t management_certificates_generate(void)
         }
     }
 
-    uint8_t serial_bytes[16];
+    uint8_t serial_bytes[MANAGEMENT_CERTIFICATE_SERIAL_BYTES];
     if (mbedtls_result == 0)
     {
         esp_fill_random(serial_bytes, sizeof(serial_bytes));
@@ -193,8 +196,8 @@ static esp_err_t management_certificates_generate(void)
     if (mbedtls_result == 0)
     {
         mbedtls_result = mbedtls_x509write_crt_set_validity(&certificate_writer,
-                                                            "20260101000000",
-                                                            "20500101000000");
+                                                            MANAGEMENT_CERTIFICATE_VALIDITY_START,
+                                                            MANAGEMENT_CERTIFICATE_VALIDITY_END);
     }
     if (mbedtls_result == 0)
     {
@@ -231,7 +234,6 @@ static esp_err_t management_certificates_generate(void)
             management_certificate_material.private_key_length = private_key_length;
             certificate = NULL;
             private_key = NULL;
-            ESP_LOGI(TAG, "Generated a device-specific self-signed HTTPS certificate");
         }
     }
 

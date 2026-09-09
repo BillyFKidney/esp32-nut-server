@@ -18,6 +18,7 @@
 
 #define TAG "nut-management"
 #define MANAGEMENT_WIFI_SCAN_RESPONSE_SIZE 4200U
+#define MANAGEMENT_WIFI_ACKNOWLEDGEMENT_SIZE 6U
 
 static const char *management_wifi_security_name(uint8_t authmode)
 {
@@ -134,7 +135,7 @@ esp_err_t management_wifi_configure_handler(httpd_req_t *request)
     char body[MANAGEMENT_FORM_BODY_LIMIT + 1] = {0};
     char ssid[WIFI_MANAGEMENT_SSID_MAX_LENGTH + 1U] = {0};
     char password[WIFI_MANAGEMENT_PASSWORD_MAX_LENGTH + 1U] = {0};
-    char acknowledgement[6] = {0};
+    char acknowledgement[MANAGEMENT_WIFI_ACKNOWLEDGEMENT_SIZE] = {0};
     const esp_err_t form_result =
         management_read_form_body(request, body, sizeof(body));
     const bool fields_present =

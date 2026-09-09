@@ -1,4 +1,5 @@
 /** @file management-log.c @brief Capture and serialize bounded management runtime logs. @see management-log.h, time_config.h, esp_log.h, esp_timer.h */
+#include "management-http.h"
 #include "management-log.h"
 
 #include <stdint.h>
@@ -247,105 +248,6 @@ void management_log_capture_syslog(int priority, const char *format,
     taskEXIT_CRITICAL(&management_log_lock);
 }
 
-static bool management_log_json_append(char *destination, size_t destination_size,
-                                       size_t *used, const char *format, ...)
-{
-    if (destination == NULL || used == NULL || *used >= destination_size)
-    {
-        return false;
-    }
-
-    va_list arguments;
-    va_start(arguments, format);
-    const int written = vsnprintf(destination + *used,
-                                  destination_size - *used, format, arguments);
-    va_end(arguments);
-    if (written < 0 || (size_t)written >= destination_size - *used)
-    {
-        *used = destination_size;
-        return false;
-    }
-    *used += (size_t)written;
-    return true;
-}
-
-static bool management_log_json_append_string(char *destination, size_t destination_size,
-                                              size_t *used, const char *value)
-{
-    if (!management_log_json_append(destination, destination_size, used, "\""))
-    {
-        return false;
-    }
-
-    if (value == NULL)
-    {
-        value = "";
-    }
-    for (const unsigned char *cursor = (const unsigned char *)value; *cursor != '\0'; cursor++)
-    {
-        switch (*cursor)
-        {
-        case '\\':
-            if (!management_log_json_append(destination, destination_size, used, "\\\\"))
-            {
-                return false;
-            }
-            break;
-        case '"':
-            if (!management_log_json_append(destination, destination_size, used, "\\\""))
-            {
-                return false;
-            }
-            break;
-        case '\b':
-            if (!management_log_json_append(destination, destination_size, used, "\\b"))
-            {
-                return false;
-            }
-            break;
-        case '\f':
-            if (!management_log_json_append(destination, destination_size, used, "\\f"))
-            {
-                return false;
-            }
-            break;
-        case '\n':
-            if (!management_log_json_append(destination, destination_size, used, "\\n"))
-            {
-                return false;
-            }
-            break;
-        case '\r':
-            if (!management_log_json_append(destination, destination_size, used, "\\r"))
-            {
-                return false;
-            }
-            break;
-        case '\t':
-            if (!management_log_json_append(destination, destination_size, used, "\\t"))
-            {
-                return false;
-            }
-            break;
-        default:
-            if (*cursor < 0x20U &&
-                !management_log_json_append(destination, destination_size, used,
-                                             "\\u%04x", (unsigned int)*cursor))
-            {
-                return false;
-            }
-            else if (*cursor >= 0x20U &&
-                     !management_log_json_append(destination, destination_size, used,
-                                                  "%c", (char)*cursor))
-            {
-                return false;
-            }
-            break;
-        }
-    }
-    return management_log_json_append(destination, destination_size, used, "\"");
-}
-
 static void management_log_flush_pending(void)
 {
     const uint64_t uptime_ms = (uint64_t)(esp_timer_get_time() / 1000LL);
@@ -399,14 +301,14 @@ bool management_log_append_snapshot(char *destination, size_t destination_size,
     }
     taskEXIT_CRITICAL(&management_log_lock);
 
-    if (!management_log_json_append(destination, destination_size, used, ",\"logs\":["))
+    if (!management_json_append(destination, destination_size, used, ",\"logs\":["))
     {
         return false;
     }
     for (size_t index = 0; index < entry_count; index++)
     {
         if (index > 0 &&
-            !management_log_json_append(destination, destination_size, used, ","))
+            !management_json_append(destination, destination_size, used, ","))
         {
             return false;
         }
@@ -415,29 +317,29 @@ bool management_log_append_snapshot(char *destination, size_t destination_size,
         char local[40] = {0};
         const bool timestamps_available = management_log_format_timestamps(
             entries[index].epoch_seconds, utc, sizeof(utc), local, sizeof(local));
-        if (!management_log_json_append(destination, destination_size, used,
-                                        "{\"uptime_ms\":%llu,\"timestamp_utc\":",
-                                        (unsigned long long)entries[index].uptime_ms) ||
+        if (!management_json_append(destination, destination_size, used,
+                                    "{\"uptime_ms\":%llu,\"timestamp_utc\":",
+                                    (unsigned long long)entries[index].uptime_ms) ||
             (timestamps_available
-                 ? !management_log_json_append_string(destination, destination_size, used, utc)
-                 : !management_log_json_append(destination, destination_size, used, "null")) ||
-            !management_log_json_append(destination, destination_size, used,
-                                        ",\"timestamp_local\":") ||
+                 ? !management_json_append_string(destination, destination_size, used, utc)
+                 : !management_json_append(destination, destination_size, used, "null")) ||
+            !management_json_append(destination, destination_size, used,
+                                    ",\"timestamp_local\":") ||
             (timestamps_available
-                 ? !management_log_json_append_string(destination, destination_size, used, local)
-                 : !management_log_json_append(destination, destination_size, used, "null")) ||
-            !management_log_json_append(destination, destination_size, used, ",\"level\":") ||
-            !management_log_json_append_string(destination, destination_size, used,
-                                               management_log_level_name(entries[index].level)) ||
-            !management_log_json_append(destination, destination_size, used, ",\"message\":") ||
-            !management_log_json_append_string(destination, destination_size, used,
-                                               entries[index].message) ||
-            !management_log_json_append(destination, destination_size, used, "}"))
+                 ? !management_json_append_string(destination, destination_size, used, local)
+                 : !management_json_append(destination, destination_size, used, "null")) ||
+            !management_json_append(destination, destination_size, used, ",\"level\":") ||
+            !management_json_append_string(destination, destination_size, used,
+                                           management_log_level_name(entries[index].level)) ||
+            !management_json_append(destination, destination_size, used, ",\"message\":") ||
+            !management_json_append_string(destination, destination_size, used,
+                                           entries[index].message) ||
+            !management_json_append(destination, destination_size, used, "}"))
         {
             return false;
         }
     }
-    return management_log_json_append(destination, destination_size, used, "]");
+    return management_json_append(destination, destination_size, used, "]");
 }
 
 bool management_log_copy_snapshot(ManagementLogSnapshotEntry *entries,

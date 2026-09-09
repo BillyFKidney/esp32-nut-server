@@ -24,6 +24,8 @@
 #define MANAGEMENT_PASSWORD_LEGACY_ITERATIONS 100000U
 #define MANAGEMENT_PASSWORD_MIN_ITERATIONS 1000U
 #define MANAGEMENT_PASSWORD_MAX_ITERATIONS 1000000U
+#define MANAGEMENT_PASSWORD_MIN_LENGTH 12
+#define MANAGEMENT_PASSWORD_MAX_LENGTH 128
 
 _Static_assert(sizeof(MANAGEMENT_CREDENTIALS_NAMESPACE) <= NVS_NS_NAME_MAX_SIZE,
                "Management NVS namespace exceeds the ESP-IDF limit");
@@ -171,7 +173,8 @@ static bool management_credentials_matches_password(const ManagementAdminCredent
 
 esp_err_t management_credentials_set_admin_password(const char *password)
 {
-    if (password == NULL || strlen(password) < 12 || strlen(password) > 128)
+    if (password == NULL || strlen(password) < MANAGEMENT_PASSWORD_MIN_LENGTH ||
+        strlen(password) > MANAGEMENT_PASSWORD_MAX_LENGTH)
     {
         return ESP_ERR_INVALID_ARG;
     }

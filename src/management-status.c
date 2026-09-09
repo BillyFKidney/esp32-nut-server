@@ -55,6 +55,11 @@
 #define MANAGEMENT_STATUS_PSRAM_SPEED_MHZ 0
 #endif
 
+#define MANAGEMENT_STATUS_UNAVAILABLE "unavailable"
+#define MANAGEMENT_STATUS_DEFAULT_UPS_NAME "cyberpower"
+#define MANAGEMENT_STATUS_TEMP_SENSOR_MIN_C (-10)
+#define MANAGEMENT_STATUS_TEMP_SENSOR_MAX_C 80
+
 static bool management_status_hardware_initialized;
 static uint32_t management_status_flash_size_bytes;
 static temperature_sensor_handle_t management_status_temperature_sensor;
@@ -67,7 +72,7 @@ static void management_status_copy_nut_value(const char *name, char *destination
     const char *value = dstate_getinfo(name);
     if (value == NULL || *value == '\0')
     {
-        snprintf(destination, destination_size, "unavailable");
+        snprintf(destination, destination_size, "%s", MANAGEMENT_STATUS_UNAVAILABLE);
         return;
     }
     snprintf(destination, destination_size, "%s", value);
@@ -83,25 +88,25 @@ void management_status_collect_nut_snapshot(ManagementStatusNutSnapshot *snapsho
     const char *status = dstate_getinfo("ups.status");
     snapshot->available = status != NULL && !snapshot->stale;
     snprintf(snapshot->ups, sizeof(snapshot->ups), "%s",
-             upsname != NULL && *upsname != '\0' ? upsname : "cyberpower");
+             upsname != NULL && *upsname != '\0' ? upsname : MANAGEMENT_STATUS_DEFAULT_UPS_NAME);
     if (snapshot->stale)
     {
-        snprintf(snapshot->manufacturer, sizeof(snapshot->manufacturer), "unavailable");
-        snprintf(snapshot->model, sizeof(snapshot->model), "unavailable");
-        snprintf(snapshot->serial, sizeof(snapshot->serial), "unavailable");
-        snprintf(snapshot->status, sizeof(snapshot->status), "unavailable");
-        snprintf(snapshot->battery_type, sizeof(snapshot->battery_type), "unavailable");
-        snprintf(snapshot->battery_mfr_date, sizeof(snapshot->battery_mfr_date), "unavailable");
-        snprintf(snapshot->ups_temperature, sizeof(snapshot->ups_temperature), "unavailable");
-        snprintf(snapshot->battery_charge, sizeof(snapshot->battery_charge), "unavailable");
-        snprintf(snapshot->battery_runtime, sizeof(snapshot->battery_runtime), "unavailable");
-        snprintf(snapshot->battery_voltage, sizeof(snapshot->battery_voltage), "unavailable");
-        snprintf(snapshot->load, sizeof(snapshot->load), "unavailable");
-        snprintf(snapshot->input_voltage, sizeof(snapshot->input_voltage), "unavailable");
-        snprintf(snapshot->output_voltage, sizeof(snapshot->output_voltage), "unavailable");
-        snprintf(snapshot->ups_power, sizeof(snapshot->ups_power), "unavailable");
-        snprintf(snapshot->ups_realpower, sizeof(snapshot->ups_realpower), "unavailable");
-        snprintf(snapshot->ups_firmware, sizeof(snapshot->ups_firmware), "unavailable");
+        snprintf(snapshot->manufacturer, sizeof(snapshot->manufacturer), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->model, sizeof(snapshot->model), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->serial, sizeof(snapshot->serial), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->status, sizeof(snapshot->status), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->battery_type, sizeof(snapshot->battery_type), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->battery_mfr_date, sizeof(snapshot->battery_mfr_date), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->ups_temperature, sizeof(snapshot->ups_temperature), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->battery_charge, sizeof(snapshot->battery_charge), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->battery_runtime, sizeof(snapshot->battery_runtime), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->battery_voltage, sizeof(snapshot->battery_voltage), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->load, sizeof(snapshot->load), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->input_voltage, sizeof(snapshot->input_voltage), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->output_voltage, sizeof(snapshot->output_voltage), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->ups_power, sizeof(snapshot->ups_power), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->ups_realpower, sizeof(snapshot->ups_realpower), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
+        snprintf(snapshot->ups_firmware, sizeof(snapshot->ups_firmware), "%s", MANAGEMENT_STATUS_UNAVAILABLE);
         return;
     }
     management_status_copy_nut_value("device.mfr", snapshot->manufacturer,
@@ -206,7 +211,8 @@ void management_status_initialize_hardware_diagnostics(void)
     }
 
     const temperature_sensor_config_t temperature_configuration =
-        TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
+        TEMPERATURE_SENSOR_CONFIG_DEFAULT(MANAGEMENT_STATUS_TEMP_SENSOR_MIN_C,
+                                          MANAGEMENT_STATUS_TEMP_SENSOR_MAX_C);
     esp_err_t result = temperature_sensor_install(&temperature_configuration,
                                                   &management_status_temperature_sensor);
     if (result != ESP_OK)

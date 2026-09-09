@@ -10,6 +10,17 @@
 #define MANAGEMENT_PAGES_ADMIN_PAGE_LIMIT 49152U
 #define MANAGEMENT_PAGES_HTML_CHUNK_SIZE 768U
 
+#define MANAGEMENT_PAGES_RETRY_AFTER_HEADER_SIZE 12
+#define MANAGEMENT_PAGES_SETUP_PAGE_BUFFER_SIZE 1800
+#define MANAGEMENT_PAGES_LOGIN_THROTTLED_BUFFER_SIZE 1400
+
+#define MANAGEMENT_PAGES_VALIDATION_COPY_STATUS_BUTTON "copyStatusJsonButton"
+#define MANAGEMENT_PAGES_VALIDATION_LOGS_API "/api/v1/admin/logs"
+#define MANAGEMENT_PAGES_VALIDATION_LAST_STATUS_TEXT "lastStatusText"
+#define MANAGEMENT_PAGES_VALIDATION_CPS_MAPPING "CyberPower Systems"
+#define MANAGEMENT_PAGES_VALIDATION_STATUS_FALLBACK "statusCopyFallback"
+#define MANAGEMENT_PAGES_VALIDATION_DOWNLOAD_LOGS_BUTTON "downloadLogsButton"
+
 static const char management_setup_page_template[] =
     "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
     "<link rel=icon href=/favicon.ico><title>ESP32-NUT setup</title><style>body{font:17px -apple-system,BlinkMacSystemFont,sans-serif;margin:2rem;max-width:42rem;color:#17212b}input,button{font:inherit;padding:.75rem;width:100%%;box-sizing:border-box;margin:.35rem 0 1rem}button{background:#267747;color:white;border:0;border-radius:.4rem;font-weight:600}.hint{color:#52606d}.check{display:flex;gap:.5rem;align-items:center}.check input{width:auto;margin:0}</style>"
@@ -29,7 +40,7 @@ static const char management_login_page[] =
 
 esp_err_t management_pages_send_setup(httpd_req_t *request, const char *csrf)
 {
-    char page[1800];
+    char page[MANAGEMENT_PAGES_SETUP_PAGE_BUFFER_SIZE];
     snprintf(page, sizeof(page), management_setup_page_template, csrf);
     return management_send_html(request, page);
 }
@@ -41,8 +52,8 @@ esp_err_t management_pages_send_login(httpd_req_t *request)
 
 esp_err_t management_pages_send_login_throttled(httpd_req_t *request, int retry_after)
 {
-    char retry_after_header[12];
-    char page[1400];
+    char retry_after_header[MANAGEMENT_PAGES_RETRY_AFTER_HEADER_SIZE];
+    char page[MANAGEMENT_PAGES_LOGIN_THROTTLED_BUFFER_SIZE];
     snprintf(retry_after_header, sizeof(retry_after_header), "%d", retry_after);
     httpd_resp_set_hdr(request, "Retry-After", retry_after_header);
     snprintf(page, sizeof(page),
@@ -250,12 +261,12 @@ esp_err_t management_pages_send_admin(httpd_req_t *request, const char *csrf)
              "otaCheckButton.onclick=async()=>{const file=otaFile.files[0];if(!file){otaResult.textContent='Choose a firmware .bin file first.';return}otaCheckButton.disabled=true;otaButton.disabled=true;setOtaTransferInProgress(true);otaResult.textContent='Checking firmware image…';try{const r=await fetch('/api/v1/ota/check',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||x.error||('Firmware check failed (HTTP '+r.status+').')}catch(error){otaResult.textContent='Unable to reach the firmware check service.'}finally{setOtaTransferInProgress(false);otaCheckButton.disabled=false;otaButton.disabled=false}};"
              "otaForm.onsubmit=async e=>{e.preventDefault();const file=otaFile.files[0];if(!file||!window.confirm('Install '+file.name+' and restart ESP32-NUT?'))return;otaButton.disabled=true;otaCheckButton.disabled=true;setOtaTransferInProgress(true);otaResult.textContent='Uploading and verifying firmware…';try{const r=await fetch('/api/v1/ota/install',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-ESP32-NUT-CSRF':csrf},body:file});const x=await r.json();otaResult.textContent=x.message||x.error||('Firmware installation failed (HTTP '+r.status+').');if(r.ok){setTimeout(reconnect,5000)}else{otaButton.disabled=false;otaCheckButton.disabled=false}}catch(error){otaResult.textContent='Connection closed. The device may be restarting…';setTimeout(reconnect,3000)}finally{if(!otaButton.disabled)setOtaTransferInProgress(false)}};"
              "function reconnect(){fetch('/',{cache:'no-store'}).then(()=>location='/').catch(()=>setTimeout(reconnect,2000))}function logout(){fetch('/logout',{method:'POST',headers:{'X-ESP32-NUT-CSRF':csrf}}).then(()=>location='/')}loadStatus();loadTokens();loadDiagnosticTokens();updateStatusRefresh();</script>";
-    if (strstr(page_template, "copyStatusJsonButton") == NULL ||
-        strstr(page_template, "/api/v1/admin/logs") == NULL ||
-        strstr(page_template, "lastStatusText") == NULL ||
-        strstr(page_template, "CyberPower Systems") == NULL ||
-        strstr(page_template, "statusCopyFallback") == NULL ||
-        strstr(page_template, "downloadLogsButton") == NULL)
+    if (strstr(page_template, MANAGEMENT_PAGES_VALIDATION_COPY_STATUS_BUTTON) == NULL ||
+        strstr(page_template, MANAGEMENT_PAGES_VALIDATION_LOGS_API) == NULL ||
+        strstr(page_template, MANAGEMENT_PAGES_VALIDATION_LAST_STATUS_TEXT) == NULL ||
+        strstr(page_template, MANAGEMENT_PAGES_VALIDATION_CPS_MAPPING) == NULL ||
+        strstr(page_template, MANAGEMENT_PAGES_VALIDATION_STATUS_FALLBACK) == NULL ||
+        strstr(page_template, MANAGEMENT_PAGES_VALIDATION_DOWNLOAD_LOGS_BUTTON) == NULL)
     {
         return management_send_html_status(
             request, "500 Internal Server Error",

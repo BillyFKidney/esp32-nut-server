@@ -60,6 +60,8 @@ _Static_assert(sizeof(DiagnosticStoredApiTokenSet) == 232U,
 static const uint8_t api_token_verifier_domain[] =
     "ESP32-NUT API token verifier v1";
 
+#define API_TOKEN_MAX_ID_ATTEMPTS 8U
+
 static void api_tokens_bytes_to_hex(const uint8_t *source, size_t source_length,
                                     char *destination, size_t destination_length)
 {
@@ -146,6 +148,11 @@ static bool api_token_value_is_valid(const char *token)
     return true;
 }
 
+/**
+ * @brief Validate an API token name.
+ * @param name Token name to validate
+ * @return true if valid (non-empty, max length, no leading/trailing spaces, allowed chars only)
+ */
 bool api_token_name_is_valid(const char *name)
 {
     if (name == NULL)
@@ -418,6 +425,11 @@ static bool api_tokens_metadata_from_record(const StoredApiToken *record,
     return api_tokens_format_issued_at(record->issued_at, metadata->issued_at);
 }
 
+/**
+ * @brief List all active API tokens.
+ * @param list Output structure to populate with token metadata
+ * @return ESP_OK on success, error code on failure
+ */
 esp_err_t api_tokens_list(ApiTokenList *list)
 {
     if (list == NULL)
@@ -453,6 +465,15 @@ esp_err_t api_tokens_list(ApiTokenList *list)
     return result;
 }
 
+/**
+ * @brief Create a new API token with the given name and scopes.
+ * @param name Human-readable token name
+ * @param issued_at Creation timestamp (must be >= API_TOKEN_VALID_EPOCH)
+ * @param scopes Token scopes (must be API_TOKEN_SCOPE_OTA_INSTALL)
+ * @param metadata Output structure for created token metadata
+ * @param token Output buffer for the generated token value
+ * @return ESP_OK on success, error code on failure
+ */
 esp_err_t api_tokens_create(const char *name, time_t issued_at, uint32_t scopes,
                             ApiTokenMetadata *metadata,
                             char token[API_TOKEN_VALUE_LENGTH + 1U])
@@ -495,7 +516,7 @@ esp_err_t api_tokens_create(const char *name, time_t issued_at, uint32_t scopes,
     StoredApiToken *record = &store.records[available_index];
     memset(record, 0, sizeof(*record));
     bool identifier_ready = false;
-    for (size_t attempt = 0; attempt < 8U && !identifier_ready; attempt++)
+    for (size_t attempt = 0; attempt < API_TOKEN_MAX_ID_ATTEMPTS && !identifier_ready; attempt++)
     {
         esp_fill_random(record->id, sizeof(record->id));
         identifier_ready = !api_tokens_identifier_is_zero(record->id) &&
@@ -546,6 +567,11 @@ esp_err_t api_tokens_create(const char *name, time_t issued_at, uint32_t scopes,
     return result;
 }
 
+/**
+ * @brief Delete an API token by its ID.
+ * @param id Hex-encoded token ID to delete
+ * @return ESP_OK on success, ESP_ERR_NOT_FOUND if not found, error code on failure
+ */
 esp_err_t api_tokens_delete(const char *id)
 {
     uint8_t identifier[API_TOKEN_ID_BYTES] = {0};
@@ -593,6 +619,12 @@ esp_err_t api_tokens_delete(const char *id)
     return result;
 }
 
+/**
+ * @brief Authorize a bearer token against the required scope.
+ * @param token Bearer token value to verify
+ * @param required_scope Scope that the token must have (subset of API_TOKEN_SCOPE_OTA_INSTALL)
+ * @return true if token is valid and has required scope, false otherwise
+ */
 bool api_tokens_authorize(const char *token, uint32_t required_scope)
 {
     if (!api_token_value_is_valid(token) || required_scope == 0U ||
@@ -784,6 +816,11 @@ static bool diagnostic_tokens_identifier_is_unique(const DiagnosticStoredApiToke
     return true;
 }
 
+/**
+ * @brief List all active diagnostic tokens.
+ * @param list Output structure to populate with token metadata
+ * @return ESP_OK on success, error code on failure
+ */
 esp_err_t diagnostic_tokens_list(DiagnosticTokenList *list)
 {
     if (list == NULL)
@@ -818,6 +855,14 @@ esp_err_t diagnostic_tokens_list(DiagnosticTokenList *list)
     return result;
 }
 
+/**
+ * @brief Create a new diagnostic token with the given name.
+ * @param name Human-readable token name
+ * @param issued_at Creation timestamp (must be >= API_TOKEN_VALID_EPOCH)
+ * @param metadata Output structure for created token metadata
+ * @param token Output buffer for the generated token value
+ * @return ESP_OK on success, error code on failure
+ */
 esp_err_t diagnostic_tokens_create(const char *name, time_t issued_at,
                                    ApiTokenMetadata *metadata,
                                    char token[API_TOKEN_VALUE_LENGTH + 1U])
@@ -859,7 +904,7 @@ esp_err_t diagnostic_tokens_create(const char *name, time_t issued_at,
     StoredApiToken *record = &store.records[available_index];
     memset(record, 0, sizeof(*record));
     bool identifier_ready = false;
-    for (size_t attempt = 0; attempt < 8U && !identifier_ready; attempt++)
+    for (size_t attempt = 0; attempt < API_TOKEN_MAX_ID_ATTEMPTS && !identifier_ready; attempt++)
     {
         esp_fill_random(record->id, sizeof(record->id));
         identifier_ready = !api_tokens_identifier_is_zero(record->id) &&
@@ -901,6 +946,11 @@ esp_err_t diagnostic_tokens_create(const char *name, time_t issued_at,
     return result;
 }
 
+/**
+ * @brief Delete a diagnostic token by its ID.
+ * @param id Hex-encoded token ID to delete
+ * @return ESP_OK on success, ESP_ERR_NOT_FOUND if not found, error code on failure
+ */
 esp_err_t diagnostic_tokens_delete(const char *id)
 {
     uint8_t identifier[API_TOKEN_ID_BYTES] = {0};
@@ -945,6 +995,11 @@ esp_err_t diagnostic_tokens_delete(const char *id)
     return result;
 }
 
+/**
+ * @brief Authorize a bearer token for diagnostic scope.
+ * @param token Bearer token value to verify
+ * @return true if token is valid and has diagnostic scope, false otherwise
+ */
 bool diagnostic_tokens_authorize(const char *token)
 {
     if (!api_token_value_is_valid(token))

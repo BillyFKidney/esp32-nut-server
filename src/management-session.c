@@ -12,9 +12,12 @@
 #include "mbedtls/platform_util.h"
 
 #define MANAGEMENT_SESSION_BYTES 32U
-#define MANAGEMENT_SESSION_IDLE_US ((int64_t)MANAGEMENT_SESSION_IDLE_SECONDS * 1000000LL)
+#define MANAGEMENT_MICROSECONDS_PER_SECOND 1000000LL
+#define MANAGEMENT_SESSION_IDLE_US \
+    ((int64_t)MANAGEMENT_SESSION_IDLE_SECONDS * MANAGEMENT_MICROSECONDS_PER_SECOND)
 #define MANAGEMENT_LOGIN_MAX_FAILURES 5U
-#define MANAGEMENT_LOGIN_COOLDOWN_US ((int64_t)MANAGEMENT_LOGIN_COOLDOWN_SECONDS * 1000000LL)
+#define MANAGEMENT_LOGIN_COOLDOWN_US \
+    ((int64_t)MANAGEMENT_LOGIN_COOLDOWN_SECONDS * MANAGEMENT_MICROSECONDS_PER_SECOND)
 
 _Static_assert(MANAGEMENT_SESSION_HEX_LENGTH == MANAGEMENT_SESSION_BYTES * 2U,
                "Session token length must match the random token size");
@@ -33,10 +36,8 @@ static portMUX_TYPE management_login_lock = portMUX_INITIALIZER_UNLOCKED;
 static unsigned int management_login_failures;
 static int64_t management_login_cooldown_until_us;
 
-static void management_session_bytes_to_hex(const uint8_t *source,
-                                            size_t source_length,
-                                            char *destination,
-                                            size_t destination_length)
+static void management_bytes_to_hex(const uint8_t *source, size_t source_length,
+                                    char *destination, size_t destination_length)
 {
     static const char hexadecimal[] = "0123456789abcdef";
     if (destination_length < source_length * 2U + 1U)
@@ -56,9 +57,8 @@ static void management_session_bytes_to_hex(const uint8_t *source,
     destination[source_length * 2U] = '\0';
 }
 
-static bool management_session_constant_time_equal(const uint8_t *left,
-                                                   const uint8_t *right,
-                                                   size_t length)
+static bool management_constant_time_equal(const uint8_t *left,
+                                           const uint8_t *right, size_t length)
 {
     uint8_t difference = 0;
     for (size_t index = 0; index < length; index++)
@@ -68,6 +68,14 @@ static bool management_session_constant_time_equal(const uint8_t *left,
     return difference == 0;
 }
 
+/**
+ * @brief Extract a cookie value from the Cookie header.
+ * @param request HTTP request handle
+ * @param name Cookie name to find
+ * @param destination Buffer to store the cookie value
+ * @param destination_size Size of destination buffer
+ * @return true if cookie was found and copied, false otherwise
+ */
 static bool management_session_cookie_value(httpd_req_t *request,
                                             const char *name,
                                             char *destination,
@@ -118,6 +126,11 @@ static bool management_session_cookie_value(httpd_req_t *request,
     return false;
 }
 
+/**
+ * @brief Validate that a string is a hex token of the expected length.
+ * @param token String to validate
+ * @return true if valid hex token, false otherwise
+ */
 static bool management_session_is_hex_token(const char *token)
 {
     if (token == NULL || strlen(token) != MANAGEMENT_SESSION_HEX_LENGTH)
@@ -136,6 +149,10 @@ static bool management_session_is_hex_token(const char *token)
     return true;
 }
 
+/**
+ * @brief Initialize a new management session with random cookie and CSRF tokens.
+ * Generates cryptographically random session identifiers and marks the session as active.
+ */
 void management_session_start(void)
 {
     uint8_t cookie[MANAGEMENT_SESSION_BYTES];
@@ -144,10 +161,10 @@ void management_session_start(void)
     esp_fill_random(csrf, sizeof(csrf));
 
     taskENTER_CRITICAL(&management_session_lock);
-    management_session_bytes_to_hex(cookie, sizeof(cookie), management_session.cookie,
-                                    sizeof(management_session.cookie));
-    management_session_bytes_to_hex(csrf, sizeof(csrf), management_session.csrf,
-                                    sizeof(management_session.csrf));
+    management_bytes_to_hex(cookie, sizeof(cookie), management_session.cookie,
+                            sizeof(management_session.cookie));
+    management_bytes_to_hex(csrf, sizeof(csrf), management_session.csrf,
+                            sizeof(management_session.csrf));
     management_session.last_activity_us = esp_timer_get_time();
     management_session.active = true;
     taskEXIT_CRITICAL(&management_session_lock);
@@ -155,6 +172,12 @@ void management_session_start(void)
     mbedtls_platform_zeroize(csrf, sizeof(csrf));
 }
 
+/**
+ * @brief Set the session cookie in the HTTP response header.
+ * @param request HTTP request handle
+ * @param session_header Buffer to format the cookie header
+ * @param session_header_size Size of the session_header buffer
+ */
 void management_session_set_cookie(httpd_req_t *request, char *session_header,
                                    size_t session_header_size)
 {
@@ -166,12 +189,24 @@ void management_session_set_cookie(httpd_req_t *request, char *session_header,
     httpd_resp_set_hdr(request, "Set-Cookie", session_header);
 }
 
+/**
+ * @brief Expire the session cookie by setting Max-Age=0.
+ * @param request HTTP request handle
+ */
 void management_session_expire_cookie(httpd_req_t *request)
 {
     httpd_resp_set_hdr(request, "Set-Cookie",
                        "ESP32NUT_SESSION=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict");
 }
 
+/**
+ * @brief Initialize a setup session with a CSRF token and setup cookie.
+ * @param request HTTP request handle
+ * @param csrf Buffer to store the generated CSRF token
+ * @param csrf_size Size of csrf buffer
+ * @param setup_header Buffer to format the setup cookie header
+ * @param setup_header_size Size of setup_header buffer
+ */
 void management_session_start_setup(httpd_req_t *request, char *csrf,
                                     size_t csrf_size, char *setup_header,
                                     size_t setup_header_size)
@@ -183,8 +218,8 @@ void management_session_start_setup(httpd_req_t *request, char *csrf,
     {
         uint8_t cookie_bytes[MANAGEMENT_SESSION_BYTES];
         esp_fill_random(cookie_bytes, sizeof(cookie_bytes));
-        management_session_bytes_to_hex(cookie_bytes, sizeof(cookie_bytes), cookie,
-                                        sizeof(cookie));
+        management_bytes_to_hex(cookie_bytes, sizeof(cookie_bytes), cookie,
+                                sizeof(cookie));
         mbedtls_platform_zeroize(cookie_bytes, sizeof(cookie_bytes));
     }
     snprintf(csrf, csrf_size, "%s", cookie);
@@ -195,6 +230,12 @@ void management_session_start_setup(httpd_req_t *request, char *csrf,
     mbedtls_platform_zeroize(cookie, sizeof(cookie));
 }
 
+/**
+ * @brief Validate the CSRF token from a setup form submission.
+ * @param request HTTP request handle
+ * @param csrf CSRF token from the form
+ * @return true if CSRF token matches the setup cookie, false otherwise
+ */
 bool management_session_setup_csrf_is_valid(httpd_req_t *request,
                                             const char *csrf)
 {
@@ -207,26 +248,37 @@ bool management_session_setup_csrf_is_valid(httpd_req_t *request,
         return false;
     }
 
-    const bool valid = management_session_constant_time_equal(
+    const bool valid = management_constant_time_equal(
         (const uint8_t *)cookie, (const uint8_t *)csrf,
         MANAGEMENT_SESSION_HEX_LENGTH);
     mbedtls_platform_zeroize(cookie, sizeof(cookie));
     return valid;
 }
 
+/**
+ * @brief Calculate seconds until login retry is allowed after cooldown.
+ * @param now Current time in microseconds from esp_timer_get_time()
+ * @return Seconds until retry allowed, or 0 if no cooldown active
+ */
 int management_session_login_retry_after_seconds(int64_t now)
 {
     int retry_after = 0;
     taskENTER_CRITICAL(&management_login_lock);
     if (now < management_login_cooldown_until_us)
     {
-        retry_after = (int)((management_login_cooldown_until_us - now + 999999LL) /
-                            1000000LL);
+        retry_after = (int)((management_login_cooldown_until_us - now +
+                             MANAGEMENT_MICROSECONDS_PER_SECOND - 1LL) /
+                            MANAGEMENT_MICROSECONDS_PER_SECOND);
     }
     taskEXIT_CRITICAL(&management_login_lock);
     return retry_after;
 }
 
+/**
+ * @brief Record a login failure and start cooldown if threshold reached.
+ * @param now Current time in microseconds from esp_timer_get_time()
+ * @return true if cooldown was started, false otherwise
+ */
 bool management_session_record_login_failure(int64_t now)
 {
     bool cooldown_started = false;
@@ -242,6 +294,9 @@ bool management_session_record_login_failure(int64_t now)
     return cooldown_started;
 }
 
+/**
+ * @brief Record a successful login, clearing failure count and cooldown.
+ */
 void management_session_record_login_success(void)
 {
     taskENTER_CRITICAL(&management_login_lock);
@@ -250,6 +305,9 @@ void management_session_record_login_success(void)
     taskEXIT_CRITICAL(&management_login_lock);
 }
 
+/**
+ * @brief Clear the active session and zeroize sensitive data.
+ */
 void management_session_clear(void)
 {
     taskENTER_CRITICAL(&management_session_lock);
@@ -257,6 +315,10 @@ void management_session_clear(void)
     taskEXIT_CRITICAL(&management_session_lock);
 }
 
+/**
+ * @brief Get the remaining session lifetime in seconds.
+ * @return Remaining seconds, or 0 if session is inactive or expired
+ */
 uint32_t management_session_remaining_seconds(void)
 {
     uint32_t remaining_seconds = 0;
@@ -269,7 +331,8 @@ uint32_t management_session_remaining_seconds(void)
         {
             const int64_t remaining_us = MANAGEMENT_SESSION_IDLE_US - elapsed_us;
             remaining_seconds = remaining_us > 0
-                                    ? (uint32_t)(remaining_us / 1000000LL)
+                                    ? (uint32_t)(remaining_us /
+                                                 MANAGEMENT_MICROSECONDS_PER_SECOND)
                                     : 0;
         }
     }
@@ -277,6 +340,11 @@ uint32_t management_session_remaining_seconds(void)
     return remaining_seconds;
 }
 
+/**
+ * @brief Copy the current session CSRF token to a buffer.
+ * @param csrf Destination buffer
+ * @param csrf_size Size of destination buffer
+ */
 void management_session_copy_csrf(char *csrf, size_t csrf_size)
 {
     taskENTER_CRITICAL(&management_session_lock);
@@ -284,6 +352,12 @@ void management_session_copy_csrf(char *csrf, size_t csrf_size)
     taskEXIT_CRITICAL(&management_session_lock);
 }
 
+/**
+ * @brief Check if the request has a valid, non-expired session cookie.
+ * @param request HTTP request handle
+ * @param refresh_activity If true, update last activity timestamp on success
+ * @return true if authorized, false otherwise
+ */
 bool management_session_is_authorized(httpd_req_t *request,
                                       bool refresh_activity)
 {
@@ -300,7 +374,7 @@ bool management_session_is_authorized(httpd_req_t *request,
     const int64_t now = esp_timer_get_time();
     if (management_session.active &&
         now - management_session.last_activity_us <= MANAGEMENT_SESSION_IDLE_US &&
-        management_session_constant_time_equal(
+        management_constant_time_equal(
             (const uint8_t *)value,
             (const uint8_t *)management_session.cookie,
             MANAGEMENT_SESSION_HEX_LENGTH))
@@ -321,6 +395,11 @@ bool management_session_is_authorized(httpd_req_t *request,
     return authorized;
 }
 
+/**
+ * @brief Validate the CSRF token from an authenticated request header.
+ * @param request HTTP request handle
+ * @return true if CSRF token matches session, false otherwise
+ */
 bool management_session_csrf_is_valid(httpd_req_t *request)
 {
     if (!management_session_is_authorized(request, true))
@@ -338,7 +417,7 @@ bool management_session_csrf_is_valid(httpd_req_t *request)
 
     bool matches;
     taskENTER_CRITICAL(&management_session_lock);
-    matches = management_session_constant_time_equal(
+    matches = management_constant_time_equal(
         (const uint8_t *)csrf, (const uint8_t *)management_session.csrf,
         MANAGEMENT_SESSION_HEX_LENGTH);
     taskEXIT_CRITICAL(&management_session_lock);

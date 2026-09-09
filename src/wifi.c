@@ -52,6 +52,13 @@
 #define WIFI_BOOT_POLL_MS 50
 #define WIFI_RECOVERY_RESTART_DELAY_MS 250
 
+#define WIFI_SCAN_2GHZ_CHANNEL_BITMAP 0x7ffe
+#define WIFI_SCAN_5GHZ_CHANNEL_BITMAP 1U
+#define WIFI_SCAN_ACTIVE_MIN_TIME 40
+#define WIFI_SCAN_ACTIVE_MAX_TIME 120
+#define WIFI_SCAN_HOME_CHAN_DWELL_TIME 30
+#define WIFI_SCAN_SEMAPHORE_TIMEOUT_MS 1000
+
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAILED_BIT BIT1
 #define WIFI_PORTAL_STARTED_BIT BIT2
@@ -140,99 +147,128 @@ static void nvs_initialize(void)
     ESP_ERROR_CHECK(result);
 }
 
+static void wifi_wait_for_button_press(void)
+{
+    while (gpio_get_level(WIFI_BOOT_BUTTON) != 0)
+    {
+        vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_POLL_MS));
+    }
+}
+
+static bool wifi_measure_button_hold(const TickType_t *press_started, bool *factory_requested)
+{
+    bool wifi_reset_requested = false;
+    *factory_requested = false;
+
+    ESP_LOGW(TAG, "BOOT pressed; keep holding for three seconds to erase saved Wi-Fi credentials");
+
+    while (gpio_get_level(WIFI_BOOT_BUTTON) == 0)
+    {
+        const uint32_t held_ms = pdTICKS_TO_MS(xTaskGetTickCount() - *press_started);
+        if (!wifi_reset_requested && held_ms >= WIFI_BOOT_RESET_HOLD_MS)
+        {
+            wifi_reset_requested = true;
+            ESP_LOGW(TAG, "Wi-Fi reset threshold reached; release BOOT to erase saved "
+                          "Wi-Fi credentials or keep holding for factory reset at fifteen seconds");
+        }
+
+        if (wifi_reset_requested && !*factory_requested &&
+            held_ms >= WIFI_BOOT_FACTORY_RESET_HOLD_MS)
+        {
+            *factory_requested = true;
+            ESP_LOGW(TAG, "Factory-reset threshold reached; release BOOT to erase management "
+                          "configuration and restart");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_POLL_MS));
+    }
+
+    while (gpio_get_level(WIFI_BOOT_BUTTON) == 0)
+    {
+        vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_POLL_MS));
+    }
+
+    const uint32_t held_ms = pdTICKS_TO_MS(xTaskGetTickCount() - *press_started);
+    if (wifi_reset_requested && held_ms >= WIFI_BOOT_FACTORY_RESET_HOLD_MS)
+    {
+        *factory_requested = true;
+    }
+
+    return wifi_reset_requested;
+}
+
+static bool wifi_perform_factory_reset(void)
+{
+    esp_err_t result = management_factory_reset();
+    if (result != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Unable to erase management configuration: %s",
+                 esp_err_to_name(result));
+        return false;
+    }
+
+    result = wifi_credentials_erase();
+    if (result != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Unable to erase saved Wi-Fi credentials: %s",
+                 esp_err_to_name(result));
+        return false;
+    }
+
+    management_factory_reset_complete();
+    ESP_LOGW(TAG, "Factory reset complete; Wi-Fi, ADMIN credentials, API credentials, "
+                  "and device HTTPS identity were erased");
+    return true;
+}
+
+static bool wifi_perform_wifi_reset(void)
+{
+    const esp_err_t result = wifi_credentials_erase();
+    if (result != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Unable to erase saved Wi-Fi credentials: %s",
+                 esp_err_to_name(result));
+        return false;
+    }
+    return true;
+}
+
+static void wifi_restart_after_recovery(bool factory_erased)
+{
+    ESP_LOGW(TAG, "%s recovery complete; restarting into provisioning mode",
+             factory_erased ? "Factory" : "Wi-Fi");
+    vTaskDelay(pdMS_TO_TICKS(WIFI_RECOVERY_RESTART_DELAY_MS));
+    esp_restart();
+}
+
 static void wifi_recovery_task(void *argument)
 {
     (void)argument;
 
     for (;;)
     {
-        while (gpio_get_level(WIFI_BOOT_BUTTON) != 0)
-        {
-            vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_POLL_MS));
-        }
+        wifi_wait_for_button_press();
 
         const TickType_t press_started = xTaskGetTickCount();
-        bool wifi_reset_requested = false;
         bool factory_requested = false;
-        bool factory_erased = false;
-
-        ESP_LOGW(TAG, "BOOT pressed; keep holding for three seconds to erase saved Wi-Fi credentials");
-
-        while (gpio_get_level(WIFI_BOOT_BUTTON) == 0)
-        {
-            const uint32_t held_ms = pdTICKS_TO_MS(xTaskGetTickCount() - press_started);
-            if (!wifi_reset_requested && held_ms >= WIFI_BOOT_RESET_HOLD_MS)
-            {
-                wifi_reset_requested = true;
-                ESP_LOGW(TAG, "Wi-Fi reset threshold reached; release BOOT to erase saved "
-                              "Wi-Fi credentials or keep holding for factory reset at fifteen seconds");
-            }
-
-            if (wifi_reset_requested && !factory_requested &&
-                held_ms >= WIFI_BOOT_FACTORY_RESET_HOLD_MS)
-            {
-                factory_requested = true;
-                ESP_LOGW(TAG, "Factory-reset threshold reached; release BOOT to erase management "
-                              "configuration and restart");
-            }
-
-            vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_POLL_MS));
-        }
-
-        while (gpio_get_level(WIFI_BOOT_BUTTON) == 0)
-        {
-            vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_POLL_MS));
-        }
-
-        const uint32_t held_ms = pdTICKS_TO_MS(xTaskGetTickCount() - press_started);
-        if (wifi_reset_requested && held_ms >= WIFI_BOOT_FACTORY_RESET_HOLD_MS)
-        {
-            factory_requested = true;
-        }
+        bool wifi_reset_requested = wifi_measure_button_hold(&press_started, &factory_requested);
 
         if (factory_requested)
         {
-            esp_err_t result = management_factory_reset();
-            if (result != ESP_OK)
+            if (!wifi_perform_factory_reset())
             {
-                ESP_LOGE(TAG, "Unable to erase management configuration: %s",
-                         esp_err_to_name(result));
                 continue;
             }
-
-            result = wifi_credentials_erase();
-            if (result != ESP_OK)
-            {
-                ESP_LOGE(TAG, "Unable to erase saved Wi-Fi credentials: %s",
-                         esp_err_to_name(result));
-                continue;
-            }
-
-            management_factory_reset_complete();
-            factory_erased = true;
-            ESP_LOGW(TAG, "Factory reset complete; Wi-Fi, ADMIN credentials, API credentials, "
-                          "and device HTTPS identity were erased");
+            wifi_restart_after_recovery(true);
         }
         else if (wifi_reset_requested)
         {
-            const esp_err_t result = wifi_credentials_erase();
-            if (result != ESP_OK)
+            if (!wifi_perform_wifi_reset())
             {
-                ESP_LOGE(TAG, "Unable to erase saved Wi-Fi credentials: %s",
-                         esp_err_to_name(result));
                 continue;
             }
-
+            wifi_restart_after_recovery(false);
         }
-        else
-        {
-            continue;
-        }
-
-        ESP_LOGW(TAG, "%s recovery complete; restarting into provisioning mode",
-                 factory_erased ? "Factory" : "Wi-Fi");
-        vTaskDelay(pdMS_TO_TICKS(WIFI_RECOVERY_RESTART_DELAY_MS));
-        esp_restart();
     }
 }
 
@@ -386,7 +422,7 @@ esp_err_t wifi_management_scan(WifiManagementScanResults *results)
         return ESP_ERR_INVALID_STATE;
     }
     if (wifi_management_scan_lock == NULL ||
-        xSemaphoreTake(wifi_management_scan_lock, pdMS_TO_TICKS(1000)) != pdTRUE)
+        xSemaphoreTake(wifi_management_scan_lock, pdMS_TO_TICKS(WIFI_SCAN_SEMAPHORE_TIMEOUT_MS)) != pdTRUE)
     {
         return ESP_ERR_TIMEOUT;
     }
@@ -394,11 +430,11 @@ esp_err_t wifi_management_scan(WifiManagementScanResults *results)
     wifi_scan_config_t scan_configuration = {0};
     scan_configuration.show_hidden = false;
     scan_configuration.scan_type = WIFI_SCAN_TYPE_ACTIVE;
-    scan_configuration.scan_time.active.min = 40;
-    scan_configuration.scan_time.active.max = 120;
-    scan_configuration.home_chan_dwell_time = 30;
-    scan_configuration.channel_bitmap.ghz_2_channels = 0x7ffe;
-    scan_configuration.channel_bitmap.ghz_5_channels = 1U;
+    scan_configuration.scan_time.active.min = WIFI_SCAN_ACTIVE_MIN_TIME;
+    scan_configuration.scan_time.active.max = WIFI_SCAN_ACTIVE_MAX_TIME;
+    scan_configuration.home_chan_dwell_time = WIFI_SCAN_HOME_CHAN_DWELL_TIME;
+    scan_configuration.channel_bitmap.ghz_2_channels = WIFI_SCAN_2GHZ_CHANNEL_BITMAP;
+    scan_configuration.channel_bitmap.ghz_5_channels = WIFI_SCAN_5GHZ_CHANNEL_BITMAP;
 
     esp_err_t result = esp_wifi_scan_start(&scan_configuration, true);
     if (result != ESP_OK)
@@ -700,12 +736,8 @@ static bool wifi_connect_with_timeout(const WifiCredentials *credentials,
     return false;
 }
 
-void wifi_provisioning_init(void)
+static void wifi_initialize_sync_state(void)
 {
-    nvs_initialize();
-    management_device_config_initialize();
-    wifi_start_recovery_monitor();
-
     wifi_event_group = xEventGroupCreate();
     wifi_management_scan_lock = xSemaphoreCreateMutex();
     if (wifi_event_group == NULL || wifi_management_scan_lock == NULL)
@@ -713,6 +745,10 @@ void wifi_provisioning_init(void)
         ESP_LOGE(TAG, "Unable to allocate Wi-Fi management synchronization state");
         abort();
     }
+}
+
+static void wifi_initialize_network_stack(void)
+{
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     station_network_interface = esp_netif_create_default_wifi_sta();
@@ -728,6 +764,78 @@ void wifi_provisioning_init(void)
                                                wifi_event_handler, NULL));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
+}
+
+static bool wifi_try_pending_credentials(WifiCredentials *pending_credentials)
+{
+    ESP_LOGI(TAG, "Testing pending Wi-Fi credentials for '%s' in station-only mode",
+             pending_credentials->ssid);
+    const esp_err_t erase_result = wifi_pending_credentials_erase();
+    if (erase_result != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Unable to clear pending Wi-Fi credentials before validation: %s",
+                 esp_err_to_name(erase_result));
+        return false;
+    }
+
+    if (!wifi_connect_with_timeout(pending_credentials,
+                                   pdMS_TO_TICKS(WIFI_PENDING_CONNECT_TIMEOUT_MS)))
+    {
+        wifi_set_connection_diagnostic(
+            "The new Wi-Fi credentials failed validation; the previous network remains active.");
+        ESP_LOGW(TAG, "Pending Wi-Fi connection failed; falling back to the active network");
+        return false;
+    }
+
+    const esp_err_t save_result = wifi_credentials_save(pending_credentials);
+    if (save_result != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Wi-Fi connected but credentials could not be saved: %s",
+                 esp_err_to_name(save_result));
+        connection_requested = false;
+        ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_disconnect());
+        return false;
+    }
+
+    ESP_LOGI(TAG, "Pending Wi-Fi credentials validated and saved");
+    return true;
+}
+
+static bool wifi_try_saved_credentials(WifiCredentials *saved_credentials)
+{
+    ESP_LOGI(TAG, "Connecting to saved Wi-Fi network '%s'", saved_credentials->ssid);
+    if (wifi_connect_with_timeout(saved_credentials,
+                                  pdMS_TO_TICKS(WIFI_SAVED_CONNECT_TIMEOUT_MS)))
+    {
+        ESP_LOGI(TAG, "Saved Wi-Fi connection established");
+        return true;
+    }
+
+    ESP_LOGW(TAG, "Saved Wi-Fi connection did not complete; starting setup mode");
+    return false;
+}
+
+static void wifi_start_setup_portal(void)
+{
+    wifi_schedule_portal();
+    const EventBits_t portal_bits = xEventGroupWaitBits(wifi_event_group,
+                                                        WIFI_PORTAL_STARTED_BIT,
+                                                        pdFALSE, pdFALSE,
+                                                        pdMS_TO_TICKS(WIFI_PORTAL_START_TIMEOUT_MS));
+    if ((portal_bits & WIFI_PORTAL_STARTED_BIT) == 0)
+    {
+        ESP_LOGE(TAG, "Fallback setup portal did not start");
+    }
+}
+
+void wifi_provisioning_init(void)
+{
+    nvs_initialize();
+    management_device_config_initialize();
+    wifi_start_recovery_monitor();
+
+    wifi_initialize_sync_state();
+    wifi_initialize_network_stack();
 
     ManagementDeviceConfigSnapshot device_config;
     management_device_config_snapshot(&device_config);
@@ -744,63 +852,21 @@ void wifi_provisioning_init(void)
     const bool pending_available = wifi_pending_credentials_load(&pending_credentials);
     const bool saved_available = wifi_credentials_load(&saved_credentials);
 
-    if (pending_available)
+    if (pending_available && wifi_try_pending_credentials(&pending_credentials))
     {
-        ESP_LOGI(TAG, "Testing pending Wi-Fi credentials for '%s' in station-only mode",
-                 pending_credentials.ssid);
-        /* Remove the trial before connecting. A power loss during validation must
-         * never leave a credential that is retried indefinitely at every boot. */
-        const esp_err_t erase_result = wifi_pending_credentials_erase();
-        if (erase_result == ESP_OK &&
-            wifi_connect_with_timeout(&pending_credentials,
-                                      pdMS_TO_TICKS(WIFI_PENDING_CONNECT_TIMEOUT_MS)))
-        {
-            const esp_err_t save_result = wifi_credentials_save(&pending_credentials);
-            if (save_result == ESP_OK)
-            {
-                ESP_LOGI(TAG, "Pending Wi-Fi credentials validated and saved");
-                mbedtls_platform_zeroize(&pending_credentials,
-                                         sizeof(pending_credentials));
-                mbedtls_platform_zeroize(&saved_credentials,
-                                         sizeof(saved_credentials));
-                return;
-            }
-
-            ESP_LOGE(TAG, "Wi-Fi connected but credentials could not be saved: %s",
-                     esp_err_to_name(save_result));
-            connection_requested = false;
-            ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_disconnect());
-        }
-        else if (erase_result != ESP_OK)
-        {
-            ESP_LOGE(TAG, "Unable to clear pending Wi-Fi credentials before validation: %s",
-                     esp_err_to_name(erase_result));
-        }
-        else
-        {
-            wifi_set_connection_diagnostic(
-                "The new Wi-Fi credentials failed validation; the previous network remains active.");
-            ESP_LOGW(TAG, "Pending Wi-Fi connection failed; falling back to the active network");
-        }
+        mbedtls_platform_zeroize(&pending_credentials, sizeof(pending_credentials));
+        mbedtls_platform_zeroize(&saved_credentials, sizeof(saved_credentials));
+        return;
     }
 
-    if (saved_available)
+    if (saved_available && wifi_try_saved_credentials(&saved_credentials))
     {
-        ESP_LOGI(TAG, "Connecting to saved Wi-Fi network '%s'", saved_credentials.ssid);
-        if (wifi_connect_with_timeout(&saved_credentials,
-                                      pdMS_TO_TICKS(WIFI_SAVED_CONNECT_TIMEOUT_MS)))
-        {
-            ESP_LOGI(TAG, "Saved Wi-Fi connection established");
-            mbedtls_platform_zeroize(&pending_credentials,
-                                     sizeof(pending_credentials));
-            mbedtls_platform_zeroize(&saved_credentials,
-                                     sizeof(saved_credentials));
-            return;
-        }
-
-        ESP_LOGW(TAG, "Saved Wi-Fi connection did not complete; starting setup mode");
+        mbedtls_platform_zeroize(&pending_credentials, sizeof(pending_credentials));
+        mbedtls_platform_zeroize(&saved_credentials, sizeof(saved_credentials));
+        return;
     }
-    else
+
+    if (!saved_available)
     {
         wifi_set_connection_diagnostic("No saved Wi-Fi credentials. Select a network and connect.");
         ESP_LOGI(TAG, "No saved Wi-Fi credentials; starting setup mode");
@@ -809,15 +875,7 @@ void wifi_provisioning_init(void)
     mbedtls_platform_zeroize(&pending_credentials, sizeof(pending_credentials));
     mbedtls_platform_zeroize(&saved_credentials, sizeof(saved_credentials));
 
-    wifi_schedule_portal();
-    const EventBits_t portal_bits = xEventGroupWaitBits(wifi_event_group,
-                                                        WIFI_PORTAL_STARTED_BIT,
-                                                        pdFALSE, pdFALSE,
-                                                        pdMS_TO_TICKS(WIFI_PORTAL_START_TIMEOUT_MS));
-    if ((portal_bits & WIFI_PORTAL_STARTED_BIT) == 0)
-    {
-        ESP_LOGE(TAG, "Fallback setup portal did not start");
-    }
+    wifi_start_setup_portal();
 }
 
 bool wifi_provisioning_is_connected(void)

@@ -17,6 +17,11 @@
 
 #define TAG "nut-management"
 
+#define MANAGEMENT_TOKEN_LIST_RESPONSE_SIZE 1400U
+#define MANAGEMENT_TOKEN_DIAG_LIST_RESPONSE_SIZE 900U
+#define MANAGEMENT_TOKEN_CREATE_RESPONSE_SIZE 420U
+#define MANAGEMENT_TOKEN_ACKNOWLEDGEMENT_SIZE 6U
+
 esp_err_t management_token_list_handler(httpd_req_t *request)
 {
     if (!management_require_session(request, true))
@@ -35,7 +40,7 @@ esp_err_t management_token_list_handler(httpd_req_t *request)
             "{\"error\":\"Unable to load API-token metadata.\"}");
     }
 
-    char response[1400];
+    char response[MANAGEMENT_TOKEN_LIST_RESPONSE_SIZE];
     int written = snprintf(response, sizeof(response), "{\"tokens\":[");
     size_t used = written > 0 ? (size_t)written : sizeof(response);
     for (size_t index = 0; index < list.count && used < sizeof(response); index++)
@@ -140,7 +145,7 @@ esp_err_t management_token_create_handler(httpd_req_t *request)
             "{\"error\":\"Unable to create the API token.\"}");
     }
 
-    char response[420];
+    char response[MANAGEMENT_TOKEN_CREATE_RESPONSE_SIZE];
     const int response_length = snprintf(
         response, sizeof(response),
         "{\"token\":\"%s\",\"id\":\"%s\",\"name\":\"%s\","
@@ -176,7 +181,7 @@ esp_err_t management_token_delete_handler(httpd_req_t *request)
 
     char body[MANAGEMENT_FORM_BODY_LIMIT + 1];
     char id[API_TOKEN_ID_HEX_LENGTH + 1U] = {0};
-    char acknowledgement[6] = {0};
+    char acknowledgement[MANAGEMENT_TOKEN_ACKNOWLEDGEMENT_SIZE] = {0};
     const esp_err_t form_result =
         management_read_form_body(request, body, sizeof(body));
     const bool fields_present =
@@ -231,7 +236,7 @@ esp_err_t management_diagnostic_token_list_handler(httpd_req_t *request)
         return management_send_json(request, "500 Internal Server Error",
                                     "{\"error\":\"Unable to load diagnostic-token metadata.\"}");
     }
-    char response[900];
+    char response[MANAGEMENT_TOKEN_DIAG_LIST_RESPONSE_SIZE];
     size_t used = 0;
     bool valid = management_json_append(response, sizeof(response), &used,
                                         "{\"tokens\":[");
@@ -314,7 +319,7 @@ esp_err_t management_diagnostic_token_create_handler(httpd_req_t *request)
         return management_send_json(request, "500 Internal Server Error",
                                     "{\"error\":\"Unable to create a diagnostic token.\"}");
     }
-    char response[420];
+    char response[MANAGEMENT_TOKEN_CREATE_RESPONSE_SIZE];
     const int response_length = snprintf(response, sizeof(response),
         "{\"token\":\"%s\",\"id\":\"%s\",\"name\":\"%s\","
         "\"issued_at\":\"%s\",\"final_four\":\"%s\","
@@ -340,7 +345,7 @@ esp_err_t management_diagnostic_token_delete_handler(httpd_req_t *request)
     }
     char body[MANAGEMENT_FORM_BODY_LIMIT + 1U] = {0};
     char id[API_TOKEN_ID_HEX_LENGTH + 1U] = {0};
-    char acknowledgement[6] = {0};
+    char acknowledgement[MANAGEMENT_TOKEN_ACKNOWLEDGEMENT_SIZE] = {0};
     const bool fields_present =
         management_read_form_body(request, body, sizeof(body)) == ESP_OK &&
         management_form_value(body, "id", id, sizeof(id)) &&

@@ -1,9 +1,9 @@
-/** @file management-routes.c @brief Register the complete HTTPS management route set. @see management-routes.h, management-auth-routes.h, management-ota-routes.h, management-status-routes.h */
+/** @file management-routes.c @brief Register the complete HTTPS management route set. @see management-routes.h */
 #include "management-routes.h"
 
 #include "management-auth-routes.h"
-#include "management-diagnostics-routes.h"
 #include "management-device-routes.h"
+#include "management-diagnostics-routes.h"
 #include "management-log-routes.h"
 #include "management-ota-routes.h"
 #include "management-session-routes.h"
@@ -24,6 +24,12 @@ static esp_err_t management_favicon_handler(httpd_req_t *request)
                            nut_logo_png_end - nut_logo_png_start);
 }
 
+/**
+ * @brief Register all HTTPS management routes with the HTTP server.
+ * @param server HTTP server handle
+ * @param root_handler Handler for the root path
+ * @return ESP_OK on success, error code on failure
+ */
 esp_err_t management_routes_register(
     httpd_handle_t server,
     esp_err_t (*root_handler)(httpd_req_t *request))

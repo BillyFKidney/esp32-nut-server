@@ -32,19 +32,15 @@ static esp_err_t management_open_nvs(nvs_open_mode_t mode, nvs_handle_t *handle)
     return nvs_open(MANAGEMENT_NAMESPACE, mode, handle);
 }
 
+static esp_err_t management_send_setup_page(httpd_req_t *request);
+static esp_err_t management_send_admin_page(httpd_req_t *request);
+
 
 static esp_err_t management_root_handler(httpd_req_t *request)
 {
     if (!management_admin_password_is_configured())
     {
-        char csrf[MANAGEMENT_SESSION_HEX_LENGTH + 1];
-        char setup_header[192];
-        management_session_start_setup(request, csrf, sizeof(csrf), setup_header,
-                                       sizeof(setup_header));
-        const esp_err_t send_result =
-            management_pages_send_setup(request, csrf);
-        mbedtls_platform_zeroize(csrf, sizeof(csrf));
-        return send_result;
+        return management_send_setup_page(request);
     }
     if (!management_session_is_authorized(request, true))
     {
@@ -58,6 +54,22 @@ static esp_err_t management_root_handler(httpd_req_t *request)
         return management_pages_send_login(request);
     }
 
+    return management_send_admin_page(request);
+}
+
+static esp_err_t management_send_setup_page(httpd_req_t *request)
+{
+    char csrf[MANAGEMENT_SESSION_HEX_LENGTH + 1];
+    char setup_header[192];
+    management_session_start_setup(request, csrf, sizeof(csrf), setup_header,
+                                   sizeof(setup_header));
+    const esp_err_t send_result = management_pages_send_setup(request, csrf);
+    mbedtls_platform_zeroize(csrf, sizeof(csrf));
+    return send_result;
+}
+
+static esp_err_t management_send_admin_page(httpd_req_t *request)
+{
     char csrf[MANAGEMENT_SESSION_HEX_LENGTH + 1];
     management_session_copy_csrf(csrf, sizeof(csrf));
     const esp_err_t send_result = management_pages_send_admin(request, csrf);
@@ -73,18 +85,17 @@ esp_err_t management_factory_reset(void)
     {
         return result;
     }
+
     result = nvs_erase_all(handle);
-    if (result == ESP_OK)
-    {
-        result = nvs_commit(handle);
-    }
-    nvs_close(handle);
     if (result != ESP_OK)
     {
+        nvs_close(handle);
         return result;
     }
 
-    return ESP_OK;
+    result = nvs_commit(handle);
+    nvs_close(handle);
+    return result;
 }
 
 void management_factory_reset_complete(void)
@@ -111,14 +122,7 @@ esp_err_t management_server_start(void)
     httpd_ssl_config_t configuration = HTTPD_SSL_CONFIG_DEFAULT();
     configuration.httpd.server_port = MANAGEMENT_HTTPS_PORT;
     configuration.httpd.stack_size = 12288;
-    /*
-     * Chrome plus a trusted reverse proxy can exceed ESP-IDF's 1024-byte
-     * default before a setup or authentication handler receives the request.
-     * This remains a bounded, management-server-only limit; the HTTP captive
-     * portal retains its smaller default.
-     */
     configuration.httpd.max_req_hdr_len = MANAGEMENT_HTTPS_REQUEST_HEADER_LIMIT;
-    /* Allow a bounded idle interval while a browser streams a large OTA image. */
     configuration.httpd.recv_wait_timeout = 15;
     configuration.httpd.max_open_sockets = 4;
     configuration.httpd.max_uri_handlers = MANAGEMENT_HTTPS_ROUTE_CAPACITY;

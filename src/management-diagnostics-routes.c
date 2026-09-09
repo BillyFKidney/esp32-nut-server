@@ -9,14 +9,16 @@
 #include "nut-diagnostics.h"
 #include "mbedtls/platform_util.h"
 
+#define MANAGEMENT_DIAGNOSTIC_FORM_CONTENT_TYPE "application/x-www-form-urlencoded"
+#define MANAGEMENT_DIAGNOSTIC_DURATION_BUFFER_SIZE 4U
+
 static bool management_diagnostic_form_content_type_is_valid(httpd_req_t *request)
 {
-    static const char expected[] = "application/x-www-form-urlencoded";
-    char content_type[sizeof(expected)] = {0};
-    return httpd_req_get_hdr_value_len(request, "Content-Type") == sizeof(expected) - 1U &&
+    char content_type[sizeof(MANAGEMENT_DIAGNOSTIC_FORM_CONTENT_TYPE)] = {0};
+    return httpd_req_get_hdr_value_len(request, "Content-Type") == sizeof(MANAGEMENT_DIAGNOSTIC_FORM_CONTENT_TYPE) - 1U &&
            httpd_req_get_hdr_value_str(request, "Content-Type", content_type,
-                                      sizeof(content_type)) == ESP_OK &&
-           strcmp(content_type, expected) == 0;
+                                       sizeof(content_type)) == ESP_OK &&
+           strcmp(content_type, MANAGEMENT_DIAGNOSTIC_FORM_CONTENT_TYPE) == 0;
 }
 
 esp_err_t management_diagnostic_disconnect_start_handler(httpd_req_t *request)
@@ -31,7 +33,7 @@ esp_err_t management_diagnostic_disconnect_start_handler(httpd_req_t *request)
                                     "{\"error\":\"Disconnect simulation requires an application/x-www-form-urlencoded body.\"}");
     }
     char body[MANAGEMENT_FORM_BODY_LIMIT + 1U] = {0};
-    char duration_text[4] = {0};
+    char duration_text[MANAGEMENT_DIAGNOSTIC_DURATION_BUFFER_SIZE] = {0};
     const bool valid_form =
         management_read_form_body(request, body, sizeof(body)) == ESP_OK &&
         management_form_value(body, "duration_seconds", duration_text,

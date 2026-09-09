@@ -6,6 +6,8 @@
 #include "management-http.h"
 #include "management-session.h"
 
+#define MANAGEMENT_SESSION_ACTIVITY_RESPONSE_SIZE 96U
+
 esp_err_t management_session_logout_handler(httpd_req_t *request)
 {
     if (!management_session_csrf_is_valid(request))
@@ -26,7 +28,7 @@ esp_err_t management_session_activity_handler(httpd_req_t *request)
             "{\"error\":\"Invalid session or CSRF token.\"}");
     }
 
-    char response[96];
+    char response[MANAGEMENT_SESSION_ACTIVITY_RESPONSE_SIZE];
     const uint32_t remaining_seconds = management_session_remaining_seconds();
     snprintf(response, sizeof(response),
              "{\"remaining_seconds\":%u,\"warning\":%s}",
