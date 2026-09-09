@@ -2,7 +2,7 @@
 
 ## Scope
 
-This `v2.8.Z` review slice addresses only the routine-boundary finding in
+This `v2.8.4` review slice addresses only the routine-boundary finding in
 `ota_process_from_request()` and names the existing reboot task configuration.
 The implementation may extract private helpers in `src/ota.c`; it must not
 change externally observable OTA behavior.
