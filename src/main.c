@@ -20,15 +20,82 @@
 #include "wifi-provisioning.h"
 
 #define TAG PACKAGE
+#define NUT_FAT_MAX_FILES 4
+#define NUT_DIRECTORY_MODE 0755
+
+static const char NUT_UPSD_USERS_CONTENT[] =
+    "# Read-only server: no authenticated NUT users are configured.\n";
+static const char NUT_UPSD_CONF_CONTENT[] =
+    "ALLOW_NO_DEVICE true\n"
+    "LISTEN 0.0.0.0 3493\n"
+    "MAXCONN 4\n";
+static const char NUT_UPS_CONF_CONTENT[] =
+    "[cyberpower]\n"
+    "  driver = usbhid-ups\n"
+    "  port = auto\n"
+    "  desc = \"Read-only USB HID UPS\"\n"
+    "  pollonly\n"
+    "\n";
+static const char NUT_CONF_CONTENT[] = "MODE=netserver\n";
 
 extern int main(int, char **);
 
 extern int drivers_main(int, char **);
 
+static bool write_default_file(const char *path, const char *content)
+{
+    FILE *file = fopen(path, "wb");
+    if (file == NULL)
+    {
+        perror("fopen");
+        ESP_LOGE(TAG, "Failed to open file for writing");
+        return false;
+    }
+
+    fseek(file, 0, SEEK_END);
+    if (ftell(file) == 0)
+    {
+        fputs(content, file);
+        fflush(file);
+    }
+    fclose(file);
+    return true;
+}
+
+static bool create_directories(const char *first, const char *second, const char *third)
+{
+    if (mkdir(first, NUT_DIRECTORY_MODE) < 0 ||
+        mkdir(second, NUT_DIRECTORY_MODE) < 0 ||
+        (third != NULL && mkdir(third, NUT_DIRECTORY_MODE) < 0))
+    {
+        if (errno != EEXIST)
+        {
+            ESP_LOGE(TAG, "Failed to create directory: %s", strerror(errno));
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool mount_filesystem(
+    const char *mount_path,
+    const char *partition_label,
+    const esp_vfs_fat_mount_config_t *mount_config,
+    wl_handle_t *handle)
+{
+    esp_err_t err = esp_vfs_fat_spiflash_mount_rw_wl(mount_path, partition_label, mount_config, handle);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to mount FATFS (%s)", esp_err_to_name(err));
+        return false;
+    }
+    return true;
+}
+
 void mountFS(void)
 {
     const esp_vfs_fat_mount_config_t mount_config = {
-        .max_files = 4,                                // Number of files that can be open at a time
+        .max_files = NUT_FAT_MAX_FILES,                 // Number of files that can be open at a time
         .format_if_mount_failed = true,                // If true, try to format the partition if mount fails
         .allocation_unit_size = CONFIG_WL_SECTOR_SIZE, // Size of allocation unit, cluster size.
         .use_one_fat = false,                          // Use only one FAT table (reduce memory usage), but decrease reliability of file system in case of power failure.
@@ -38,110 +105,33 @@ void mountFS(void)
     static wl_handle_t s_var_wl_handle = WL_INVALID_HANDLE;
     static wl_handle_t s_usr_wl_handle = WL_INVALID_HANDLE;
 
-    esp_err_t err = esp_vfs_fat_spiflash_mount_rw_wl("/var", "var", &mount_config, &s_var_wl_handle);
-    if (err != ESP_OK)
+    if (!mount_filesystem("/var", "var", &mount_config, &s_var_wl_handle))
     {
-        ESP_LOGE(TAG, "Failed to mount FATFS (%s)", esp_err_to_name(err));
         return;
     }
 
-    if (mkdir("/var/db", 0755) < 0 || mkdir("/var/db/nut", 0755) < 0)
+    if (!create_directories("/var/db", "/var/db/nut", NULL))
     {
-        if (errno != EEXIST)
-        {
-            ESP_LOGE(TAG, "Failed to create directory: %s", strerror(errno));
-            return;
-        }
-    }
-
-    err = esp_vfs_fat_spiflash_mount_rw_wl("/usr", "usr", &mount_config, &s_usr_wl_handle);
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to mount FATFS (%s)", esp_err_to_name(err));
         return;
     }
 
-    if (mkdir("/usr/local", 0755) < 0 || mkdir("/usr/local/etc", 0755) < 0 || mkdir("/usr/local/etc/nut", 0755) < 0)
+    if (!mount_filesystem("/usr", "usr", &mount_config, &s_usr_wl_handle))
     {
-        if (errno != EEXIST)
-        {
-            ESP_LOGE(TAG, "Failed to create directory: %s", strerror(errno));
-            return;
-        }
-    }
-
-    FILE *f = fopen("/usr/local/etc/nut/upsd.users", "wb");
-    if (f == NULL)
-    {
-        perror("fopen"); // Print reason why fopen failed
-        ESP_LOGE(TAG, "Failed to open file for writing");
         return;
     }
 
-    fseek(f, 0, SEEK_END);
-    if (0 == ftell(f))
+    if (!create_directories("/usr/local", "/usr/local/etc", "/usr/local/etc/nut"))
     {
-        fprintf(f, "# Read-only server: no authenticated NUT users are configured.\n");
-        fflush(f);
-    }
-    fclose(f);
-
-    f = fopen("/usr/local/etc/nut/upsd.conf", "wb");
-    if (f == NULL)
-    {
-        perror("fopen"); // Print reason why fopen failed
-        ESP_LOGE(TAG, "Failed to open file for writing");
         return;
     }
 
-    fseek(f, 0, SEEK_END);
-    if (0 == ftell(f))
+    if (!write_default_file("/usr/local/etc/nut/upsd.users", NUT_UPSD_USERS_CONTENT) ||
+        !write_default_file("/usr/local/etc/nut/upsd.conf", NUT_UPSD_CONF_CONTENT) ||
+        !write_default_file("/usr/local/etc/nut/ups.conf", NUT_UPS_CONF_CONTENT) ||
+        !write_default_file("/usr/local/etc/nut/nut.conf", NUT_CONF_CONTENT))
     {
-        fprintf(f, "ALLOW_NO_DEVICE true\n");
-        fprintf(f, "LISTEN 0.0.0.0 3493\n"); // INADDR_ANY
-        fprintf(f, "MAXCONN 4\n");
-        fflush(f);
-    }
-    fclose(f);
-
-    f = fopen("/usr/local/etc/nut/ups.conf", "wb");
-    if (f == NULL)
-    {
-        perror("fopen"); // Print reason why fopen failed
-        ESP_LOGE(TAG, "Failed to open file for writing");
         return;
     }
-
-    fseek(f, 0, SEEK_END);
-    if (0 == ftell(f))
-    {
-        /* Keep the established service name for NUT clients, but let the
-         * read-only HID driver select an evidenced supported UPS model. */
-        fprintf(f, "[cyberpower]\n");
-        fprintf(f, "  driver = usbhid-ups\n");
-        fprintf(f, "  port = auto\n");
-        fprintf(f, "  desc = \"Read-only USB HID UPS\"\n");
-        fprintf(f, "  pollonly\n");
-        fprintf(f, "\n");
-        fflush(f);
-    }
-    fclose(f);
-
-    f = fopen("/usr/local/etc/nut/nut.conf", "wb");
-    if (f == NULL)
-    {
-        perror("fopen"); // Print reason why fopen failed
-        ESP_LOGE(TAG, "Failed to open file for writing");
-        return;
-    }
-
-    fseek(f, 0, SEEK_END);
-    if (0 == ftell(f))
-    {
-        fprintf(f, "MODE=netserver\n");
-        fflush(f);
-    }
-    fclose(f);
 }
 
 extern void hidHostInstall(void);
@@ -179,7 +169,6 @@ static void drv_main(void *pvParameter)
 
 void rtos_yield(void)
 {
-    // Yield to allow other tasks to run
     vTaskDelay(1);
 }
 
