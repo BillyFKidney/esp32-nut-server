@@ -12,7 +12,7 @@
 
 ## Acceptance record
 
-- **Observed:** The exact annotated `v2.8.1` tag at `4406e0f60` clean-built
+- **Observed:** The exact annotated `v2.8.1` tag at `c6bf2d1be` clean-built
   with ESP-IDF v6.0.2. `nut-esp32s3.bin` is 1,362,080 bytes, has SHA-256
   `ebb20c6a047c42498e2d4d382b44bc91e2a8e3d4413d44999eab8f6fc0fc11f3`, and
   retains 59% app-partition headroom.
@@ -41,6 +41,7 @@
 ## Release closeout
 
 - **Complete:** The annotated `v2.8.1` tag identifies the exact tested source.
-  The GitHub release publishes the versioned firmware asset and matching
-  SHA-256 sidecar; its URL and published-checksum verification are recorded in
-  the final release handoff.
+  The [GitHub release](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.1)
+  publishes `nut-esp32s3-v2.8.1.bin` and its matching SHA-256 sidecar. GitHub
+  reports the firmware asset digest as
+  `ebb20c6a047c42498e2d4d382b44bc91e2a8e3d4413d44999eab8f6fc0fc11f3`.
