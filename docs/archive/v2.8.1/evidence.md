@@ -12,11 +12,23 @@
 
 ## Acceptance record
 
-- **Observed (pre-tag):** The repaired
+- **Observed:** The exact annotated `v2.8.1` tag at `4406e0f60` clean-built
+  with ESP-IDF v6.0.2. `nut-esp32s3.bin` is 1,362,080 bytes, has SHA-256
+  `ebb20c6a047c42498e2d4d382b44bc91e2a8e3d4413d44999eab8f6fc0fc11f3`, and
+  retains 59% app-partition headroom.
+- **Observed:** Certificate-pinned scoped OTA installed that exact artifact on
+  the authorized 3Dprinter Agent Tests unit at `192.168.40.88`. After reboot,
+  authenticated Agent status reports firmware `v2.8.1`, running slot `app0`,
+  last update `installed`, and healthy Wi-Fi/time synchronization.
+- **Observed:** The post-reboot direct acceptance checks found read-only NUT
+  `3493` healthy, a full 57-variable poll with `ups.status OL`, and retired
+  `8080` refused.
+- **Observed:** The repaired
   `esp32nut-3dprinter.28670avenidacondesa.com` proxy resolves to
   `192.168.40.10`, presents a normally trusted certificate, returns HTTPS 200
   for the sign-in page, rejects unauthenticated `/api/v1/status` with 401, and
-  accepts the scoped diagnostic-token Agent-status request with HTTP 200.
+  accepts the scoped diagnostic-token Agent-status request for firmware
+  `v2.8.1` with HTTP 200.
 - **Observed (pre-tag):** The Project Maintainer's Chrome dashboard evidence
   shows the repaired FQDN serving the authenticated 3Dprinter UI. The installed
   development candidate reports connected Wi-Fi at `192.168.40.88`, NUT health
@@ -25,12 +37,10 @@
   `443` and read-only NUT `3493` open, retired `8080` refused, fingerprint-pinned
   diagnostic Agent status healthy, and a complete 57-variable NUT poll with
   `ups.status OL`.
-- **Pending:** Certificate-pinned scoped OTA of the exact tagged artifact to
-  the authorized 3Dprinter Agent Tests unit, followed by the same FQDN and
-  direct post-reboot acceptance checks.
 
 ## Release closeout
 
-- **Pending:** Annotated `v2.8.1` tag, exact-tag rebuild, versioned firmware
-  asset, matching SHA-256 sidecar, GitHub release URL, and verified published
-  artifact checksums.
+- **Complete:** The annotated `v2.8.1` tag identifies the exact tested source.
+  The GitHub release publishes the versioned firmware asset and matching
+  SHA-256 sidecar; its URL and published-checksum verification are recorded in
+  the final release handoff.
