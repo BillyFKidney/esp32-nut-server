@@ -10,12 +10,13 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `main` contains the released v2.8.1 maintenance slice, including the documentation reorganization. The exact tested release source is annotated `v2.8.1` at `c6bf2d1be`; remote divergence is refreshed at release closeout. |
-| Published release | [`v2.8.0`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.0) is published from the exact tagged build with `nut-esp32s3-v2.8.0.bin` and its SHA-256 sidecar. Firmware SHA-256 is `9bc140383d93d140c46da319b95d58db15968d3a91ad167ef90a797501c781f8`; release evidence is in [archive/v2.8.0/evidence.md](archive/v2.8.0/evidence.md). |
+| Active branch | `main` contains the released v2.8.3 token-store review slice. The exact tested release source is annotated `v2.8.3` at `0d9e433a5`; remote divergence is refreshed at release closeout. |
+| Published release | [`v2.8.3`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.3) is published from the exact tagged build with `nut-esp32s3-v2.8.3.bin` and its SHA-256 sidecar. Firmware SHA-256 is `3ba9ba14e38af156c29566cf635e4c0087a2699dbbf1b861b140bb1daeb186ac`; release evidence is in [archive/v2.8.3/evidence.md](../archive/v2.8.3/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
 | v2.8.0 candidate | The self-contained ADMIN UI now has a persistent appliance header, single-row responsive navigation, compact auto-refresh control, browser-native battery/load meters, full-width hardware diagnostics, no Dashboard logs, pretty Device Status JSON, and a lazy Logs page backed by the unchanged ADMIN 24-entry route with Copy and Download. The redundant certificate/LAN-only and ADMIN-session notices are removed. All pages declare a device-served favicon backed by the canonical tracked NUT logo. Every v1 route/payload and the six-entry `/api/v1/status` log window remain unchanged. The flash-resident 48,089-byte page is streamed through a 768-byte stack buffer instead of allocating a 49,152-byte whole-page heap buffer. |
 | v2.8.0 validation | The exact annotated-tag build from `v2.8.0` passed ESP-IDF v6.0.2 reconfigure/build and `idf.py size`; the 1,362,432-byte artifact has SHA-256 `9bc140383d93d140c46da319b95d58db15968d3a91ad167ef90a797501c781f8` and 59% app-slot headroom. It is OTA-installed on the authorized `3Dprinter` Agent Tests unit in `app0`; diagnostics report firmware `v2.8.0`, update `installed`, HTTPS `443`, NUT `3493`, refused `8080`, and a post-reboot complete 57-variable NUT poll with `ups.status OL`. Live ADMIN validation passed the removed-notice and favicon checks plus page, status/log, unauthenticated, and invalid-CSRF checks; the live favicon exactly matches the canonical tracked PNG. The Project Maintainer's final Chrome check accepted the UI as great and the remaining icon issue as acceptable. The screenshot's two console 404s were requests to external `c.1password.com/richicons/...` images for 1Password entries, not the ESP32 `/favicon.ico`. Clipboard/download behavior remains not tested. Garage did not answer the refreshed post-blink probe and was not modified. |
 | v2.8.1 release | This maintenance release adds no product features and preserves the released management, authorization, NUT, UPS, and service contracts. The exact tagged ESP-IDF v6.0.2 build is 1,362,080 bytes with SHA-256 `ebb20c6a047c42498e2d4d382b44bc91e2a8e3d4413d44999eab8f6fc0fc11f3` and 59% app-slot headroom. It is OTA-installed on 3Dprinter at `192.168.40.88` in `app0`, reports firmware `v2.8.1` and update `installed`, has a healthy 57-variable NUT poll with UPS `OL`, retains HTTPS `443`/NUT `3493`, and refuses `8080`. The repaired FQDN passes trusted HTTPS root, unauthenticated 401, and scoped diagnostic-token status acceptance. [The GitHub release is published](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.1); evidence is in [archive/v2.8.1/evidence.md](../archive/v2.8.1/evidence.md). |
+| v2.8.3 release | This maintenance release unifies duplicated OTA and diagnostic token-store lifecycle behind a private store while preserving token NVS layout, verifier-only storage, token scopes, ADMIN/CSRF routes, and external payloads. The exact tagged ESP-IDF v6.0.2 build is 1,359,808 bytes with SHA-256 `3ba9ba14e38af156c29566cf635e4c0087a2699dbbf1b861b140bb1daeb186ac` and 59% app-slot headroom. It is OTA-installed on the authorized Agent Tests unit, reports firmware `v2.8.3` and update `installed`, has a healthy 57-variable NUT poll with UPS `OL`, retains HTTPS `443`/NUT `3493`, and refuses `8080`. [The GitHub release is published](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.3); evidence is in [archive/v2.8.3/evidence.md](../archive/v2.8.3/evidence.md). |
 | v2.7.11 finding | Diagnostic candidate `7a1239084` was built as `v2.7.10-3-g7a1239084` and OTA-installed on the authorized `3Dprinter` unit. It ran from `app1`, reported update state `installed`, and recovered to a full NUT poll with `health: ok` and UPS `OL`. Its clearer browser error exposed `HTTP 413`; the supplied NGINX site configuration confirms that no `client_max_body_size` is set for either ESP32 management site, so NGINX rejected the image before contacting the ESP32. The diagnostic firmware change is not retained for merge. |
 | v2.7.10 implementation | Full 24-entry volatile log snapshot route, bounded JSON chunking, click-only Copy Logs/Copy JSON UI, presentation-only `CPS` label mapping, Device Status settings placement, and a macOS build-enforced embedded-JavaScript syntax validator are implemented. The ADMIN page now has a bounded 49,152-byte allocation, and the validator rejects a generated page that does not fit it. |
 | v2.7.10 validation | The tagged `v2.7.10` source clean-built with its rendered-page validator and 60% app-partition headroom. The checksum-verified versioned artifact OTA-installed successfully and now reports `v2.7.10`; its post-reboot full NUT poll is `OL`, HTTPS `443` and NUT `3493` respond, and `8080` remains refused. Full API, authorization, Chrome, iPhone Safari, copy, Wi-Fi scan, session-expiry, and responsive-layout evidence is recorded in [archive/v2.7.10/evidence.md](archive/v2.7.10/evidence.md). The clipboard-denial fallback remains implemented but unforced. |
@@ -26,34 +27,21 @@ archive, source tree, or project chat. Completed release evidence is in
 
 ## Current objective
 
-The fresh v2.8.2 `src/` code-complete review is released from `main`
-`94b2ba52ac87db78d7932c189c873ce0b5277ce8` as
-[v2.8.2](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.2).
-The previous completed tracker
-was preserved as `.code-review-tracker.20260909-142413.bak`; reconciliation
-confirmed every one of its 31 file paths is within the new 108 tracked-file
-`src/` inventory (the untracked `src/.DS_Store` is excluded). The completed
-tracker contains 69 findings: seven narrow fixes independently pass review and
-62 security-, compatibility-, lifecycle-, or architecture-sensitive findings
-remain documented `SKIP` debt rather than forced refactors. The Agent OTA and
-diagnostic helper names now match the current 1Password environment contract.
-Both 1Password environments were materialized temporarily outside the
-repository, all variables passed redacted presence/format checks, and both
-devices passed direct-IP and reverse-proxy fingerprint-pinned diagnostic
-authentication; both ADMIN passwords and both OTA-token scope checks also
-passed without uploading firmware. Temporary mounts were removed. The
-Maintainer authorized build, OTA, push, merge, tag, release, and related
-ESP32-NUT development actions on September 9. The exact-tag ESP-IDF v6.0.2
-artifact is 1,361,216 bytes with SHA-256
-`7a3fa0e586d638045d636534dbcf1481f0c090a7a9dbc9b6a35db721602f43a6` and
-59% app-slot headroom. Agent Tests OTA acceptance reports `v2.8.2`,
-`installed`, healthy NUT after settling, HTTPS `443`, NUT `3493`, refused
-`8080`, and a 57-variable `OL` poll. The exact next action is scope the next
-v2.8.x slice; `v2.8.Z` remains reserved until its preceding review boundary is
-complete. See
-[ESP32_SRC_CODE_REVIEW_PLAN.md](ESP32_SRC_CODE_REVIEW_PLAN.md). Logs
-Copy/Download and clipboard fallback remain untested; Garage is newly observed
-reachable but remains unmodified.
+The v2.8.3 token-store review is released from `main`
+`0d9e433a5d601abf77a67ba3ff1fad43ca5a09fc` as
+[v2.8.3](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.3).
+The three-item tracker is complete: duplicated token persistence, routine
+length, and god-file findings were resolved by a private shared store with
+static layout assertions and independently reviewed source compatibility.
+Agent Tests 1Password variables passed redacted presence and format checks;
+the tagged artifact passed exact ESP-IDF v6.0.2 build, scoped OTA, post-reboot
+version and update-state checks, HTTPS `443`, read-only NUT `3493`, refused
+`8080`, and a healthy 57-variable `OL` NUT poll. The exact next action is to
+select the next dedicated review contract from the explicit v2.8.2 `SKIP` debt;
+its release remains `v2.8.Z` until review completion. See
+[ESP32_SRC_CODE_REVIEW_PLAN.md](ESP32_SRC_CODE_REVIEW_PLAN.md). Garage remains
+unmodified; its registered 1Password local mount requires cleanup before a
+fresh materialization can be tested.
 
 ## Read only when needed
 

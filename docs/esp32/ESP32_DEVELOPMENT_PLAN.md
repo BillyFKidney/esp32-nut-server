@@ -36,8 +36,8 @@ target installation remains a separate authorization boundary.
 
 ## Published baseline
 
-`v2.8.0` is published and target-tested. `v2.8.1` is the active maintenance
-candidate and must complete its defined release validation before publication.
+`v2.8.0` through `v2.8.3` are published and target-tested. The next focused
+code-review release remains `v2.8.Z` until that review boundary is complete.
 
 ## Operational Management completion — `v2.x`
 
@@ -50,8 +50,9 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | --- | --- | --- |
 | `v2.8.0` | Released | [Appliance UI and bounded-resource optimization](archive/v2.8.0/evidence.md): retained every v1 API contract, added the responsive appliance UI and lazy 24-entry Logs page, streamed the ADMIN page without a whole-page heap allocation, and passed clean tagged build, OTA, browser, service, and full-NUT validation. |
 | `v2.8.1` | `feature/v2.8.1-code-quality` | [Code-quality maintenance](archive/v2.8.1/evidence.md): preserve all released behavior while applying narrowly reviewed code-quality improvements. Require a clean exact-tag build, certificate-pinned scoped OTA, repaired-proxy browser and ADMIN/CSRF acceptance, HTTPS `443`, read-only NUT `3493`, refused `8080`, and a post-reboot full successful NUT poll before publication. |
-| `v2.8.2` | `review/src-code-complete` | Fresh 68-check review of all 108 tracked `src/` files is complete in [the tracker](../../.code-review-tracker.md): seven narrowly behavior-preserving hygiene/`mountFS` fixes passed independent review; 62 security-, compatibility-, lifecycle-, or architecture-sensitive findings remain explicit `SKIP` debt for dedicated slices. The prior completed token-store tracker is archived and not carried forward. The detailed method, language-applicability rule, and validation boundary are in [the `src/` review plan](ESP32_SRC_CODE_REVIEW_PLAN.md). The environment-helper contract is aligned to the current 1Password variable names; a clean ESP-IDF v6.0.2 build is the next validation gate before committing or accepting this slice. |
-| `v2.8.3` | `review/api-token-storage-contract` | [Token-store code-review maintenance](ESP32_API_TOKEN_STORAGE_CONTRACT.md): unify duplicated OTA/diagnostic token-store lifecycle behind the locked storage contract without a cross-scope authorization or NVS compatibility change. Live create/list/delete/revocation and authorization-isolation acceptance passed before release closure. |
+| `v2.8.2` | Released | Fresh 68-check review of all 108 tracked `src/` files is complete: seven narrowly behavior-preserving hygiene/`mountFS` fixes passed independent review; 62 security-, compatibility-, lifecycle-, or architecture-sensitive findings remain explicit `SKIP` debt for dedicated slices. The exact-tag build, scoped OTA, service-boundary checks, and healthy full-NUT poll passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.2). |
+| `v2.8.3` | Released | [Token-store code-review maintenance](ESP32_API_TOKEN_STORAGE_CONTRACT.md): duplicated OTA/diagnostic token lifecycle now shares a private store while preserving NVS layout and authorization isolation. Exact-tag ESP-IDF v6.0.2 build, live create/list/delete/revocation checks, scope isolation, scoped OTA, service boundaries, and healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.3); see [release evidence](../archive/v2.8.3/evidence.md). |
+| `v2.8.Z` | To be assigned after review | Next dedicated code-review slice selected from the explicit v2.8.2 `SKIP` debt. Lock its compatibility contract and perform independent scan, fix, review, exact-tag build, and live acceptance before assigning a version. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
 
