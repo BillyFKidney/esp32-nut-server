@@ -26,9 +26,10 @@ archive, source tree, or project chat. Completed release evidence is in
 
 ## Current objective
 
-The fresh v2.8.2 `src/` code-complete review is complete in the uncommitted
-worktree on local branch `review/src-code-complete` from `main`
-`8a84e65a4f89cc159d6a727726aefb60d578c309`. The previous completed tracker
+The fresh v2.8.2 `src/` code-complete review is released from `main`
+`94b2ba52ac87db78d7932c189c873ce0b5277ce8` as
+[v2.8.2](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.2).
+The previous completed tracker
 was preserved as `.code-review-tracker.20260909-142413.bak`; reconciliation
 confirmed every one of its 31 file paths is within the new 108 tracked-file
 `src/` inventory (the untracked `src/.DS_Store` is excluded). The completed
@@ -42,12 +43,14 @@ devices passed direct-IP and reverse-proxy fingerprint-pinned diagnostic
 authentication; both ADMIN passwords and both OTA-token scope checks also
 passed without uploading firmware. Temporary mounts were removed. The
 Maintainer authorized build, OTA, push, merge, tag, release, and related
-ESP32-NUT development actions on September 9. The dirty-worktree ESP-IDF
-v6.0.2 build passed with a 1,361,216-byte application, SHA-256
-`be9cc9c61e16927eb3cfd51074f607203ad8e47f581a099ecbea0f2a456cbd3a`, and
-59% app-slot headroom; the upstream `fork`/`kill` linker warnings remain. The
-exact next action is commit, push, merge, and an exact-tag rebuild before the
-authorized Agent Tests OTA acceptance. See
+ESP32-NUT development actions on September 9. The exact-tag ESP-IDF v6.0.2
+artifact is 1,361,216 bytes with SHA-256
+`7a3fa0e586d638045d636534dbcf1481f0c090a7a9dbc9b6a35db721602f43a6` and
+59% app-slot headroom. Agent Tests OTA acceptance reports `v2.8.2`,
+`installed`, healthy NUT after settling, HTTPS `443`, NUT `3493`, refused
+`8080`, and a 57-variable `OL` poll. The exact next action is scope the next
+v2.8.x slice; `v2.8.Z` remains reserved until its preceding review boundary is
+complete. See
 [ESP32_SRC_CODE_REVIEW_PLAN.md](ESP32_SRC_CODE_REVIEW_PLAN.md). Logs
 Copy/Download and clipboard fallback remain untested; Garage is newly observed
 reachable but remains unmodified.
