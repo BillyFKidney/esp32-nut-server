@@ -1,13 +1,13 @@
 /** @file usb.c @brief Run ESP-IDF USB host tasks and HID discovery. @see drivers/espusb.h, usb/usb_host.h, usb/usb_helpers.h, esp_check.h */
-#include "usb/usb_host.h"
-#include "usb/usb_helpers.h"
-#include "drivers/espusb.h"
+#include <string.h>
 
 #include "esp_check.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "usb/usb_helpers.h"
+#include "usb/usb_host.h"
 
-#include <string.h>
+#include "drivers/espusb.h"
 
 #define CLIENT_NUM_EVENT_MSG 5
 

@@ -14,7 +14,7 @@ import ssl
 import sys
 
 
-TOKEN_ENVIRONMENT_VARIABLE = "ESP32_NUT_OTA_TOKEN"
+TOKEN_ENVIRONMENT_VARIABLE = "ESP32_NUT_API_TOKEN"
 TOKEN_PATTERN = re.compile(r"esp32nut_v1_[0-9a-f]{64}\Z")
 TOKEN_REDACTION_PATTERN = re.compile(r"esp32nut_v1_[0-9a-f]{64}")
 OTA_ROUTE = "/api/v1/agent/ota/install"

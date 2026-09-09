@@ -26,11 +26,31 @@ archive, source tree, or project chat. Completed release evidence is in
 
 ## Current objective
 
-Next exact action: start the `feature/token-store-refactor` v2.8.2 branch from
-updated `main` to resolve the three tracker items for `src/api_tokens.c` behind
-a reviewed storage contract. Logs Copy/Download and clipboard fallback remain
-untested, and Garage remains untouched until it is independently reachable and
-healthy after the September 2 power blink.
+The fresh v2.8.2 `src/` code-complete review is complete in the uncommitted
+worktree on local branch `review/src-code-complete` from `main`
+`8a84e65a4f89cc159d6a727726aefb60d578c309`. The previous completed tracker
+was preserved as `.code-review-tracker.20260909-142413.bak`; reconciliation
+confirmed every one of its 31 file paths is within the new 108 tracked-file
+`src/` inventory (the untracked `src/.DS_Store` is excluded). The completed
+tracker contains 69 findings: seven narrow fixes independently pass review and
+62 security-, compatibility-, lifecycle-, or architecture-sensitive findings
+remain documented `SKIP` debt rather than forced refactors. The Agent OTA and
+diagnostic helper names now match the current 1Password environment contract.
+Both 1Password environments were materialized temporarily outside the
+repository, all variables passed redacted presence/format checks, and both
+devices passed direct-IP and reverse-proxy fingerprint-pinned diagnostic
+authentication; both ADMIN passwords and both OTA-token scope checks also
+passed without uploading firmware. Temporary mounts were removed. The
+Maintainer authorized build, OTA, push, merge, tag, release, and related
+ESP32-NUT development actions on September 9. The dirty-worktree ESP-IDF
+v6.0.2 build passed with a 1,361,216-byte application, SHA-256
+`be9cc9c61e16927eb3cfd51074f607203ad8e47f581a099ecbea0f2a456cbd3a`, and
+59% app-slot headroom; the upstream `fork`/`kill` linker warnings remain. The
+exact next action is commit, push, merge, and an exact-tag rebuild before the
+authorized Agent Tests OTA acceptance. See
+[ESP32_SRC_CODE_REVIEW_PLAN.md](ESP32_SRC_CODE_REVIEW_PLAN.md). Logs
+Copy/Download and clipboard fallback remain untested; Garage is newly observed
+reachable but remains unmodified.
 
 ## Read only when needed
 
