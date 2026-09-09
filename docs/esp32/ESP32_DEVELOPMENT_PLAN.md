@@ -50,7 +50,8 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | --- | --- | --- |
 | `v2.8.0` | Released | [Appliance UI and bounded-resource optimization](archive/v2.8.0/evidence.md): retained every v1 API contract, added the responsive appliance UI and lazy 24-entry Logs page, streamed the ADMIN page without a whole-page heap allocation, and passed clean tagged build, OTA, browser, service, and full-NUT validation. |
 | `v2.8.1` | `feature/v2.8.1-code-quality` | [Code-quality maintenance](archive/v2.8.1/evidence.md): preserve all released behavior while applying narrowly reviewed code-quality improvements. Require a clean exact-tag build, certificate-pinned scoped OTA, repaired-proxy browser and ADMIN/CSRF acceptance, HTTPS `443`, read-only NUT `3493`, refused `8080`, and a post-reboot full successful NUT poll before publication. |
-| `v2.9.0` | `feature/operational-management-acceptance` | Validate the locked definition of done from iPhone and MacBook Air and publish the final `v2.x` acceptance release. |
+| `v2.8.2` | `feature/token-store-refactor` | Refactor the deferred API-token and diagnostic-token persistence flows only after a reviewed storage-contract specification, focused tests for issue/list/delete/revocation behavior, bounded-resource evidence, and scope-separation regression checks. No new token capability or broader authorization is allowed. |
+| `v2.8.3` | `feature/operational-management-acceptance` | Complete the remaining v2.x browser acceptance: independently exercise Logs Copy/Download and clipboard-denial fallback on the supported browser surfaces, preserve the existing ADMIN/CSRF and service boundaries, and publish the final v2.x acceptance evidence. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
 
