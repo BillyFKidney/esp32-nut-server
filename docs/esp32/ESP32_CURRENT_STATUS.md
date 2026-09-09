@@ -10,7 +10,7 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `main` contains the released v2.8.3 token-store review slice. The exact tested release source is annotated `v2.8.3` at `0d9e433a5`; remote divergence is refreshed at release closeout. |
+| Active branch | `review/ota-route-contract` is based on `main` at `432603300`; it owns the completed v2.8.4 OTA-route review and awaits live acceptance. The released v2.8.3 source remains annotated at `0d9e433a5`. |
 | Published release | [`v2.8.3`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.3) is published from the exact tagged build with `nut-esp32s3-v2.8.3.bin` and its SHA-256 sidecar. Firmware SHA-256 is `3ba9ba14e38af156c29566cf635e4c0087a2699dbbf1b861b140bb1daeb186ac`; release evidence is in [archive/v2.8.3/evidence.md](../archive/v2.8.3/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
 | v2.8.0 candidate | The self-contained ADMIN UI now has a persistent appliance header, single-row responsive navigation, compact auto-refresh control, browser-native battery/load meters, full-width hardware diagnostics, no Dashboard logs, pretty Device Status JSON, and a lazy Logs page backed by the unchanged ADMIN 24-entry route with Copy and Download. The redundant certificate/LAN-only and ADMIN-session notices are removed. All pages declare a device-served favicon backed by the canonical tracked NUT logo. Every v1 route/payload and the six-entry `/api/v1/status` log window remain unchanged. The flash-resident 48,089-byte page is streamed through a 768-byte stack buffer instead of allocating a 49,152-byte whole-page heap buffer. |
@@ -37,11 +37,13 @@ Agent Tests 1Password variables passed redacted presence and format checks;
 the tagged artifact passed exact ESP-IDF v6.0.2 build, scoped OTA, post-reboot
 version and update-state checks, HTTPS `443`, read-only NUT `3493`, refused
 `8080`, and a healthy 57-variable `OL` NUT poll. The exact next action is to
-select the next dedicated review contract from the explicit v2.8.2 `SKIP` debt;
-its release remains `v2.8.Z` until review completion. See
-[ESP32_SRC_CODE_REVIEW_PLAN.md](ESP32_SRC_CODE_REVIEW_PLAN.md). Garage remains
-unmodified; its registered 1Password local mount requires cleanup before a
-fresh materialization can be tested.
+begin the next dedicated review contract from the explicit v2.8.2 `SKIP` debt.
+`review/ota-route-contract` completed its two-item `src/ota.c` tracker and
+the locked [OTA route contract](ESP32_OTA_ROUTE_CONTRACT.md). Independent
+review and ESP-IDF v6.0.2 build/size validation pass; this slice is assigned
+`v2.8.4` and awaits exact-tag live OTA acceptance. Garage remains unmodified;
+its registered 1Password local mount requires cleanup before a fresh
+materialization can be tested.
 
 ## Read only when needed
 

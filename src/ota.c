@@ -21,6 +21,8 @@
 #define OTA_RECEIVE_BUFFER_SIZE 4096
 #define OTA_RECEIVE_TIMEOUT_RETRIES 4
 #define OTA_REBOOT_DELAY_MS 1000
+#define OTA_REBOOT_TASK_STACK_SIZE 2048
+#define OTA_REBOOT_TASK_PRIORITY 5
 #define OTA_IMAGE_VERSION_BUFFER_SIZE (sizeof(((esp_app_desc_t *)0)->version) + 1U)
 #define OTA_CHECK_RESPONSE_SIZE 192U
 
@@ -218,6 +220,72 @@ static void ota_reboot_task(void *parameter)
     esp_restart();
 }
 
+static esp_err_t ota_receive_image(httpd_req_t *request,
+                                   esp_ota_handle_t update_handle,
+                                   OtaFailure *failure)
+{
+    char receive_buffer[OTA_RECEIVE_BUFFER_SIZE];
+    int remaining = request->content_len;
+    unsigned int receive_timeout_retries = 0;
+    esp_err_t result = ESP_OK;
+
+    while (remaining > 0)
+    {
+        const size_t receive_size = remaining < (int)sizeof(receive_buffer)
+                                        ? (size_t)remaining
+                                        : sizeof(receive_buffer);
+        const int received = httpd_req_recv(request, receive_buffer, receive_size);
+        if (received <= 0)
+        {
+            if (received == HTTPD_SOCK_ERR_TIMEOUT &&
+                receive_timeout_retries < OTA_RECEIVE_TIMEOUT_RETRIES)
+            {
+                receive_timeout_retries++;
+                ESP_LOGW(TAG, "OTA image receive timed out; retrying (%u/%u)",
+                         receive_timeout_retries, OTA_RECEIVE_TIMEOUT_RETRIES);
+                continue;
+            }
+
+            result = received == HTTPD_SOCK_ERR_TIMEOUT ? ESP_ERR_TIMEOUT : ESP_FAIL;
+            *failure = received == HTTPD_SOCK_ERR_TIMEOUT
+                           ? OTA_FAILURE_RECEIVE_TIMEOUT
+                           : OTA_FAILURE_RECEIVE;
+            ESP_LOGE(TAG, "OTA image receive failed: %s", esp_err_to_name(result));
+            break;
+        }
+
+        receive_timeout_retries = 0;
+        result = esp_ota_write(update_handle, receive_buffer, received);
+        if (result != ESP_OK)
+        {
+            *failure = result == ESP_ERR_OTA_VALIDATE_FAILED
+                           ? OTA_FAILURE_VALIDATE
+                           : OTA_FAILURE_WRITE;
+            ESP_LOGE(TAG, "OTA image write failed: %s", esp_err_to_name(result));
+            break;
+        }
+        remaining -= received;
+    }
+
+    if (result == ESP_OK)
+    {
+        result = esp_ota_end(update_handle);
+        if (result != ESP_OK)
+        {
+            *failure = result == ESP_ERR_OTA_VALIDATE_FAILED
+                           ? OTA_FAILURE_VALIDATE
+                           : OTA_FAILURE_WRITE;
+            ESP_LOGE(TAG, "OTA image verification failed: %s", esp_err_to_name(result));
+        }
+    }
+    else
+    {
+        esp_ota_abort(update_handle);
+    }
+
+    return result;
+}
+
 static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
 {
     if (ota_update_in_progress)
@@ -265,63 +333,8 @@ static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
                               "{\"status\":\"error\",\"message\":\"Unable to begin OTA update.\"}");
     }
 
-    char receive_buffer[OTA_RECEIVE_BUFFER_SIZE];
-    int remaining = request->content_len;
-    unsigned int receive_timeout_retries = 0;
     OtaFailure failure = OTA_FAILURE_NONE;
-    while (remaining > 0)
-    {
-        const size_t receive_size = remaining < (int)sizeof(receive_buffer)
-                                        ? (size_t)remaining
-                                        : sizeof(receive_buffer);
-        const int received = httpd_req_recv(request, receive_buffer, receive_size);
-        if (received <= 0)
-        {
-            if (received == HTTPD_SOCK_ERR_TIMEOUT &&
-                receive_timeout_retries < OTA_RECEIVE_TIMEOUT_RETRIES)
-            {
-                receive_timeout_retries++;
-                ESP_LOGW(TAG, "OTA image receive timed out; retrying (%u/%u)",
-                         receive_timeout_retries, OTA_RECEIVE_TIMEOUT_RETRIES);
-                continue;
-            }
-
-            result = received == HTTPD_SOCK_ERR_TIMEOUT ? ESP_ERR_TIMEOUT : ESP_FAIL;
-            failure = received == HTTPD_SOCK_ERR_TIMEOUT
-                          ? OTA_FAILURE_RECEIVE_TIMEOUT
-                          : OTA_FAILURE_RECEIVE;
-            ESP_LOGE(TAG, "OTA image receive failed: %s", esp_err_to_name(result));
-            break;
-        }
-
-        receive_timeout_retries = 0;
-        result = esp_ota_write(update_handle, receive_buffer, received);
-        if (result != ESP_OK)
-        {
-            failure = result == ESP_ERR_OTA_VALIDATE_FAILED
-                          ? OTA_FAILURE_VALIDATE
-                          : OTA_FAILURE_WRITE;
-            ESP_LOGE(TAG, "OTA image write failed: %s", esp_err_to_name(result));
-            break;
-        }
-        remaining -= received;
-    }
-
-    if (result == ESP_OK)
-    {
-        result = esp_ota_end(update_handle);
-        if (result != ESP_OK)
-        {
-            failure = result == ESP_ERR_OTA_VALIDATE_FAILED
-                          ? OTA_FAILURE_VALIDATE
-                          : OTA_FAILURE_WRITE;
-            ESP_LOGE(TAG, "OTA image verification failed: %s", esp_err_to_name(result));
-        }
-    }
-    else
-    {
-        esp_ota_abort(update_handle);
-    }
+    result = ota_receive_image(request, update_handle, &failure);
 
     if (result == ESP_OK && install)
     {
@@ -354,7 +367,8 @@ static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
     const esp_err_t response_result = httpd_resp_sendstr(
         request, "{\"status\":\"installed\",\"message\":\"Firmware verified. Restarting now.\"}");
     if (response_result == ESP_OK &&
-        xTaskCreate(ota_reboot_task, "ota-reboot", 2048, NULL, 5, NULL) != pdPASS)
+        xTaskCreate(ota_reboot_task, "ota-reboot", OTA_REBOOT_TASK_STACK_SIZE, NULL,
+                    OTA_REBOOT_TASK_PRIORITY, NULL) != pdPASS)
     {
         ESP_LOGE(TAG, "Unable to schedule OTA reboot");
     }
