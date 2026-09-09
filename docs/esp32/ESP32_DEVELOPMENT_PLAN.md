@@ -36,8 +36,8 @@ target installation remains a separate authorization boundary.
 
 ## Published baseline
 
-`v2.8.0` through `v2.8.3` are published and target-tested. The completed next
-focused review is assigned `v2.8.4`; it awaits exact-tag live acceptance.
+`v2.8.0` through `v2.8.4` are published and target-tested. The next focused
+code-review release remains `v2.8.Z` until that review boundary is complete.
 
 ## Operational Management completion — `v2.x`
 
@@ -52,7 +52,8 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | `v2.8.1` | `feature/v2.8.1-code-quality` | [Code-quality maintenance](archive/v2.8.1/evidence.md): preserve all released behavior while applying narrowly reviewed code-quality improvements. Require a clean exact-tag build, certificate-pinned scoped OTA, repaired-proxy browser and ADMIN/CSRF acceptance, HTTPS `443`, read-only NUT `3493`, refused `8080`, and a post-reboot full successful NUT poll before publication. |
 | `v2.8.2` | Released | Fresh 68-check review of all 108 tracked `src/` files is complete: seven narrowly behavior-preserving hygiene/`mountFS` fixes passed independent review; 62 security-, compatibility-, lifecycle-, or architecture-sensitive findings remain explicit `SKIP` debt for dedicated slices. The exact-tag build, scoped OTA, service-boundary checks, and healthy full-NUT poll passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.2). |
 | `v2.8.3` | Released | [Token-store code-review maintenance](ESP32_API_TOKEN_STORAGE_CONTRACT.md): duplicated OTA/diagnostic token lifecycle now shares a private store while preserving NVS layout and authorization isolation. Exact-tag ESP-IDF v6.0.2 build, live create/list/delete/revocation checks, scope isolation, scoped OTA, service boundaries, and healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.3); see [release evidence](../archive/v2.8.3/evidence.md). |
-| `v2.8.4` | `review/ota-route-contract` | [OTA route code-review maintenance](ESP32_OTA_ROUTE_CONTRACT.md): split the OTA request orchestration without changing authorization, image, persistence, response, partition, or reboot behavior. Independent scan, contract, implementation review, and ESP-IDF v6.0.2 build/size validation pass; exact-tag live acceptance remains before publication. |
+| `v2.8.4` | Released | [OTA route code-review maintenance](ESP32_OTA_ROUTE_CONTRACT.md): split the OTA request orchestration without changing authorization, image, persistence, response, partition, or reboot behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, service-boundary checks, and healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.4); see [release evidence](../archive/v2.8.4/evidence.md). |
+| `v2.8.Z` | To be assigned after review | Next dedicated code-review slice selected from the explicit v2.8.2 `SKIP` debt. Lock its compatibility contract and perform independent scan, fix, review, exact-tag build, and live acceptance before assigning a version. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
 
