@@ -12,12 +12,22 @@
 
 ## Acceptance record
 
-- **Pending:** Certificate-pinned scoped OTA of the clean candidate to the
-  authorized 3Dprinter Agent Tests unit.
-- **Pending:** Repaired-proxy FQDN browser acceptance, including ADMIN login,
-  status/log pages, unauthenticated rejection, and CSRF rejection.
-- **Pending:** HTTPS `443`, read-only NUT `3493`, refused `8080`, authenticated
-  Agent status, and a post-reboot full successful NUT poll.
+- **Observed (pre-tag):** The repaired
+  `esp32nut-3dprinter.28670avenidacondesa.com` proxy resolves to
+  `192.168.40.10`, presents a normally trusted certificate, returns HTTPS 200
+  for the sign-in page, rejects unauthenticated `/api/v1/status` with 401, and
+  accepts the scoped diagnostic-token Agent-status request with HTTP 200.
+- **Observed (pre-tag):** The Project Maintainer's Chrome dashboard evidence
+  shows the repaired FQDN serving the authenticated 3Dprinter UI. The installed
+  development candidate reports connected Wi-Fi at `192.168.40.88`, NUT health
+  on TCP 3493, and UPS status `OL`.
+- **Observed (pre-tag):** Direct checks against `192.168.40.88` found HTTPS
+  `443` and read-only NUT `3493` open, retired `8080` refused, fingerprint-pinned
+  diagnostic Agent status healthy, and a complete 57-variable NUT poll with
+  `ups.status OL`.
+- **Pending:** Certificate-pinned scoped OTA of the exact tagged artifact to
+  the authorized 3Dprinter Agent Tests unit, followed by the same FQDN and
+  direct post-reboot acceptance checks.
 
 ## Release closeout
 
