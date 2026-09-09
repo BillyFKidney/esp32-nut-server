@@ -36,7 +36,8 @@ target installation remains a separate authorization boundary.
 
 ## Published baseline
 
-`v2.7.10` is published and target-tested.
+`v2.8.0` is published and target-tested. `v2.8.1` is the active maintenance
+candidate and must complete its defined release validation before publication.
 
 ## Operational Management completion — `v2.x`
 
@@ -48,6 +49,7 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | Release | Prospective branch | Required outcome |
 | --- | --- | --- |
 | `v2.8.0` | Released | [Appliance UI and bounded-resource optimization](archive/v2.8.0/evidence.md): retained every v1 API contract, added the responsive appliance UI and lazy 24-entry Logs page, streamed the ADMIN page without a whole-page heap allocation, and passed clean tagged build, OTA, browser, service, and full-NUT validation. |
+| `v2.8.1` | `feature/v2.8.1-code-quality` | [Code-quality maintenance](archive/v2.8.1/evidence.md): preserve all released behavior while applying narrowly reviewed code-quality improvements. Require a clean exact-tag build, certificate-pinned scoped OTA, repaired-proxy browser and ADMIN/CSRF acceptance, HTTPS `443`, read-only NUT `3493`, refused `8080`, and a post-reboot full successful NUT poll before publication. |
 | `v2.9.0` | `feature/operational-management-acceptance` | Validate the locked definition of done from iPhone and MacBook Air and publish the final `v2.x` acceptance release. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
