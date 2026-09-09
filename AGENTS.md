@@ -6,7 +6,7 @@ the project history.
 
 ## Fast start
 
-1. Read [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md).
+1. Read [docs/esp32/ESP32_CURRENT_STATUS.md](docs/esp32/ESP32_CURRENT_STATUS.md).
 2. Run `git status --short --branch`, resolve the live HEAD, and confirm that
    the file's branch, base, and worktree claims are still current.
 3. Read only the task-specific document selected from the routing table below.
@@ -20,17 +20,17 @@ tree, or project conversation during an ordinary startup.
 
 | Task or question | Read next |
 | --- | --- |
-| Quick orientation / "where is X?" | [NAVIGATION.md](docs/NAVIGATION.md) |
-| Current branch, active scope, next action | [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) |
-| Roadmap, version, or branch boundary | [ESP32_DEVELOPMENT_PLAN.md](docs/ESP32_DEVELOPMENT_PLAN.md) |
-| Locked Operational Management requirement or decision | [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](docs/ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md) |
-| Hardware, LAN, COM, build, flash, OTA, or recovery | [ESP32_PREFLIGHT.md](docs/ESP32_PREFLIGHT.md) |
-| Authority for physical, destructive, GitHub, or external actions | [ESP32_DEVELOPMENT_ROLES.md](docs/ESP32_DEVELOPMENT_ROLES.md) |
-| Security or authorization behavior | [ESP32_SECURITY.md](docs/ESP32_SECURITY.md) |
-| Management/Wi-Fi modular refactoring | [ESP32_REFACTORING_PLAN.md](docs/ESP32_REFACTORING_PLAN.md) |
-| Synology/AdGuard browser access | [ESP32_MANAGEMENT_PROXY.md](docs/ESP32_MANAGEMENT_PROXY.md) |
-| Moving tracked files or changing repository layout | [ESP32_REPOSITORY_LAYOUT.md](docs/ESP32_REPOSITORY_LAYOUT.md) |
-| Detailed downstream port/build notes | [ESP32_README.md](docs/ESP32_README.md) |
+| Quick orientation / "where is X?" | [NAVIGATION.md](docs/esp32/NAVIGATION.md) |
+| Current branch, active scope, next action | [ESP32_CURRENT_STATUS.md](docs/esp32/ESP32_CURRENT_STATUS.md) |
+| Roadmap, version, or branch boundary | [ESP32_DEVELOPMENT_PLAN.md](docs/esp32/ESP32_DEVELOPMENT_PLAN.md) |
+| Locked Operational Management requirement or decision | [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](docs/esp32/ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md) |
+| Hardware, LAN, COM, build, flash, OTA, or recovery | [ESP32_PREFLIGHT.md](docs/esp32/ESP32_PREFLIGHT.md) |
+| Authority for physical, destructive, GitHub, or external actions | [ESP32_DEVELOPMENT_ROLES.md](docs/esp32/ESP32_DEVELOPMENT_ROLES.md) |
+| Security or authorization behavior | [ESP32_SECURITY.md](docs/esp32/ESP32_SECURITY.md) |
+| Management/Wi-Fi modular refactoring | [ESP32_REFACTORING_PLAN.md](docs/esp32/ESP32_REFACTORING_PLAN.md) |
+| Synology/AdGuard browser access | [ESP32_MANAGEMENT_PROXY.md](docs/esp32/ESP32_MANAGEMENT_PROXY.md) |
+| Moving tracked files or changing repository layout | [ESP32_REPOSITORY_LAYOUT.md](docs/esp32/ESP32_REPOSITORY_LAYOUT.md) |
+| Detailed downstream port/build notes | [ESP32_README.md](docs/esp32/ESP32_README.md) |
 | Historical releases, validation, or superseded guidance | [docs/archive/README.md](docs/archive/README.md) |
 
 The root [README.md](README.md) is the application landing page. The repository
@@ -86,7 +86,7 @@ not disposable clutter.
 
 ## Handoff discipline
 
-Keep [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) lightweight. Update
+Keep [ESP32_CURRENT_STATUS.md](docs/esp32/ESP32_CURRENT_STATUS.md) lightweight. Update
 it only with current branch/base/worktree facts, implementation and validation
 state, authorization or blockers, and one exact next action. Put reusable
 procedures in preflight, roadmap scope in the development plan, decisions in

@@ -10,7 +10,7 @@ HTTPS administration console.
 
 This is the application guide for the ESP32-NUT project. The Markdown
 companion is link:README.md[README.md]. Current device facts and active work
-are maintained in link:docs/ESP32_CURRENT_STATUS.md[ESP32_CURRENT_STATUS.md].
+are maintained in link:docs/esp32/ESP32_CURRENT_STATUS.md[ESP32_CURRENT_STATUS.md].
 
 == Description
 
@@ -53,7 +53,7 @@ ADMIN-session and CSRF-protected local image check before install, preserves
 the authenticated install and scoped Agent OTA paths, rejects invalid images,
 and retains ESP32-S3 bootloader rollback behavior. It passed target
 rollback/persistence validation on `.173`. See
-link:docs/ESP32_CURRENT_STATUS.md[ESP32_CURRENT_STATUS.md] for the current
+link:docs/esp32/ESP32_CURRENT_STATUS.md[ESP32_CURRENT_STATUS.md] for the current
 branch, installed firmware, device observations, and next action.
 
 The normal browser path uses a Synology NAS as a LAN reverse proxy:
@@ -71,7 +71,7 @@ ESP32 backend still uses its device-specific self-signed certificate, and the
 wildcard private key remains on Synology. The complete AdGuard DNS rewrite,
 Synology rule, forwarded headers, verification checklist, and DHCP recovery
 procedure are in
-link:docs/ESP32_MANAGEMENT_PROXY.md[ESP32_MANAGEMENT_PROXY.md].
+link:docs/esp32/ESP32_MANAGEMENT_PROXY.md[ESP32_MANAGEMENT_PROXY.md].
 
 == Supported hardware
 
@@ -105,7 +105,7 @@ The validated local build environment is:
 * A USB HID UPS and its USB connection to the ESP32-S3 host port
 
 For physical and network checks before working on a board, use
-link:docs/ESP32_PREFLIGHT.md[ESP32_PREFLIGHT.md].
+link:docs/esp32/ESP32_PREFLIGHT.md[ESP32_PREFLIGHT.md].
 
 === Build and initial flash
 
@@ -234,7 +234,7 @@ The following boundaries are intentional:
 * The shared wildcard certificate private key is never provisioned to a board.
 
 For the detailed route, credential, and deployment rules, read
-link:docs/ESP32_SECURITY.md[ESP32_SECURITY.md].
+link:docs/esp32/ESP32_SECURITY.md[ESP32_SECURITY.md].
 
 == Architecture
 
@@ -284,21 +284,21 @@ they are not considered validated until tested on the ESP32-S3 target.
 
 Start with the documents that match the task:
 
-* link:docs/ESP32_CURRENT_STATUS.md[Current status] — factual branch,
+* link:docs/esp32/ESP32_CURRENT_STATUS.md[Current status] — factual branch,
   hardware, installation, and next-action snapshot
-* link:docs/ESP32_REPOSITORY_LAYOUT.md[Repository layout] — root file
+* link:docs/esp32/ESP32_REPOSITORY_LAYOUT.md[Repository layout] — root file
   ownership and directory policy
-* link:docs/ESP32_PREFLIGHT.md[Preflight] — network-first checks before device
+* link:docs/esp32/ESP32_PREFLIGHT.md[Preflight] — network-first checks before device
   work
-* link:docs/ESP32_MANAGEMENT_PROXY.md[Management proxy procedure] — AdGuard
+* link:docs/esp32/ESP32_MANAGEMENT_PROXY.md[Management proxy procedure] — AdGuard
   and Synology HTTPS deployment
-* link:docs/ESP32_SECURITY.md[Security] — authentication, CSRF, tokens, and
+* link:docs/esp32/ESP32_SECURITY.md[Security] — authentication, CSRF, tokens, and
   route boundaries
-* link:docs/ESP32_DEVELOPMENT_ROLES.md[Development roles] — authority and
+* link:docs/esp32/ESP32_DEVELOPMENT_ROLES.md[Development roles] — authority and
   responsibilities
-* link:docs/ESP32_DEVELOPMENT_PLAN.md[Development plan] — milestones and
+* link:docs/esp32/ESP32_DEVELOPMENT_PLAN.md[Development plan] — milestones and
   branch slicing
-* link:docs/ESP32_README.md[Detailed downstream port notes] — hardware,
+* link:docs/esp32/ESP32_README.md[Detailed downstream port notes] — hardware,
   build, and validation detail
 
 == Relationship to NUT

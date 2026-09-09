@@ -45,7 +45,7 @@ moved without deletion to:
 
 `artifacts/serial/2026-07-15-https-foundation-screenlog.0`
 
-The decisive evidence is summarized in `docs/ESP32_CURRENT_STATUS.md`.
+The decisive evidence is summarized in `docs/esp32/ESP32_CURRENT_STATUS.md`.
 
 **Observed on 2026-07-19:** ESP-IDF Monitor capture
 `log.nut-esp32s3.20260719222036.txt` identified
@@ -55,7 +55,7 @@ recovery. It was moved without deletion to:
 `artifacts/serial/2026-07-19-admin-recovery-password-storage.txt`
 
 The decisive evidence and resulting source correction are summarized in
-`docs/ESP32_CURRENT_STATUS.md`.
+`docs/esp32/ESP32_CURRENT_STATUS.md`.
 
 ## Structure reviewed but retained
 

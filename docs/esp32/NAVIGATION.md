@@ -1,7 +1,7 @@
 # ESP32-NUT Navigation Cheat Sheet
 
 For branch, release, target, and next-task context, begin with
-`docs/ESP32_CURRENT_STATUS.md`; confirm its Git facts before changing code.
+`docs/esp32/ESP32_CURRENT_STATUS.md`; confirm its Git facts before changing code.
 
 ## If you're looking for... → Start here
 
@@ -62,5 +62,5 @@ idf.py -p <current-serial-port> flash
 idf.py -p <current-serial-port> monitor
 ```
 
-Use `docs/ESP32_PREFLIGHT.md` before hardware, flash, OTA, reset, or serial
+Use `docs/esp32/ESP32_PREFLIGHT.md` before hardware, flash, OTA, reset, or serial
 work. This map is an entry-point guide, not permission to alter a device.

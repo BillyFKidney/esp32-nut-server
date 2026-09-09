@@ -32,7 +32,7 @@ maintenance candidate preserves product behavior and is undergoing release
 validation; v3.0.0 API v2 and token-contract planning remains the next feature
 slice. The current branch,
 repository facts, acceptance boundary, authorization state, and exact next
-action are maintained in [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md).
+action are maintained in [docs/esp32/ESP32_CURRENT_STATUS.md](docs/esp32/ESP32_CURRENT_STATUS.md).
 Historical release and device evidence is archived rather than carried in that
 fast-start handoff.
 
@@ -50,7 +50,7 @@ ESP32-NUT :443
 
 The application does not receive the wildcard private key. The complete
 AdGuard/Synology procedure is in
-[docs/ESP32_MANAGEMENT_PROXY.md](docs/ESP32_MANAGEMENT_PROXY.md).
+[docs/esp32/ESP32_MANAGEMENT_PROXY.md](docs/esp32/ESP32_MANAGEMENT_PROXY.md).
 
 ## Supported target
 
@@ -71,7 +71,7 @@ preserved.
 For normal development startup, read only:
 
 1. [AGENTS.md](AGENTS.md) for routing and non-negotiable guardrails
-2. [docs/ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) for the current
+2. [docs/esp32/ESP32_CURRENT_STATUS.md](docs/esp32/ESP32_CURRENT_STATUS.md) for the current
    branch, active acceptance boundary, and exact next action
 
 Then follow the task-specific link in `AGENTS.md`. Read preflight only before
@@ -115,16 +115,16 @@ private keys, or Authorization headers in the repository or chat.
 
 | Need | Start here |
 | --- | --- |
-| Current branch, facts, acceptance boundary, and next action | [ESP32_CURRENT_STATUS.md](docs/ESP32_CURRENT_STATUS.md) |
+| Current branch, facts, acceptance boundary, and next action | [ESP32_CURRENT_STATUS.md](docs/esp32/ESP32_CURRENT_STATUS.md) |
 | Historical/completed evidence | [docs/archive/README.md](docs/archive/README.md) |
-| Repository layout policy | [ESP32_REPOSITORY_LAYOUT.md](docs/ESP32_REPOSITORY_LAYOUT.md) |
-| Hardware/session preflight | [ESP32_PREFLIGHT.md](docs/ESP32_PREFLIGHT.md) |
-| Synology/AdGuard HTTPS access | [ESP32_MANAGEMENT_PROXY.md](docs/ESP32_MANAGEMENT_PROXY.md) |
-| Security and authorization boundaries | [ESP32_SECURITY.md](docs/ESP32_SECURITY.md) |
-| Development authority | [ESP32_DEVELOPMENT_ROLES.md](docs/ESP32_DEVELOPMENT_ROLES.md) |
-| Roadmap and branch slicing | [ESP32_DEVELOPMENT_PLAN.md](docs/ESP32_DEVELOPMENT_PLAN.md) |
-| Locked operational-management decisions | [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](docs/ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md) |
-| Detailed downstream port notes | [ESP32_README.md](docs/ESP32_README.md) |
+| Repository layout policy | [ESP32_REPOSITORY_LAYOUT.md](docs/esp32/ESP32_REPOSITORY_LAYOUT.md) |
+| Hardware/session preflight | [ESP32_PREFLIGHT.md](docs/esp32/ESP32_PREFLIGHT.md) |
+| Synology/AdGuard HTTPS access | [ESP32_MANAGEMENT_PROXY.md](docs/esp32/ESP32_MANAGEMENT_PROXY.md) |
+| Security and authorization boundaries | [ESP32_SECURITY.md](docs/esp32/ESP32_SECURITY.md) |
+| Development authority | [ESP32_DEVELOPMENT_ROLES.md](docs/esp32/ESP32_DEVELOPMENT_ROLES.md) |
+| Roadmap and branch slicing | [ESP32_DEVELOPMENT_PLAN.md](docs/esp32/ESP32_DEVELOPMENT_PLAN.md) |
+| Locked operational-management decisions | [ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md](docs/esp32/ESP32_DEVELOPMENT_MILESTONE_QA_OPERATIONAL_MANAGEMENT.md) |
+| Detailed downstream port notes | [ESP32_README.md](docs/esp32/ESP32_README.md) |
 
 ## Upstream relationship
 
