@@ -5,13 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "dns-server.h"
 #include "driver/gpio.h"
 #include "esp_check.h"
 #include "esp_event.h"
-#include "esp_http_server.h"
 #include "esp_log.h"
-#include "esp_mac.h"
 #include "esp_netif.h"
 #include "esp_netif_net_stack.h"
 #include "esp_system.h"
@@ -20,10 +17,6 @@
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
 #include "lwip/inet.h"
-#include "lwip/dhcp.h"
-#include "lwip/netif.h"
-#include "lwip/prot/dhcp.h"
-#include "lwip/tcpip.h"
 #include "mbedtls/platform_util.h"
 #include "nvs.h"
 #include "nvs_flash.h"
@@ -33,15 +26,12 @@
 #include "wifi-credentials.h"
 #include "wifi-diagnostics.h"
 #include "wifi-provisioning-web.h"
+#include "wifi-portal-lifecycle.h"
 
-#define WIFI_AP_INTERFACE_KEY "WIFI_AP_DEF"
-#define WIFI_AP_CHANNEL 1
-#define WIFI_AP_MAX_CONNECTIONS 4
 #define WIFI_MAXIMUM_RETRIES 5
 #define WIFI_SAVED_CONNECT_TIMEOUT_MS 30000
 #define WIFI_PENDING_CONNECT_TIMEOUT_MS 20000
 #define WIFI_PORTAL_START_TIMEOUT_MS 5000
-#define WIFI_PORTAL_TASK_STACK_SIZE 4096
 #define WIFI_RESTART_TASK_STACK_SIZE 2048
 #define WIFI_RECOVERY_TASK_STACK_SIZE 3072
 #define WIFI_MANAGEMENT_TASK_STACK_SIZE 12288
@@ -91,6 +81,15 @@ static esp_err_t wifi_schedule_restart(void);
 static WifiProvisioningWebContext portal_web_context = {
     .connection_requested = &connection_requested,
     .schedule_restart = wifi_schedule_restart,
+};
+
+static WifiPortalLifecycle portal_lifecycle = {
+    .portal_http_server = &portal_http_server,
+    .portal_dns_server = &portal_dns_server,
+    .portal_active = &portal_active,
+    .portal_start_scheduled = &portal_start_scheduled,
+    .state_lock = &wifi_state_lock,
+    .web_context = &portal_web_context,
 };
 
 static void wifi_start_management_task(void *argument)
@@ -581,108 +580,9 @@ esp_err_t wifi_management_stage_credentials(const char *ssid, const char *passwo
     return ESP_OK;
 }
 
-static esp_err_t wifi_portal_start(void)
-{
-    taskENTER_CRITICAL(&wifi_state_lock);
-    if (portal_active)
-    {
-        taskEXIT_CRITICAL(&wifi_state_lock);
-        return ESP_OK;
-    }
-    taskEXIT_CRITICAL(&wifi_state_lock);
-
-    uint8_t mac_address[6];
-    ESP_RETURN_ON_ERROR(esp_read_mac(mac_address, ESP_MAC_WIFI_SOFTAP), TAG,
-                        "Unable to read Wi-Fi MAC address");
-
-    wifi_config_t access_point_configuration = {0};
-    snprintf((char *)access_point_configuration.ap.ssid,
-             sizeof(access_point_configuration.ap.ssid),
-             "ESP32-NUT-%02X%02X%02X",
-             mac_address[3], mac_address[4], mac_address[5]);
-    access_point_configuration.ap.ssid_len = strlen((const char *)access_point_configuration.ap.ssid);
-    access_point_configuration.ap.channel = WIFI_AP_CHANNEL;
-    access_point_configuration.ap.max_connection = WIFI_AP_MAX_CONNECTIONS;
-    access_point_configuration.ap.authmode = WIFI_AUTH_OPEN;
-
-    ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_APSTA), TAG,
-                        "Unable to enable fallback access point mode");
-    ESP_RETURN_ON_ERROR(esp_wifi_set_config(WIFI_IF_AP, &access_point_configuration), TAG,
-                        "Unable to configure fallback access point");
-
-    esp_netif_ip_info_t ip_info;
-    ESP_RETURN_ON_ERROR(esp_netif_get_ip_info(access_point_network_interface, &ip_info), TAG,
-                        "Unable to read fallback access point address");
-
-    static char captive_portal_url[32];
-    snprintf(captive_portal_url, sizeof(captive_portal_url), "http://" IPSTR, IP2STR(&ip_info.ip));
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_dhcps_stop(access_point_network_interface));
-    ESP_RETURN_ON_ERROR(esp_netif_dhcps_option(access_point_network_interface,
-                                               ESP_NETIF_OP_SET,
-                                               ESP_NETIF_CAPTIVEPORTAL_URI,
-                                               captive_portal_url,
-                                               strlen(captive_portal_url)),
-                        TAG, "Unable to advertise captive portal URL");
-    ESP_RETURN_ON_ERROR(esp_netif_dhcps_start(access_point_network_interface), TAG,
-                        "Unable to restart fallback DHCP server");
-
-    portal_http_server = wifi_provisioning_web_start(&portal_web_context);
-    ESP_RETURN_ON_FALSE(portal_http_server != NULL, ESP_FAIL, TAG,
-                        "Unable to start captive portal web server");
-
-    portal_dns_server = dns_server_start(WIFI_AP_INTERFACE_KEY);
-    if (portal_dns_server == NULL)
-    {
-        httpd_stop(portal_http_server);
-        portal_http_server = NULL;
-        return ESP_FAIL;
-    }
-
-    taskENTER_CRITICAL(&wifi_state_lock);
-    portal_active = true;
-    portal_start_scheduled = false;
-    taskEXIT_CRITICAL(&wifi_state_lock);
-    xEventGroupSetBits(wifi_event_group, WIFI_PORTAL_STARTED_BIT);
-
-    ESP_LOGW(TAG, "Open setup access point '%s' active at " IPSTR,
-             access_point_configuration.ap.ssid, IP2STR(&ip_info.ip));
-    ESP_LOGW(TAG, "The setup portal has no access-point password or portal authentication");
-    return ESP_OK;
-}
-
-static void wifi_portal_start_task(void *parameter)
-{
-    (void)parameter;
-    const esp_err_t result = wifi_portal_start();
-    if (result != ESP_OK)
-    {
-        taskENTER_CRITICAL(&wifi_state_lock);
-        portal_start_scheduled = false;
-        taskEXIT_CRITICAL(&wifi_state_lock);
-        ESP_LOGE(TAG, "Fallback setup portal failed to start: %s", esp_err_to_name(result));
-    }
-    vTaskDelete(NULL);
-}
-
 static void wifi_schedule_portal(void)
 {
-    bool should_start = false;
-    taskENTER_CRITICAL(&wifi_state_lock);
-    if (!portal_active && !portal_start_scheduled)
-    {
-        portal_start_scheduled = true;
-        should_start = true;
-    }
-    taskEXIT_CRITICAL(&wifi_state_lock);
-
-    if (should_start && xTaskCreate(wifi_portal_start_task, "wifi-portal",
-                                    WIFI_PORTAL_TASK_STACK_SIZE, NULL, 5, NULL) != pdPASS)
-    {
-        taskENTER_CRITICAL(&wifi_state_lock);
-        portal_start_scheduled = false;
-        taskEXIT_CRITICAL(&wifi_state_lock);
-        ESP_LOGE(TAG, "Unable to create fallback portal task");
-    }
+    wifi_portal_lifecycle_schedule(&portal_lifecycle);
 }
 
 static bool wifi_connect_with_timeout(const WifiCredentials *credentials,
@@ -742,6 +642,7 @@ static void wifi_initialize_sync_state(void)
         ESP_LOGE(TAG, "Unable to allocate Wi-Fi management synchronization state");
         abort();
     }
+    portal_lifecycle.event_group = wifi_event_group;
 }
 
 static void wifi_initialize_network_stack(void)
@@ -751,6 +652,7 @@ static void wifi_initialize_network_stack(void)
     station_network_interface = esp_netif_create_default_wifi_sta();
     access_point_network_interface = esp_netif_create_default_wifi_ap();
     assert(station_network_interface != NULL && access_point_network_interface != NULL);
+    portal_lifecycle.access_point_network_interface = access_point_network_interface;
 
     wifi_init_config_t initialization = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&initialization));
