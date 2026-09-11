@@ -2,7 +2,7 @@
 
 ## Scope
 
-This `v2.8.Z` review slice addresses only the scan-lifecycle routine in
+This `v2.8.5` review slice addresses only the scan-lifecycle routine in
 `src/wifi.c` and the unreachable duplicate button-release loop. It may extract
 private helpers and restore the missing AP-list cleanup on the record-retrieval
 error path; it must not change Wi-Fi provisioning or management behavior.
@@ -16,9 +16,10 @@ error path; it must not change Wi-Fi provisioning or management behavior.
   station connectivity.
 - Preserve scan start, record count, bounded allocation, AP deduplication,
   network cap, sort, result shape, and every existing response/status contract.
-- Clear the ESP-IDF AP list after every completed scan attempt, including the
-  existing record-retrieval failure path; free allocated records and release
-  the scan lock in the same order as the current cleanup paths.
+- Preserve the ESP-IDF AP-list lifecycle: explicit error and zero-record paths
+  clear the list, successful record retrieval retains its existing driver-owned
+  consumption behavior, and record-retrieval failure now clears the list before
+  the scan lock is released. Free allocated records in the existing order.
 - Preserve event-handler/task synchronization, critical sections, and all
   shared Wi-Fi-state sequencing.
 - Preserve credential limits, NVS behavior, erase-before-validation of pending
