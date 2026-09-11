@@ -10,7 +10,7 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `main` is at the merged device-response JSON review `d8b7d6cba`; the annotated release tag is `v2.8.10`. The next review remains unnumbered as `v2.8.Z` until its acceptance boundary is complete. |
+| Active branch | `review/ota-browser-content-type` is based on `main` at `a71720278`; it owns one standing-approved v2.8.Z browser OTA content-type review item. |
 | Published release | [`v2.8.10`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.10) is published from the exact tagged build with `nut-esp32s3-v2.8.10.bin` and its SHA-256 sidecar. Firmware SHA-256 is `51e5210df5ac63ccdaf1d6d5dd4b16eb1cadec395d9bee37de8f289410148a30`; release evidence is in [archive/v2.8.10/evidence.md](../archive/v2.8.10/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
 | v2.8.0 candidate | The self-contained ADMIN UI now has a persistent appliance header, single-row responsive navigation, compact auto-refresh control, browser-native battery/load meters, full-width hardware diagnostics, no Dashboard logs, pretty Device Status JSON, and a lazy Logs page backed by the unchanged ADMIN 24-entry route with Copy and Download. The redundant certificate/LAN-only and ADMIN-session notices are removed. All pages declare a device-served favicon backed by the canonical tracked NUT logo. Every v1 route/payload and the six-entry `/api/v1/status` log window remain unchanged. The flash-resident 48,089-byte page is streamed through a 768-byte stack buffer instead of allocating a 49,152-byte whole-page heap buffer. |
@@ -84,6 +84,15 @@ ADMIN/CSRF behavior. Independent review, clean exact-tag build with embedded
 version inspection, scoped OTA, authenticated ADMIN acceptance, service-boundary
 checks, and a 57-variable `OL` NUT poll passed. The exact next action is the
 next `v2.8.Z` review from the v2.8.2 `SKIP` debt.
+
+The completed `v2.8.11` review fixed one moderate browser-OTA boundary issue in
+`management-ota-routes.c`: after valid ADMIN/CSRF verification, the browser
+install route accepts missing or alternate content types and can reach OTA work
+before image validation rejects the request. The active tracker limits the
+fix to the existing exact content-type rejection helper before OTA state,
+partition writes, and reboot scheduling. Independent review and the ESP-IDF
+v6.0.2 build passed. The exact next action is exact-tag build and scoped
+browser-OTA release acceptance.
 
 Read-only follow-up scans found `management-wifi-routes.c` and
 `management-certificates.c` clean across all 68 checks. They found one
