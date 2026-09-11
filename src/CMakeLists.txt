@@ -21,6 +21,7 @@ list(APPEND app_sources
     ${CMAKE_SOURCE_DIR}/src/management-time-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-token-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-wifi-routes.c
+    ${CMAKE_SOURCE_DIR}/src/time-config-storage.c
     ${CMAKE_SOURCE_DIR}/src/management-ota-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-routes.c
     ${CMAKE_SOURCE_DIR}/src/management-authorization.c

@@ -1,5 +1,6 @@
 /** @file time_config.c @brief Persist time settings and manage SNTP synchronization. @see time_config.h, nvs.h, esp_netif_sntp.h, sys/time.h */
 #include "time_config.h"
+#include "time-config-storage.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -14,36 +15,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/portmacro.h"
 #include "freertos/semphr.h"
-#include "nvs.h"
 
 #define TAG "nut-time"
 
-#define TIME_CONFIG_NAMESPACE "management"
-#define TIME_CONFIG_NVS_KEY "time-cfg"
-#define TIME_CONFIG_VERSION 1U
-#define TIME_CONFIG_DEFAULT_NTP_SERVER "pool.ntp.org"
-#define TIME_CONFIG_DEFAULT_TIMEZONE "America/Los_Angeles"
 #define TIME_CONFIG_VALID_EPOCH 1704067200LL
 
-_Static_assert(sizeof(TIME_CONFIG_NAMESPACE) <= NVS_NS_NAME_MAX_SIZE,
-               "Time-config NVS namespace exceeds the ESP-IDF limit");
-_Static_assert(sizeof(TIME_CONFIG_NVS_KEY) <= NVS_KEY_NAME_MAX_SIZE,
-               "Time-config NVS key exceeds the ESP-IDF limit");
-
-typedef struct
-{
-    const char *iana;
-    const char *posix;
-} TimezoneMapping;
-
-typedef struct
-{
-    uint32_t version;
-    uint8_t ntp_enabled;
-    uint8_t reserved[3];
-    char ntp_server[TIME_CONFIG_NTP_SERVER_MAX_LENGTH + 1];
-    char timezone[TIME_CONFIG_TIMEZONE_MAX_LENGTH + 1];
-} StoredTimeConfiguration;
+typedef TimeConfigStorage StoredTimeConfiguration;
 
 typedef enum
 {
@@ -52,17 +29,6 @@ typedef enum
     TIME_SOURCE_MANUAL,
     TIME_SOURCE_NTP,
 } TimeSource;
-
-static const TimezoneMapping timezones[] = {
-    {"UTC", "UTC0"},
-    {"America/Los_Angeles", "PST8PDT,M3.2.0/2,M11.1.0/2"},
-    {"America/Denver", "MST7MDT,M3.2.0/2,M11.1.0/2"},
-    {"America/Phoenix", "MST7"},
-    {"America/Chicago", "CST6CDT,M3.2.0/2,M11.1.0/2"},
-    {"America/New_York", "EST5EDT,M3.2.0/2,M11.1.0/2"},
-    {"America/Anchorage", "AKST9AKDT,M3.2.0/2,M11.1.0/2"},
-    {"Pacific/Honolulu", "HST10"},
-};
 
 static StoredTimeConfiguration current_configuration;
 /* lwIP retains the initial server-name pointer until SNTP is reconfigured. */
@@ -75,130 +41,6 @@ static TimeSource time_source;
 static portMUX_TYPE time_state_lock = portMUX_INITIALIZER_UNLOCKED;
 static SemaphoreHandle_t time_operation_mutex;
 
-static const TimezoneMapping *time_config_find_timezone(const char *iana_timezone)
-{
-    if (iana_timezone == NULL)
-    {
-        return NULL;
-    }
-    for (size_t index = 0; index < sizeof(timezones) / sizeof(timezones[0]); index++)
-    {
-        if (strcmp(timezones[index].iana, iana_timezone) == 0)
-        {
-            return &timezones[index];
-        }
-    }
-    return NULL;
-}
-
-static bool time_config_ntp_server_is_valid(const char *server)
-{
-    if (server == NULL)
-    {
-        return false;
-    }
-    const size_t length = strlen(server);
-    if (length == 0 || length > TIME_CONFIG_NTP_SERVER_MAX_LENGTH ||
-        server[0] == '.' || server[0] == '-' ||
-        server[length - 1] == '.' || server[length - 1] == '-')
-    {
-        return false;
-    }
-    for (size_t index = 0; index < length; index++)
-    {
-        const char character = server[index];
-        if (!((character >= 'a' && character <= 'z') ||
-              (character >= 'A' && character <= 'Z') ||
-              (character >= '0' && character <= '9') ||
-              character == '.' || character == '-'))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-static StoredTimeConfiguration time_config_defaults(void)
-{
-    StoredTimeConfiguration configuration = {
-        .version = TIME_CONFIG_VERSION,
-        .ntp_enabled = 1,
-    };
-    snprintf(configuration.ntp_server, sizeof(configuration.ntp_server), "%s",
-             TIME_CONFIG_DEFAULT_NTP_SERVER);
-    snprintf(configuration.timezone, sizeof(configuration.timezone), "%s",
-             TIME_CONFIG_DEFAULT_TIMEZONE);
-    return configuration;
-}
-
-static StoredTimeConfiguration time_config_load(void)
-{
-    StoredTimeConfiguration configuration = time_config_defaults();
-    nvs_handle_t handle = 0;
-    if (nvs_open(TIME_CONFIG_NAMESPACE, NVS_READONLY, &handle) != ESP_OK)
-    {
-        return configuration;
-    }
-
-    StoredTimeConfiguration stored = {0};
-    size_t stored_length = sizeof(stored);
-    const esp_err_t result = nvs_get_blob(handle, TIME_CONFIG_NVS_KEY,
-                                          &stored, &stored_length);
-    nvs_close(handle);
-    if (result == ESP_OK && stored_length == sizeof(stored) &&
-        stored.version == TIME_CONFIG_VERSION &&
-        stored.ntp_enabled <= 1 &&
-        time_config_ntp_server_is_valid(stored.ntp_server) &&
-        time_config_find_timezone(stored.timezone) != NULL)
-    {
-        configuration = stored;
-    }
-    else if (result == ESP_OK)
-    {
-        ESP_LOGW(TAG, "Ignoring invalid stored time-configuration contents");
-    }
-    else if (result != ESP_ERR_NVS_NOT_FOUND)
-    {
-        ESP_LOGW(TAG, "Unable to load stored time configuration: %s",
-                 esp_err_to_name(result));
-    }
-    return configuration;
-}
-
-static esp_err_t time_config_store(const StoredTimeConfiguration *configuration)
-{
-    nvs_handle_t handle = 0;
-    esp_err_t result = nvs_open(TIME_CONFIG_NAMESPACE, NVS_READWRITE, &handle);
-    if (result == ESP_OK)
-    {
-        result = nvs_set_blob(handle, TIME_CONFIG_NVS_KEY,
-                              configuration, sizeof(*configuration));
-    }
-    if (result == ESP_OK)
-    {
-        result = nvs_commit(handle);
-    }
-    if (handle != 0)
-    {
-        nvs_close(handle);
-    }
-    return result;
-}
-
-static esp_err_t time_config_apply_timezone(const char *iana_timezone)
-{
-    const TimezoneMapping *mapping = time_config_find_timezone(iana_timezone);
-    if (mapping == NULL)
-    {
-        return ESP_ERR_INVALID_ARG;
-    }
-    if (setenv("TZ", mapping->posix, 1) != 0)
-    {
-        return ESP_FAIL;
-    }
-    tzset();
-    return ESP_OK;
-}
 
 static void time_config_sync_callback(struct timeval *value)
 {
@@ -284,14 +126,14 @@ esp_err_t time_config_start(void)
     taskEXIT_CRITICAL(&time_state_lock);
     if (!loaded)
     {
-        configuration = time_config_load();
+        configuration = time_config_storage_load();
         taskENTER_CRITICAL(&time_state_lock);
         current_configuration = configuration;
         configuration_loaded = true;
         taskEXIT_CRITICAL(&time_state_lock);
     }
 
-    esp_err_t result = time_config_apply_timezone(configuration.timezone);
+    esp_err_t result = time_config_storage_apply_timezone(configuration.timezone);
     if (result != ESP_OK)
     {
         xSemaphoreGive(time_operation_mutex);
@@ -313,8 +155,8 @@ esp_err_t time_config_start(void)
 esp_err_t time_config_update(bool ntp_enabled, const char *ntp_server,
                              const char *iana_timezone)
 {
-    if (!time_config_ntp_server_is_valid(ntp_server) ||
-        time_config_find_timezone(iana_timezone) == NULL)
+    if (!time_config_storage_ntp_server_is_valid(ntp_server) ||
+        !time_config_storage_timezone_is_valid(iana_timezone))
     {
         return ESP_ERR_INVALID_ARG;
     }
@@ -324,7 +166,7 @@ esp_err_t time_config_update(bool ntp_enabled, const char *ntp_server,
     }
 
     StoredTimeConfiguration configuration = {
-        .version = TIME_CONFIG_VERSION,
+        .version = TIME_CONFIG_STORAGE_VERSION,
         .ntp_enabled = ntp_enabled ? 1 : 0,
     };
     snprintf(configuration.ntp_server, sizeof(configuration.ntp_server), "%s",
@@ -333,13 +175,13 @@ esp_err_t time_config_update(bool ntp_enabled, const char *ntp_server,
              iana_timezone);
 
     xSemaphoreTake(time_operation_mutex, portMAX_DELAY);
-    esp_err_t result = time_config_store(&configuration);
+    esp_err_t result = time_config_storage_store(&configuration);
     if (result != ESP_OK)
     {
         xSemaphoreGive(time_operation_mutex);
         return result;
     }
-    result = time_config_apply_timezone(configuration.timezone);
+    result = time_config_storage_apply_timezone(configuration.timezone);
     if (result != ESP_OK)
     {
         xSemaphoreGive(time_operation_mutex);
@@ -508,7 +350,7 @@ void time_config_get_status(TimeConfigStatus *status)
     memset(status, 0, sizeof(*status));
     const time_t now = time(NULL);
     TimeSource source;
-    StoredTimeConfiguration configuration = time_config_defaults();
+    StoredTimeConfiguration configuration = time_config_storage_defaults();
     bool loaded;
     taskENTER_CRITICAL(&time_state_lock);
     source = time_source;

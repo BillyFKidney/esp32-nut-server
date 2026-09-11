@@ -2,7 +2,7 @@
 
 ## Scope
 
-This `v2.8.Z` slice resolves the `src/time_config.c` cohesion finding by
+This `v2.8.6` slice resolves the `src/time_config.c` cohesion finding by
 extracting only private persistence/schema and timezone policy into a private
 module. SNTP state and callbacks, operation locking, manual clock setting,
 status projection, and the public `time_config_*` APIs remain in `time_config.c`.
