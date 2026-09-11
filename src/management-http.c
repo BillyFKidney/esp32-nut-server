@@ -201,6 +201,29 @@ bool management_json_append_string(char *destination, size_t destination_size,
     return management_json_append(destination, destination_size, used, "\"");
 }
 
+static bool management_decode_form_component(const char *encoded, char *destination,
+                                             size_t destination_size)
+{
+    size_t value_length = 0;
+    size_t value_index = 0;
+    for (; encoded[value_index] != '\0' && value_length + 1 < destination_size; value_index++)
+    {
+        if (encoded[value_index] == '%' && encoded[value_index + 1] != '\0' &&
+            encoded[value_index + 2] != '\0')
+        {
+            char hexadecimal[3] = {encoded[value_index + 1], encoded[value_index + 2], '\0'};
+            destination[value_length++] = (char)strtol(hexadecimal, NULL, 16);
+            value_index += 2;
+        }
+        else
+        {
+            destination[value_length++] = encoded[value_index] == '+' ? ' ' : encoded[value_index];
+        }
+    }
+    destination[value_length] = '\0';
+    return encoded[value_index] == '\0';
+}
+
 static bool management_extract_form_value(char *body, const char *expected_name,
                                           char *destination, size_t destination_size)
 {
@@ -216,45 +239,13 @@ static bool management_extract_form_value(char *body, const char *expected_name,
         *separator = '\0';
         char *encoded_value = separator + 1;
         char decoded_name[40];
-        size_t name_length = 0;
-        size_t name_index = 0;
-        for (; pair[name_index] != '\0' && name_length + 1 < sizeof(decoded_name); name_index++)
-        {
-            if (pair[name_index] == '%' && pair[name_index + 1] != '\0' && pair[name_index + 2] != '\0')
-            {
-                char hexadecimal[3] = {pair[name_index + 1], pair[name_index + 2], '\0'};
-                decoded_name[name_length++] = (char)strtol(hexadecimal, NULL, 16);
-                name_index += 2;
-            }
-            else
-            {
-                decoded_name[name_length++] = pair[name_index] == '+' ? ' ' : pair[name_index];
-            }
-        }
-        decoded_name[name_length] = '\0';
-        if (pair[name_index] != '\0' || strcmp(decoded_name, expected_name) != 0)
+        if (!management_decode_form_component(pair, decoded_name, sizeof(decoded_name)) ||
+            strcmp(decoded_name, expected_name) != 0)
         {
             continue;
         }
 
-        size_t value_length = 0;
-        size_t value_index = 0;
-        for (; encoded_value[value_index] != '\0' && value_length + 1 < destination_size; value_index++)
-        {
-            if (encoded_value[value_index] == '%' && encoded_value[value_index + 1] != '\0' &&
-                encoded_value[value_index + 2] != '\0')
-            {
-                char hexadecimal[3] = {encoded_value[value_index + 1], encoded_value[value_index + 2], '\0'};
-                destination[value_length++] = (char)strtol(hexadecimal, NULL, 16);
-                value_index += 2;
-            }
-            else
-            {
-                destination[value_length++] = encoded_value[value_index] == '+' ? ' ' : encoded_value[value_index];
-            }
-        }
-        destination[value_length] = '\0';
-        return encoded_value[value_index] == '\0';
+        return management_decode_form_component(encoded_value, destination, destination_size);
     }
     return false;
 }
