@@ -183,11 +183,6 @@ static bool wifi_measure_button_hold(const TickType_t *press_started, bool *fact
         vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_POLL_MS));
     }
 
-    while (gpio_get_level(WIFI_BOOT_BUTTON) == 0)
-    {
-        vTaskDelay(pdMS_TO_TICKS(WIFI_BOOT_POLL_MS));
-    }
-
     const uint32_t held_ms = pdTICKS_TO_MS(xTaskGetTickCount() - *press_started);
     if (wifi_reset_requested && held_ms >= WIFI_BOOT_FACTORY_RESET_HOLD_MS)
     {
@@ -410,6 +405,90 @@ static esp_err_t wifi_schedule_restart(void)
     return ESP_OK;
 }
 
+static void wifi_management_add_scan_record(WifiManagementScanResults *results,
+                                            const wifi_ap_record_t *record)
+{
+    const size_t ssid_length =
+        strnlen((const char *)record->ssid, WIFI_MANAGEMENT_SSID_MAX_LENGTH);
+    if (ssid_length == 0)
+    {
+        return;
+    }
+
+    size_t existing = results->count;
+    for (size_t candidate = 0; candidate < results->count; candidate++)
+    {
+        if (strlen(results->entries[candidate].ssid) == ssid_length &&
+            memcmp(results->entries[candidate].ssid, record->ssid, ssid_length) == 0)
+        {
+            existing = candidate;
+            break;
+        }
+    }
+    if (existing < results->count)
+    {
+        if (record->rssi > results->entries[existing].rssi_dbm)
+        {
+            results->entries[existing].rssi_dbm = record->rssi;
+            results->entries[existing].authmode = record->authmode;
+        }
+        return;
+    }
+    if (results->count >= WIFI_SCAN_RESULT_LIMIT)
+    {
+        return;
+    }
+
+    WifiManagementScanResult *entry = &results->entries[results->count++];
+    memcpy(entry->ssid, record->ssid, ssid_length);
+    entry->ssid[ssid_length] = '\0';
+    entry->rssi_dbm = record->rssi;
+    entry->authmode = record->authmode;
+}
+
+static esp_err_t wifi_management_collect_scan_results(WifiManagementScanResults *results)
+{
+    uint16_t access_point_count = 0;
+    esp_err_t result = esp_wifi_scan_get_ap_num(&access_point_count);
+    if (result != ESP_OK)
+    {
+        esp_wifi_clear_ap_list();
+        return result;
+    }
+    if (access_point_count > WIFI_SCAN_RESULT_LIMIT)
+    {
+        access_point_count = WIFI_SCAN_RESULT_LIMIT;
+    }
+    if (access_point_count == 0)
+    {
+        esp_wifi_clear_ap_list();
+        return ESP_OK;
+    }
+
+    wifi_ap_record_t *records = calloc(access_point_count, sizeof(*records));
+    if (records == NULL)
+    {
+        esp_wifi_clear_ap_list();
+        return ESP_ERR_NO_MEM;
+    }
+
+    uint16_t records_returned = access_point_count;
+    result = esp_wifi_scan_get_ap_records(&records_returned, records);
+    if (result == ESP_OK)
+    {
+        for (uint16_t index = 0; index < records_returned; index++)
+        {
+            wifi_management_add_scan_record(results, &records[index]);
+        }
+    }
+    free(records);
+    if (result != ESP_OK)
+    {
+        esp_wifi_clear_ap_list();
+    }
+    return result;
+}
+
 esp_err_t wifi_management_scan(WifiManagementScanResults *results)
 {
     if (results == NULL)
@@ -444,91 +523,9 @@ esp_err_t wifi_management_scan(WifiManagementScanResults *results)
         return result;
     }
 
-    uint16_t access_point_count = 0;
-    result = esp_wifi_scan_get_ap_num(&access_point_count);
-    if (result != ESP_OK)
-    {
-        esp_wifi_clear_ap_list();
-        xSemaphoreGive(wifi_management_scan_lock);
-        return result;
-    }
-    if (access_point_count > WIFI_SCAN_RESULT_LIMIT)
-    {
-        access_point_count = WIFI_SCAN_RESULT_LIMIT;
-    }
-
-    if (access_point_count == 0)
-    {
-        esp_wifi_clear_ap_list();
-        xSemaphoreGive(wifi_management_scan_lock);
-        return ESP_OK;
-    }
-
-    wifi_ap_record_t *records = NULL;
-    if (access_point_count > 0)
-    {
-        records = calloc(access_point_count, sizeof(*records));
-        if (records == NULL)
-        {
-            esp_wifi_clear_ap_list();
-            xSemaphoreGive(wifi_management_scan_lock);
-            return ESP_ERR_NO_MEM;
-        }
-
-        uint16_t records_returned = access_point_count;
-        result = esp_wifi_scan_get_ap_records(&records_returned, records);
-        if (result != ESP_OK)
-        {
-            free(records);
-            xSemaphoreGive(wifi_management_scan_lock);
-            return result;
-        }
-
-        for (uint16_t index = 0; index < records_returned; index++)
-        {
-            const size_t ssid_length =
-                strnlen((const char *)records[index].ssid,
-                        WIFI_MANAGEMENT_SSID_MAX_LENGTH);
-            if (ssid_length == 0)
-            {
-                continue;
-            }
-
-            size_t existing = results->count;
-            for (size_t candidate = 0; candidate < results->count; candidate++)
-            {
-                if (strlen(results->entries[candidate].ssid) == ssid_length &&
-                    memcmp(results->entries[candidate].ssid,
-                           records[index].ssid, ssid_length) == 0)
-                {
-                    existing = candidate;
-                    break;
-                }
-            }
-            if (existing < results->count)
-            {
-                if (records[index].rssi > results->entries[existing].rssi_dbm)
-                {
-                    results->entries[existing].rssi_dbm = records[index].rssi;
-                    results->entries[existing].authmode = records[index].authmode;
-                }
-                continue;
-            }
-            if (results->count >= WIFI_SCAN_RESULT_LIMIT)
-            {
-                continue;
-            }
-
-            WifiManagementScanResult *entry = &results->entries[results->count++];
-            memcpy(entry->ssid, records[index].ssid, ssid_length);
-            entry->ssid[ssid_length] = '\0';
-            entry->rssi_dbm = records[index].rssi;
-            entry->authmode = records[index].authmode;
-        }
-    }
-    free(records);
+    result = wifi_management_collect_scan_results(results);
     xSemaphoreGive(wifi_management_scan_lock);
-    return ESP_OK;
+    return result;
 }
 
 esp_err_t wifi_management_stage_credentials(const char *ssid, const char *password)

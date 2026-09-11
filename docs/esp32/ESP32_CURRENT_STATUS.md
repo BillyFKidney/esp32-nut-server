@@ -10,7 +10,7 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `main` contains the released v2.8.4 OTA-route review slice. The exact tested release source is annotated `v2.8.4` at `d57a08bf9`; remote divergence is refreshed at release closeout. |
+| Active branch | `review/wifi-scan-lifecycle` is based on `main` at `f37533278`; it owns the completed v2.8.5 Wi-Fi scan review and awaits live acceptance. The released v2.8.4 source remains annotated at `d57a08bf9`. |
 | Published release | [`v2.8.4`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.4) is published from the exact tagged build with `nut-esp32s3-v2.8.4.bin` and its SHA-256 sidecar. Firmware SHA-256 is `3abea36c7ad62a97033edb7277c913da2f83eccc4847f84f41bd84c748ce5987`; release evidence is in [archive/v2.8.4/evidence.md](../archive/v2.8.4/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
 | v2.8.0 candidate | The self-contained ADMIN UI now has a persistent appliance header, single-row responsive navigation, compact auto-refresh control, browser-native battery/load meters, full-width hardware diagnostics, no Dashboard logs, pretty Device Status JSON, and a lazy Logs page backed by the unchanged ADMIN 24-entry route with Copy and Download. The redundant certificate/LAN-only and ADMIN-session notices are removed. All pages declare a device-served favicon backed by the canonical tracked NUT logo. Every v1 route/payload and the six-entry `/api/v1/status` log window remain unchanged. The flash-resident 48,089-byte page is streamed through a 768-byte stack buffer instead of allocating a 49,152-byte whole-page heap buffer. |
@@ -39,8 +39,11 @@ environments passed redacted presence and format checks; Garage was not
 modified. The tagged artifact passed exact ESP-IDF v6.0.2 build, scoped OTA,
 post-reboot version and update-state checks, HTTPS `443`, read-only NUT `3493`,
 refused `8080`, and a healthy 57-variable `OL` NUT poll. The exact next action
-is to select and contract the next dedicated `v2.8.Z` review from the explicit
-v2.8.2 `SKIP` debt.
+is to complete the next dedicated review from the explicit v2.8.2 `SKIP` debt.
+`review/wifi-scan-lifecycle` completed its two-item `src/wifi.c` tracker and
+the locked [Wi-Fi scan contract](ESP32_WIFI_SCAN_CONTRACT.md). Independent
+review and ESP-IDF v6.0.2 build/size validation pass; this slice is assigned
+`v2.8.5` and awaits exact-tag live acceptance.
 
 ## Read only when needed
 
