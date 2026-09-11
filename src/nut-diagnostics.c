@@ -7,6 +7,8 @@
 static portMUX_TYPE nut_diagnostics_lock = portMUX_INITIALIZER_UNLOCKED;
 static int64_t nut_diagnostics_disconnect_until_us;
 
+#define NUT_DIAGNOSTICS_MICROSECONDS_PER_SECOND 1000000LL
+
 static bool nut_diagnostics_active_locked(int64_t now_us)
 {
     if (nut_diagnostics_disconnect_until_us == 0)
@@ -31,7 +33,7 @@ bool nut_diagnostics_start_disconnect_simulation(uint32_t duration_seconds)
     const int64_t now_us = esp_timer_get_time();
     portENTER_CRITICAL(&nut_diagnostics_lock);
     nut_diagnostics_disconnect_until_us =
-        now_us + (int64_t)duration_seconds * 1000000LL;
+        now_us + (int64_t)duration_seconds * NUT_DIAGNOSTICS_MICROSECONDS_PER_SECOND;
     portEXIT_CRITICAL(&nut_diagnostics_lock);
     return true;
 }
