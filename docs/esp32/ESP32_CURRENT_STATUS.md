@@ -85,13 +85,14 @@ version inspection, scoped OTA, authenticated ADMIN acceptance, service-boundary
 checks, and a 57-variable `OL` NUT poll passed. The exact next action is the
 next `v2.8.Z` review from the v2.8.2 `SKIP` debt.
 
-The next scanner found one moderate browser-OTA boundary issue in
+The completed `v2.8.11` review fixed one moderate browser-OTA boundary issue in
 `management-ota-routes.c`: after valid ADMIN/CSRF verification, the browser
 install route accepts missing or alternate content types and can reach OTA work
 before image validation rejects the request. The active tracker limits the
 fix to the existing exact content-type rejection helper before OTA state,
-partition writes, and reboot scheduling. The exact next action is the
-standing-approved fixer.
+partition writes, and reboot scheduling. Independent review and the ESP-IDF
+v6.0.2 build passed. The exact next action is exact-tag build and scoped
+browser-OTA release acceptance.
 
 Read-only follow-up scans found `management-wifi-routes.c` and
 `management-certificates.c` clean across all 68 checks. They found one
