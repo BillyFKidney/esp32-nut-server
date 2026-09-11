@@ -10,8 +10,8 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `review/device-route-json-escaping` is based on `main` at `27b2dd0a1`; it owns one standing-approved v2.8.Z device-response JSON-escaping review item. |
-| Published release | [`v2.8.9`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.9) is published from the exact tagged build with `nut-esp32s3-v2.8.9.bin` and its SHA-256 sidecar. Firmware SHA-256 is `1daa91ba7835136af4151335ff2c01151f90553dab91bdcf47a49314ab63f49d`; release evidence is in [archive/v2.8.9/evidence.md](../archive/v2.8.9/evidence.md). |
+| Active branch | `main` is at the merged device-response JSON review `d8b7d6cba`; the annotated release tag is `v2.8.10`. The next review remains unnumbered as `v2.8.Z` until its acceptance boundary is complete. |
+| Published release | [`v2.8.10`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.10) is published from the exact tagged build with `nut-esp32s3-v2.8.10.bin` and its SHA-256 sidecar. Firmware SHA-256 is `51e5210df5ac63ccdaf1d6d5dd4b16eb1cadec395d9bee37de8f289410148a30`; release evidence is in [archive/v2.8.10/evidence.md](../archive/v2.8.10/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
 | v2.8.0 candidate | The self-contained ADMIN UI now has a persistent appliance header, single-row responsive navigation, compact auto-refresh control, browser-native battery/load meters, full-width hardware diagnostics, no Dashboard logs, pretty Device Status JSON, and a lazy Logs page backed by the unchanged ADMIN 24-entry route with Copy and Download. The redundant certificate/LAN-only and ADMIN-session notices are removed. All pages declare a device-served favicon backed by the canonical tracked NUT logo. Every v1 route/payload and the six-entry `/api/v1/status` log window remain unchanged. The flash-resident 48,089-byte page is streamed through a 768-byte stack buffer instead of allocating a 49,152-byte whole-page heap buffer. |
 | v2.8.0 validation | The exact annotated-tag build from `v2.8.0` passed ESP-IDF v6.0.2 reconfigure/build and `idf.py size`; the 1,362,432-byte artifact has SHA-256 `9bc140383d93d140c46da319b95d58db15968d3a91ad167ef90a797501c781f8` and 59% app-slot headroom. It is OTA-installed on the authorized `3Dprinter` Agent Tests unit in `app0`; diagnostics report firmware `v2.8.0`, update `installed`, HTTPS `443`, NUT `3493`, refused `8080`, and a post-reboot complete 57-variable NUT poll with `ups.status OL`. Live ADMIN validation passed the removed-notice and favicon checks plus page, status/log, unauthenticated, and invalid-CSRF checks; the live favicon exactly matches the canonical tracked PNG. The Project Maintainer's final Chrome check accepted the UI as great and the remaining icon issue as acceptable. The screenshot's two console 404s were requests to external `c.1password.com/richicons/...` images for 1Password entries, not the ESP32 `/favicon.ico`. Clipboard/download behavior remains not tested. Garage did not answer the refreshed post-blink probe and was not modified. |
@@ -75,13 +75,15 @@ post-reboot pinned diagnostics, authenticated ADMIN form/log contracts, HTTPS
 NUT poll. [v2.8.8 is published](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.8).
 The exact next action is the next `v2.8.Z` review from the v2.8.2 `SKIP` debt.
 
-The completed `v2.8.10` review fixed one moderate boundary-output issue in
+The released `v2.8.10` review fixed one moderate boundary-output issue in
 `management-device-routes.c`: accepted device names containing quotes or
 backslashes now serialize through the existing bounded JSON helpers. This
 keeps valid administrator-selected display names consumable by the management
 UI and API clients without changing names, persistence, response fields, or
-ADMIN/CSRF behavior. Independent review and the ESP-IDF v6.0.2 build passed.
-The exact next action is exact-tag build and scoped release acceptance.
+ADMIN/CSRF behavior. Independent review, clean exact-tag build with embedded
+version inspection, scoped OTA, authenticated ADMIN acceptance, service-boundary
+checks, and a 57-variable `OL` NUT poll passed. The exact next action is the
+next `v2.8.Z` review from the v2.8.2 `SKIP` debt.
 
 Read-only follow-up scans found `management-wifi-routes.c` and
 `management-certificates.c` clean across all 68 checks. They found one
