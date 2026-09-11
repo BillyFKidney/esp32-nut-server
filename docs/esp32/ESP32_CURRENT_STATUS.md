@@ -75,12 +75,13 @@ post-reboot pinned diagnostics, authenticated ADMIN form/log contracts, HTTPS
 NUT poll. [v2.8.8 is published](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.8).
 The exact next action is the next `v2.8.Z` review from the v2.8.2 `SKIP` debt.
 
-The next scanner found one moderate boundary-output issue in
+The completed `v2.8.10` review fixed one moderate boundary-output issue in
 `management-device-routes.c`: accepted device names containing quotes or
-backslashes are interpolated directly into the success JSON. The active
-tracker authorizes constructing that response with the existing bounded JSON
-helpers only; names, persistence, response fields, and ADMIN/CSRF behavior
-remain unchanged. The exact next action is the standing-approved fixer.
+backslashes now serialize through the existing bounded JSON helpers. This
+keeps valid administrator-selected display names consumable by the management
+UI and API clients without changing names, persistence, response fields, or
+ADMIN/CSRF behavior. Independent review and the ESP-IDF v6.0.2 build passed.
+The exact next action is exact-tag build and scoped release acceptance.
 
 Read-only follow-up scans found `management-wifi-routes.c` and
 `management-certificates.c` clean across all 68 checks. They found one
