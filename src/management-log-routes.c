@@ -11,22 +11,6 @@
 #include "management-http.h"
 #include "management-log.h"
 
-static const char *management_log_level_name(char level)
-{
-    switch (level)
-    {
-    case 'E':
-        return "error";
-    case 'W':
-        return "warning";
-    case 'D':
-    case 'V':
-        return "debug";
-    default:
-        return "info";
-    }
-}
-
 static bool management_log_append_timestamp_pair(char *destination, size_t destination_size,
                                                  size_t *used, time_t epoch_seconds)
 {
