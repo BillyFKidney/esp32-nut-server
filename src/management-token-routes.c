@@ -22,6 +22,107 @@
 #define MANAGEMENT_TOKEN_CREATE_RESPONSE_SIZE 420U
 #define MANAGEMENT_TOKEN_ACKNOWLEDGEMENT_SIZE 6U
 
+typedef esp_err_t (*ManagementTokenCreator)(const char *name, time_t issued_at,
+                                             ApiTokenMetadata *metadata,
+                                             char *token);
+
+typedef struct
+{
+    ManagementTokenCreator create;
+    const char *name_error;
+    const char *time_error;
+    const char *duplicate_error;
+    const char *capacity_error;
+    const char *creation_error;
+    const char *response_error;
+    const char *scope;
+    const char *log_name;
+} ManagementTokenCreateConfig;
+
+static esp_err_t management_api_token_create(const char *name, time_t issued_at,
+                                             ApiTokenMetadata *metadata, char *token)
+{
+    return api_tokens_create(name, issued_at, API_TOKEN_SCOPE_OTA_INSTALL,
+                             metadata, token);
+}
+
+static esp_err_t management_diagnostic_token_create(const char *name, time_t issued_at,
+                                                    ApiTokenMetadata *metadata, char *token)
+{
+    return diagnostic_tokens_create(name, issued_at, metadata, token);
+}
+
+static esp_err_t management_token_create(httpd_req_t *request,
+                                          const ManagementTokenCreateConfig *config)
+{
+    char body[MANAGEMENT_FORM_BODY_LIMIT + 1U] = {0};
+    char name[API_TOKEN_NAME_MAX_LENGTH + 1U] = {0};
+    const bool name_present =
+        management_read_form_body(request, body, sizeof(body)) == ESP_OK &&
+        management_form_value(body, "name", name, sizeof(name));
+    mbedtls_platform_zeroize(body, sizeof(body));
+    if (!name_present || !api_token_name_is_valid(name))
+    {
+        mbedtls_platform_zeroize(name, sizeof(name));
+        return management_send_json(request, "400 Bad Request", config->name_error);
+    }
+
+    TimeConfigStatus time_status;
+    time_config_get_status(&time_status);
+    if (!time_status.available)
+    {
+        mbedtls_platform_zeroize(name, sizeof(name));
+        return management_send_json(request, "409 Conflict", config->time_error);
+    }
+
+    ApiTokenMetadata metadata = {0};
+    char token[API_TOKEN_VALUE_LENGTH + 1U] = {0};
+    const esp_err_t result = config->create(name, time(NULL), &metadata, token);
+    mbedtls_platform_zeroize(name, sizeof(name));
+    if (result == ESP_ERR_INVALID_STATE)
+    {
+        mbedtls_platform_zeroize(token, sizeof(token));
+        mbedtls_platform_zeroize(&metadata, sizeof(metadata));
+        return management_send_json(request, "409 Conflict", config->duplicate_error);
+    }
+    if (result == ESP_ERR_NO_MEM)
+    {
+        mbedtls_platform_zeroize(token, sizeof(token));
+        mbedtls_platform_zeroize(&metadata, sizeof(metadata));
+        return management_send_json(request, "409 Conflict", config->capacity_error);
+    }
+    if (result != ESP_OK)
+    {
+        if (config->log_name != NULL)
+        {
+            ESP_LOGE(TAG, "Unable to create %s: %s", config->log_name,
+                     esp_err_to_name(result));
+        }
+        mbedtls_platform_zeroize(token, sizeof(token));
+        mbedtls_platform_zeroize(&metadata, sizeof(metadata));
+        return management_send_json(request, "500 Internal Server Error",
+                                    config->creation_error);
+    }
+
+    char response[MANAGEMENT_TOKEN_CREATE_RESPONSE_SIZE];
+    const int response_length = snprintf(
+        response, sizeof(response),
+        "{\"token\":\"%s\",\"id\":\"%s\",\"name\":\"%s\","
+        "\"issued_at\":\"%s\",\"final_four\":\"%s\","
+        "\"scopes\":[\"%s\"]}",
+        token, metadata.id, metadata.name, metadata.issued_at,
+        metadata.final_four, config->scope);
+    const esp_err_t send_result =
+        response_length < 0 || response_length >= (int)sizeof(response)
+            ? management_send_json(request, "500 Internal Server Error",
+                                   config->response_error)
+            : management_send_json(request, "201 Created", response);
+    mbedtls_platform_zeroize(response, sizeof(response));
+    mbedtls_platform_zeroize(token, sizeof(token));
+    mbedtls_platform_zeroize(&metadata, sizeof(metadata));
+    return send_result;
+}
+
 esp_err_t management_token_list_handler(httpd_req_t *request)
 {
     if (!management_require_session(request, true))
@@ -90,84 +191,18 @@ esp_err_t management_token_create_handler(httpd_req_t *request)
             "{\"error\":\"Invalid session or CSRF token.\"}");
     }
 
-    char body[MANAGEMENT_FORM_BODY_LIMIT + 1];
-    char name[API_TOKEN_NAME_MAX_LENGTH + 1U] = {0};
-    const esp_err_t form_result =
-        management_read_form_body(request, body, sizeof(body));
-    const bool name_present =
-        form_result == ESP_OK &&
-        management_form_value(body, "name", name, sizeof(name));
-    mbedtls_platform_zeroize(body, sizeof(body));
-    if (!name_present || !api_token_name_is_valid(name))
-    {
-        mbedtls_platform_zeroize(name, sizeof(name));
-        return management_send_json(
-            request, "400 Bad Request",
-            "{\"error\":\"Use a unique 1-32 character token name containing letters, numbers, spaces, periods, underscores, or hyphens.\"}");
-    }
-
-    TimeConfigStatus time_status;
-    time_config_get_status(&time_status);
-    if (!time_status.available)
-    {
-        mbedtls_platform_zeroize(name, sizeof(name));
-        return management_send_json(
-            request, "409 Conflict",
-            "{\"error\":\"Set or synchronize device time before creating an API token.\"}");
-    }
-
-    ApiTokenMetadata metadata;
-    char token[API_TOKEN_VALUE_LENGTH + 1U] = {0};
-    const esp_err_t result =
-        api_tokens_create(name, time(NULL), API_TOKEN_SCOPE_OTA_INSTALL,
-                          &metadata, token);
-    mbedtls_platform_zeroize(name, sizeof(name));
-    if (result == ESP_ERR_INVALID_STATE)
-    {
-        mbedtls_platform_zeroize(token, sizeof(token));
-        return management_send_json(
-            request, "409 Conflict",
-            "{\"error\":\"An active API token already uses that name.\"}");
-    }
-    if (result == ESP_ERR_NO_MEM)
-    {
-        mbedtls_platform_zeroize(token, sizeof(token));
-        return management_send_json(
-            request, "409 Conflict",
-            "{\"error\":\"The maximum of four active API tokens has been reached.\"}");
-    }
-    if (result != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Unable to create API token: %s", esp_err_to_name(result));
-        mbedtls_platform_zeroize(token, sizeof(token));
-        return management_send_json(
-            request, "500 Internal Server Error",
-            "{\"error\":\"Unable to create the API token.\"}");
-    }
-
-    char response[MANAGEMENT_TOKEN_CREATE_RESPONSE_SIZE];
-    const int response_length = snprintf(
-        response, sizeof(response),
-        "{\"token\":\"%s\",\"id\":\"%s\",\"name\":\"%s\","
-        "\"issued_at\":\"%s\",\"final_four\":\"%s\","
-        "\"scopes\":[\"ota.install\"]}",
-        token, metadata.id, metadata.name, metadata.issued_at,
-        metadata.final_four);
-    esp_err_t send_result;
-    if (response_length < 0 || response_length >= (int)sizeof(response))
-    {
-        send_result = management_send_json(
-            request, "500 Internal Server Error",
-            "{\"error\":\"The API token was created but its one-time response could not be prepared. Delete the undisclosed token and create another.\"}");
-    }
-    else
-    {
-        send_result = management_send_json(request, "201 Created", response);
-    }
-    mbedtls_platform_zeroize(response, sizeof(response));
-    mbedtls_platform_zeroize(token, sizeof(token));
-    mbedtls_platform_zeroize(&metadata, sizeof(metadata));
-    return send_result;
+    static const ManagementTokenCreateConfig config = {
+        .create = management_api_token_create,
+        .name_error = "{\"error\":\"Use a unique 1-32 character token name containing letters, numbers, spaces, periods, underscores, or hyphens.\"}",
+        .time_error = "{\"error\":\"Set or synchronize device time before creating an API token.\"}",
+        .duplicate_error = "{\"error\":\"An active API token already uses that name.\"}",
+        .capacity_error = "{\"error\":\"The maximum of four active API tokens has been reached.\"}",
+        .creation_error = "{\"error\":\"Unable to create the API token.\"}",
+        .response_error = "{\"error\":\"The API token was created but its one-time response could not be prepared. Delete the undisclosed token and create another.\"}",
+        .scope = "ota.install",
+        .log_name = "API token",
+    };
+    return management_token_create(request, &config);
 }
 
 esp_err_t management_token_delete_handler(httpd_req_t *request)
@@ -277,63 +312,18 @@ esp_err_t management_diagnostic_token_create_handler(httpd_req_t *request)
         return management_send_json(request, "403 Forbidden",
                                     "{\"error\":\"Invalid session or CSRF token.\"}");
     }
-    char body[MANAGEMENT_FORM_BODY_LIMIT + 1U] = {0};
-    char name[API_TOKEN_NAME_MAX_LENGTH + 1U] = {0};
-    const bool name_present =
-        management_read_form_body(request, body, sizeof(body)) == ESP_OK &&
-        management_form_value(body, "name", name, sizeof(name));
-    mbedtls_platform_zeroize(body, sizeof(body));
-    if (!name_present || !api_token_name_is_valid(name))
-    {
-        mbedtls_platform_zeroize(name, sizeof(name));
-        return management_send_json(request, "400 Bad Request",
-                                    "{\"error\":\"Use a unique 1-32 character diagnostic-token name containing letters, numbers, spaces, periods, underscores, or hyphens.\"}");
-    }
-    TimeConfigStatus time_status;
-    time_config_get_status(&time_status);
-    if (!time_status.available)
-    {
-        mbedtls_platform_zeroize(name, sizeof(name));
-        return management_send_json(request, "409 Conflict",
-                                    "{\"error\":\"Set or synchronize device time before creating a diagnostic token.\"}");
-    }
-    ApiTokenMetadata metadata;
-    char token[API_TOKEN_VALUE_LENGTH + 1U] = {0};
-    const esp_err_t result = diagnostic_tokens_create(name, time(NULL), &metadata, token);
-    mbedtls_platform_zeroize(name, sizeof(name));
-    if (result == ESP_ERR_INVALID_STATE)
-    {
-        mbedtls_platform_zeroize(token, sizeof(token));
-        return management_send_json(request, "409 Conflict",
-                                    "{\"error\":\"An active diagnostic token already uses that name.\"}");
-    }
-    if (result == ESP_ERR_NO_MEM)
-    {
-        mbedtls_platform_zeroize(token, sizeof(token));
-        return management_send_json(request, "409 Conflict",
-                                    "{\"error\":\"The maximum of two active diagnostic tokens has been reached.\"}");
-    }
-    if (result != ESP_OK)
-    {
-        mbedtls_platform_zeroize(token, sizeof(token));
-        return management_send_json(request, "500 Internal Server Error",
-                                    "{\"error\":\"Unable to create a diagnostic token.\"}");
-    }
-    char response[MANAGEMENT_TOKEN_CREATE_RESPONSE_SIZE];
-    const int response_length = snprintf(response, sizeof(response),
-        "{\"token\":\"%s\",\"id\":\"%s\",\"name\":\"%s\","
-        "\"issued_at\":\"%s\",\"final_four\":\"%s\","
-        "\"scopes\":[\"diagnostics.nut\"]}", token, metadata.id, metadata.name,
-        metadata.issued_at, metadata.final_four);
-    const esp_err_t send_result =
-        response_length < 0 || response_length >= (int)sizeof(response)
-            ? management_send_json(request, "500 Internal Server Error",
-                                   "{\"error\":\"The diagnostic token was created but its one-time response could not be prepared. Delete the undisclosed token and create another.\"}")
-            : management_send_json(request, "201 Created", response);
-    mbedtls_platform_zeroize(response, sizeof(response));
-    mbedtls_platform_zeroize(token, sizeof(token));
-    mbedtls_platform_zeroize(&metadata, sizeof(metadata));
-    return send_result;
+    static const ManagementTokenCreateConfig config = {
+        .create = management_diagnostic_token_create,
+        .name_error = "{\"error\":\"Use a unique 1-32 character diagnostic-token name containing letters, numbers, spaces, periods, underscores, or hyphens.\"}",
+        .time_error = "{\"error\":\"Set or synchronize device time before creating a diagnostic token.\"}",
+        .duplicate_error = "{\"error\":\"An active diagnostic token already uses that name.\"}",
+        .capacity_error = "{\"error\":\"The maximum of two active diagnostic tokens has been reached.\"}",
+        .creation_error = "{\"error\":\"Unable to create a diagnostic token.\"}",
+        .response_error = "{\"error\":\"The diagnostic token was created but its one-time response could not be prepared. Delete the undisclosed token and create another.\"}",
+        .scope = "diagnostics.nut",
+        .log_name = NULL,
+    };
+    return management_token_create(request, &config);
 }
 
 esp_err_t management_diagnostic_token_delete_handler(httpd_req_t *request)
