@@ -10,7 +10,7 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `main` is at the merged time-configuration review `22e222bed`; the annotated release tag is `v2.8.6`. The next review remains unnumbered as `v2.8.Z` until its acceptance boundary is complete. |
+| Active branch | `review/management-log-levels` is based on `main` at `75aeafbff`; it owns the completed v2.8.7 management-log mapping review and awaits exact-tag live acceptance. The session-boundaries scan found no bounded changes and is not a release slice. |
 | Published release | [`v2.8.6`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.6) is published from the exact tagged build with `nut-esp32s3-v2.8.6.bin` and its SHA-256 sidecar. Firmware SHA-256 is `241f8aa1bf4e8a59e8723f896932224feedb6bc6ff0e8bc62c451f2fd4a46b7c`; release evidence is in [archive/v2.8.6/evidence.md](../archive/v2.8.6/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
 | v2.8.0 candidate | The self-contained ADMIN UI now has a persistent appliance header, single-row responsive navigation, compact auto-refresh control, browser-native battery/load meters, full-width hardware diagnostics, no Dashboard logs, pretty Device Status JSON, and a lazy Logs page backed by the unchanged ADMIN 24-entry route with Copy and Download. The redundant certificate/LAN-only and ADMIN-session notices are removed. All pages declare a device-served favicon backed by the canonical tracked NUT logo. Every v1 route/payload and the six-entry `/api/v1/status` log window remain unchanged. The flash-resident 48,089-byte page is streamed through a 768-byte stack buffer instead of allocating a 49,152-byte whole-page heap buffer. |
@@ -44,6 +44,17 @@ HTTPS `443`, read-only NUT `3493`, refused `8080`, and a healthy 57-variable
 `OL` NUT poll. The exact next action is to select the next dedicated review
 from the explicit v2.8.2 `SKIP` debt; it remains `v2.8.Z` until that review
 defines its concrete release boundary.
+
+The v2.8.7 preparation scanner found `src/management-session.c` clean across
+all 68 checks. It then found one moderate, bounded duplication in the runtime
+log path: `management-log.c` and `management-log-routes.c` independently map
+the same `E`/`W`/`D`/`V` levels to payload names. The active one-item tracker
+proposes exposing that existing mapping through the management-log module and
+removing the route-local copy, with no payload or authorization changes. The
+fixer and independent reviewer completed the one-item extraction: the
+management-log module now owns the mapping for both serializers, preserving all
+payload values. The tracker is complete, and the exact next action is to merge,
+tag, and live-validate `v2.8.7` before publication.
 
 ## Read only when needed
 

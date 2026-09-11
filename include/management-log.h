@@ -18,6 +18,8 @@ typedef struct
     char message[MANAGEMENT_LOG_MESSAGE_LENGTH];
 } ManagementLogSnapshotEntry;
 
+const char *management_log_level_name(char level);
+
 /** Install the bounded runtime log capture used by the authenticated console. */
 void management_log_capture_start(void);
 

@@ -65,7 +65,7 @@ static const char *management_log_message_from_line(const char *line)
     return line;
 }
 
-static const char *management_log_level_name(char level)
+const char *management_log_level_name(char level)
 {
     switch (level)
     {
