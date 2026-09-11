@@ -10,7 +10,7 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `main` is at the merged browser OTA content-type review `945c5ce6c`; the annotated release tag is `v2.8.11`. The next review remains unnumbered as `v2.8.Z` until its acceptance boundary is complete. |
+| Active branch | `review/token-creation-workflow` is based on `main` at `eedbf24fe`; it owns one standing-approved v2.8.Z token-creation workflow review item. |
 | Published release | [`v2.8.11`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.11) is published from the exact tagged build with `nut-esp32s3-v2.8.11.bin` and its SHA-256 sidecar. Firmware SHA-256 is `4f2ba22944c56ad28e9b96c66c799e6f0af51ab6028bf7f520d52156399ae344`; release evidence is in [archive/v2.8.11/evidence.md](../archive/v2.8.11/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
 | v2.8.0 candidate | The self-contained ADMIN UI now has a persistent appliance header, single-row responsive navigation, compact auto-refresh control, browser-native battery/load meters, full-width hardware diagnostics, no Dashboard logs, pretty Device Status JSON, and a lazy Logs page backed by the unchanged ADMIN 24-entry route with Copy and Download. The redundant certificate/LAN-only and ADMIN-session notices are removed. All pages declare a device-served favicon backed by the canonical tracked NUT logo. Every v1 route/payload and the six-entry `/api/v1/status` log window remain unchanged. The flash-resident 48,089-byte page is streamed through a 768-byte stack buffer instead of allocating a 49,152-byte whole-page heap buffer. |
@@ -95,6 +95,13 @@ build with embedded-version inspection, scoped OTA, live browser rejection
 checks, authenticated ADMIN acceptance, service-boundary checks, and a
 57-variable `OL` NUT poll passed. The exact next action is the next `v2.8.Z`
 review from the v2.8.2 `SKIP` debt.
+
+The next scanner found one moderate duplicate creation workflow in
+`management-token-routes.c`. The active tracker limits the fix to a private,
+explicitly configured helper that preserves separate token stores, scopes,
+capacities, errors, ADMIN/CSRF, time gating, one-time plaintext responses, and
+zeroization. The exact next action is the standing-approved fixer followed by
+both token-family lifecycle and scope-isolation acceptance.
 
 Read-only follow-up scans found `management-wifi-routes.c` and
 `management-certificates.c` clean across all 68 checks. They found one
