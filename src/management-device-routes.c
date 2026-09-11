@@ -81,14 +81,24 @@ esp_err_t management_device_config_handler(httpd_req_t *request)
     }
 
     char response[384];
-    const int response_length = snprintf(
-        response, sizeof(response),
-        "{\"message\":\"Device settings saved. The hostname will be advertised on the next Wi-Fi reconnect or reboot.\","
-        "\"device_name\":\"%s\",\"hostname\":\"%s\",\"log_level\":\"%s\"}",
-        snapshot.device_name, snapshot.hostname,
-        management_device_config_log_level_name(snapshot.log_level));
+    size_t used = 0;
+    bool response_valid = management_json_append(
+        response, sizeof(response), &used,
+        "{\"message\":\"Device settings saved. The hostname will be advertised on the next Wi-Fi reconnect or reboot.\",\"device_name\":") &&
+        management_json_append_string(response, sizeof(response), &used,
+                                      snapshot.device_name) &&
+        management_json_append(response, sizeof(response), &used,
+                               ",\"hostname\":") &&
+        management_json_append_string(response, sizeof(response), &used,
+                                      snapshot.hostname) &&
+        management_json_append(response, sizeof(response), &used,
+                               ",\"log_level\":") &&
+        management_json_append_string(
+            response, sizeof(response), &used,
+            management_device_config_log_level_name(snapshot.log_level)) &&
+        management_json_append(response, sizeof(response), &used, "}");
     esp_err_t send_result;
-    if (response_length < 0 || response_length >= (int)sizeof(response))
+    if (!response_valid)
     {
         send_result = management_send_json(
             request, "500 Internal Server Error",
