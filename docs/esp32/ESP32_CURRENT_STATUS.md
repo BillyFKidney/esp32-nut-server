@@ -10,7 +10,7 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `main` includes the reviewed `v2.8.13` fallback portal-lifecycle release. The exact-tag artifact passed build, OTA, captive-portal, recovery, service-boundary, and full-NUT acceptance. |
+| Active branch | `release/v2.8.14-dns-server-lifecycle` is based on the published v2.8.13 main line. It owns the reviewed DNS worker-lifetime maintenance candidate; exact-tag build and bounded live portal acceptance remain pending. |
 | v2.8.13 release | This maintenance release isolates private fallback captive-portal lifecycle work from Wi-Fi orchestration, making future portal maintenance safer and easier to review while preserving AP/DNS startup, provisioning validation, recovery, and all unrelated station behavior. The exact tagged build is 1,359,392 bytes with SHA-256 `8501786485bd5331fd86fd359f8bb3987575ac4d841b85731bbbc71cfeabe96c`; evidence is in [archive/v2.8.13/evidence.md](../archive/v2.8.13/evidence.md). |
 | Published release | [`v2.8.12`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.12) is published from the exact tagged build with `nut-esp32s3-v2.8.12.bin` and its SHA-256 sidecar. Firmware SHA-256 is `c25965c3da80d6fbb08be467167e0808482b2a39b08b95453bf433830e0f386b`; release evidence is in [archive/v2.8.12/evidence.md](../archive/v2.8.12/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
