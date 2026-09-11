@@ -42,9 +42,9 @@ refactoring alone as the reason to upgrade.
 
 ## Published baseline
 
-`v2.8.0` through `v2.8.12` are published and target-tested. The next focused
-review remains unnumbered as `v2.8.Z` until its scope, review, and release
-boundary are complete.
+`v2.8.0` through `v2.8.12` are published and target-tested. The reviewed
+`v2.8.13` portal-lifecycle candidate awaits its non-destructive setup-mode
+runtime acceptance. The next reviewed candidate is `v2.8.14`.
 
 ## Operational Management completion — `v2.x`
 
@@ -68,6 +68,7 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | `v2.8.10` | Released | [Device-response JSON maintenance](ESP32_CURRENT_STATUS.md): valid display names with quotes or backslashes now return reliable JSON to management UI and API clients. The bounded serializer preserves accepted names, persistence, response fields, hostname behavior, and ADMIN/CSRF protections. Independent scan/review, clean-reconfigured exact-tag ESP-IDF v6.0.2 build with embedded-version inspection, scoped OTA, authenticated ADMIN acceptance, service-boundary checks, and a healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.10); see [release evidence](../archive/v2.8.10/evidence.md). |
 | `v2.8.11` | Released | [Browser OTA boundary maintenance](ESP32_CURRENT_STATUS.md): malformed browser uploads now fail predictably before any inactive-partition work, protecting the update path while preserving ADMIN/CSRF precedence, bearer-agent OTA, and established error contracts. Independent scan/review, clean-reconfigured exact-tag ESP-IDF v6.0.2 build with embedded-version inspection, scoped OTA, live browser rejection checks, authenticated ADMIN acceptance, service-boundary checks, and a healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.11); see [release evidence](../archive/v2.8.11/evidence.md). |
 | `v2.8.12` | Released | [Token-workflow maintenance](ESP32_CURRENT_STATUS.md): API and diagnostic issuance now share one fixed internal workflow, reducing future drift between security-sensitive paths without broadening either credential's authority. Independent scan/review, clean-reconfigured exact-tag ESP-IDF v6.0.2 build with embedded-version inspection, scoped OTA, full temporary token lifecycle/scope-isolation checks with revocation, authenticated ADMIN acceptance, service-boundary checks, and a healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.12); see [release evidence](../archive/v2.8.12/evidence.md). |
+| `v2.8.14` | `review/dns-server-lifecycle` | Captive-DNS lifecycle maintenance: the one-second graceful-stop window remains, but a worker that outlives it cleans up its own state rather than racing semaphore or context destruction. Independent scan/review and ESP-IDF build pass. Release follows the pending `v2.8.13` portal-lifecycle candidate. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
 

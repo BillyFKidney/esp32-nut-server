@@ -55,8 +55,10 @@ typedef struct __attribute__((packed))
 struct DnsServerHandle
 {
     volatile bool running;
+    bool cleanup_deferred;
     TaskHandle_t task;
     SemaphoreHandle_t stopped;
+    portMUX_TYPE lifetime_lock;
     char interface_key[16];
 };
 
@@ -207,8 +209,17 @@ static void dns_server_task(void *parameter)
     close(socket_handle);
 
 finished:
+    bool cleanup_deferred;
+    taskENTER_CRITICAL(&handle->lifetime_lock);
     handle->task = NULL;
+    cleanup_deferred = handle->cleanup_deferred;
     xSemaphoreGive(handle->stopped);
+    taskEXIT_CRITICAL(&handle->lifetime_lock);
+    if (cleanup_deferred)
+    {
+        vSemaphoreDelete(handle->stopped);
+        free(handle);
+    }
     vTaskDelete(NULL);
 }
 
@@ -225,6 +236,7 @@ DnsServerHandle dns_server_start(const char *interface_key)
         return NULL;
     }
 
+    handle->lifetime_lock = (portMUX_TYPE)portMUX_INITIALIZER_UNLOCKED;
     handle->stopped = xSemaphoreCreateBinary();
     if (handle->stopped == NULL)
     {
@@ -252,9 +264,17 @@ void dns_server_stop(DnsServerHandle handle)
     }
 
     handle->running = false;
-    if (xSemaphoreTake(handle->stopped, pdMS_TO_TICKS(1000)) != pdTRUE && handle->task != NULL)
+    if (xSemaphoreTake(handle->stopped, pdMS_TO_TICKS(1000)) != pdTRUE)
     {
-        vTaskDelete(handle->task);
+        taskENTER_CRITICAL(&handle->lifetime_lock);
+        if (handle->task != NULL)
+        {
+            handle->cleanup_deferred = true;
+            taskEXIT_CRITICAL(&handle->lifetime_lock);
+            ESP_LOGW(TAG, "DNS server stop exceeded one second; worker will clean up after exit");
+            return;
+        }
+        taskEXIT_CRITICAL(&handle->lifetime_lock);
     }
     vSemaphoreDelete(handle->stopped);
     free(handle);
