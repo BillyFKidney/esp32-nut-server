@@ -25,9 +25,11 @@ target installation remains a separate authorization boundary.
    authorization.
 3. Create the annotated release tag `vX.Y.Z` with a link to the
    release-evidence index.
-4. Build the firmware from that tagged commit for the intended target.
-5. Generate and verify the SHA-256 checksum against the exact source build
-   output, `build/nut-esp32s3.bin`.
+4. Clean-reconfigure and build the firmware from that tagged commit for the
+   intended target. Inspect the built image with `esptool image_info` and
+   confirm its embedded application version matches the release tag.
+5. Generate and verify the SHA-256 checksum against that version-verified
+   `build/nut-esp32s3.bin` output.
 6. Publish the versioned asset `nut-esp32s3-vX.Y.Z.bin` and its matching
    `nut-esp32s3-vX.Y.Z.bin.sha256` sidecar. Record both the source build path
    and published asset path in release evidence, and link that evidence.
@@ -40,7 +42,7 @@ refactoring alone as the reason to upgrade.
 
 ## Published baseline
 
-`v2.8.0` through `v2.8.8` are published and target-tested. The next focused
+`v2.8.0` through `v2.8.9` are published and target-tested. The next focused
 review remains unnumbered as `v2.8.Z` until its scope, review, and release
 boundary are complete.
 
@@ -62,8 +64,7 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | `v2.8.6` | Released | [Time-configuration code-review maintenance](ESP32_TIME_CONFIG_CONTRACT.md): split private NVS persistence and timezone policy from SNTP lifecycle and public operations without changing time, synchronization, or route contracts. Independent scan/review, exact-tag ESP-IDF v6.0.2 build/size validation, scoped OTA, time-status, service-boundary checks, and a healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.6); see [release evidence](../archive/v2.8.6/evidence.md). |
 | `v2.8.7` | Released | [Management-log code-review maintenance](ESP32_CURRENT_STATUS.md): centralized the duplicated private log-level mapping used by runtime-log capture and full-log routes while preserving every response name and payload contract. Independent scan/review, exact-tag ESP-IDF v6.0.2 build/size validation, scoped OTA, authenticated ADMIN log contracts, service-boundary checks, and a healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.7); see [release evidence](../archive/v2.8.7/evidence.md). |
 | `v2.8.8` | Released | [Management-HTTP code-review maintenance](ESP32_CURRENT_STATUS.md): extracted duplicate private form-component decode loops while preserving malformed-input, percent-decoding, plus-to-space, truncation, route, and security behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build/size validation, scoped OTA, authenticated ADMIN form/log contracts, service-boundary checks, and a healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.8); see [release evidence](../archive/v2.8.8/evidence.md). |
-| `v2.8.8` | `review/management-http-form-decoder` | [Management-HTTP code-review maintenance](ESP32_CURRENT_STATUS.md): extracted duplicate private form-component decode loops while preserving malformed-input, percent-decoding, plus-to-space, truncation, route, and security behavior. Independent review and ESP-IDF v6.0.2 build/size validation pass; exact-tag live acceptance remains before publication. |
-| `v2.8.9` | `review/management-credentials-format` | [Credential-format code-review maintenance](ESP32_CURRENT_STATUS.md): reused the private current-format predicate in verification while retaining the NVS-success guard and preserving schema, migration, iteration bounds, authentication, and zeroization behavior. Independent review and ESP-IDF v6.0.2 build/size validation pass; exact-tag live acceptance remains before publication. |
+| `v2.8.9` | Released | [Credential-format code-review maintenance](ESP32_CURRENT_STATUS.md): centralized current-format validation so future credential-security maintenance cannot let stored-record and password-verification rules drift. Independent scan/review, clean-reconfigured exact-tag ESP-IDF v6.0.2 build with embedded-version inspection, scoped OTA, authenticated ADMIN contracts, service-boundary checks, and a healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.9); see [release evidence](../archive/v2.8.9/evidence.md). |
 | `v2.8.Z` | To be assigned | Next focused code-review maintenance slice. Assign its concrete `v2.8.X` number only after independent scan/review establishes a bounded, behavior-preserving acceptance boundary. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
