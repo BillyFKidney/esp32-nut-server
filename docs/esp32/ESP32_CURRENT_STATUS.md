@@ -10,7 +10,7 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `review/management-credentials-format` is based on `main` at `1b821d421`; it owns one standing-approved v2.8.Z current-format-predicate review item. Wi-Fi-route and certificate-management boundaries scanned clean and are not release slices. |
+| Active branch | `review/management-credentials-format` is based on `main` at `1b821d421`; it owns the completed v2.8.9 current-format-predicate review and awaits exact-tag live acceptance. Wi-Fi-route and certificate-management boundaries scanned clean and are not release slices. |
 | Published release | [`v2.8.8`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.8) is published from the exact tagged build with `nut-esp32s3-v2.8.8.bin` and its SHA-256 sidecar. Firmware SHA-256 is `269cfaa42bca22c01183a3a0e77cc2dc9dd5bd58433f6ec8b8665052e429c0f6`; release evidence is in [archive/v2.8.8/evidence.md](../archive/v2.8.8/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
 | v2.8.0 candidate | The self-contained ADMIN UI now has a persistent appliance header, single-row responsive navigation, compact auto-refresh control, browser-native battery/load meters, full-width hardware diagnostics, no Dashboard logs, pretty Device Status JSON, and a lazy Logs page backed by the unchanged ADMIN 24-entry route with Copy and Download. The redundant certificate/LAN-only and ADMIN-session notices are removed. All pages declare a device-served favicon backed by the canonical tracked NUT logo. Every v1 route/payload and the six-entry `/api/v1/status` log window remain unchanged. The flash-resident 48,089-byte page is streamed through a 768-byte stack buffer instead of allocating a 49,152-byte whole-page heap buffer. |
@@ -80,8 +80,12 @@ Read-only follow-up scans found `management-wifi-routes.c` and
 moderate duplicated predicate in `management-credentials.c`: verification
 repeats the existing private current-format checks for record size, version,
 and iteration bounds. The active tracker authorizes replacing that duplicate
-only inside its existing `credential_result == ESP_OK` guard. The exact next
-action is the standing-approved fixer.
+only inside its existing `credential_result == ESP_OK` guard. The
+standing-approved fixer reused the existing private predicate only inside that
+guard. Independent review confirmed that schema, migration separation,
+iteration bounds, PBKDF2, constant-time comparison, handle closure, and all
+zeroization paths remain unchanged; the tracker is complete. The exact next
+action is to merge, tag, and live-validate `v2.8.9` before publication.
 
 ## Read only when needed
 
