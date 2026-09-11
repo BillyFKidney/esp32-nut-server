@@ -36,8 +36,9 @@ target installation remains a separate authorization boundary.
 
 ## Published baseline
 
-`v2.8.0` through `v2.8.5` are published and target-tested. The completed next
-focused review is assigned `v2.8.6`; it awaits exact-tag live acceptance.
+`v2.8.0` through `v2.8.6` are published and target-tested. The next focused
+review remains unnumbered as `v2.8.Z` until its scope, review, and release
+boundary are complete.
 
 ## Operational Management completion — `v2.x`
 
@@ -54,7 +55,8 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | `v2.8.3` | Released | [Token-store code-review maintenance](ESP32_API_TOKEN_STORAGE_CONTRACT.md): duplicated OTA/diagnostic token lifecycle now shares a private store while preserving NVS layout and authorization isolation. Exact-tag ESP-IDF v6.0.2 build, live create/list/delete/revocation checks, scope isolation, scoped OTA, service boundaries, and healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.3); see [release evidence](../archive/v2.8.3/evidence.md). |
 | `v2.8.4` | Released | [OTA route code-review maintenance](ESP32_OTA_ROUTE_CONTRACT.md): split the OTA request orchestration without changing authorization, image, persistence, response, partition, or reboot behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, service-boundary checks, and healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.4); see [release evidence](../archive/v2.8.4/evidence.md). |
 | `v2.8.5` | Released | [Wi-Fi scan code-review maintenance](ESP32_WIFI_SCAN_CONTRACT.md): split the scan lifecycle, restore cleanup symmetry, and remove proven unreachable button-release logic without changing synchronization, provisioning, credential, or route behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, authenticated Wi-Fi scan, scoped OTA, service-boundary checks, and healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.5); see [release evidence](../archive/v2.8.5/evidence.md). |
-| `v2.8.6` | `review/time-config-boundaries` | [Time-configuration code-review maintenance](ESP32_TIME_CONFIG_CONTRACT.md): split private NVS persistence and timezone policy from SNTP lifecycle and public operations without changing time, synchronization, or route contracts. Independent scan/review and ESP-IDF v6.0.2 build/size validation pass; exact-tag live acceptance remains before publication. |
+| `v2.8.6` | Released | [Time-configuration code-review maintenance](ESP32_TIME_CONFIG_CONTRACT.md): split private NVS persistence and timezone policy from SNTP lifecycle and public operations without changing time, synchronization, or route contracts. Independent scan/review, exact-tag ESP-IDF v6.0.2 build/size validation, scoped OTA, time-status, service-boundary checks, and a healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.6); see [release evidence](../archive/v2.8.6/evidence.md). |
+| `v2.8.Z` | To be assigned | Next focused code-review maintenance slice. Assign its concrete `v2.8.X` number only after independent scan/review establishes a bounded, behavior-preserving acceptance boundary. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
 
