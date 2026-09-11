@@ -44,6 +44,11 @@ esp_err_t management_ota_install_handler(httpd_req_t *request)
     {
         return result;
     }
+    result = management_ota_check_content_type(request);
+    if (result != ESP_OK)
+    {
+        return management_ota_reject_content_type(request, "{\"error\":\"Firmware installation requires an application/octet-stream image body.\"}");
+    }
     return ota_install_from_request(request);
 }
 
