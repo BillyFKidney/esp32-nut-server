@@ -10,7 +10,7 @@ archive, source tree, or project chat. Completed release evidence is in
 
 | Field | Current fact |
 | --- | --- |
-| Active branch | `main` is at the merged management-log review `5b0e058e9`; the annotated release tag is `v2.8.7`. The next review remains unnumbered as `v2.8.Z` until its acceptance boundary is complete. |
+| Active branch | `review/management-http-form-decoder` is based on `main` at `179d37ee5`; it owns the completed v2.8.8 form-component-decoder review and awaits exact-tag live acceptance. Device-configuration boundaries scanned clean and are not a release slice. |
 | Published release | [`v2.8.7`](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.7) is published from the exact tagged build with `nut-esp32s3-v2.8.7.bin` and its SHA-256 sidecar. Firmware SHA-256 is `ccdea986330ea48aba3e8df7cbdf51374dceeda63e600664ffccf137c77fee9a`; release evidence is in [archive/v2.8.7/evidence.md](../archive/v2.8.7/evidence.md). |
 | Active maintenance record | The v2.7.11 browser-update investigation is closed as a remote NGINX configuration incident, not an ESP32-NUT defect. No v2.7.11 firmware will be released. |
 | v2.8.0 candidate | The self-contained ADMIN UI now has a persistent appliance header, single-row responsive navigation, compact auto-refresh control, browser-native battery/load meters, full-width hardware diagnostics, no Dashboard logs, pretty Device Status JSON, and a lazy Logs page backed by the unchanged ADMIN 24-entry route with Copy and Download. The redundant certificate/LAN-only and ADMIN-session notices are removed. All pages declare a device-served favicon backed by the canonical tracked NUT logo. Every v1 route/payload and the six-entry `/api/v1/status` log window remain unchanged. The flash-resident 48,089-byte page is streamed through a 768-byte stack buffer instead of allocating a 49,152-byte whole-page heap buffer. |
@@ -60,6 +60,16 @@ HTTPS `443`, read-only NUT `3493`, refused `8080`, and a healthy 57-variable
 `OL` NUT poll. [v2.8.7 is published](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.7).
 The exact next action is to select the next focused review from the v2.8.2
 `SKIP` debt as `v2.8.Z`.
+
+The v2.8.8 preparation scan found `src/management-device-config.c` clean across
+all 68 checks. It then found one moderate, bounded routine-size issue in
+`management_extract_form_value()` in `management-http.c`: its name and value
+paths independently decode form components. The active one-item tracker
+authorized extracting that private decoder while preserving every current
+malformed-input, percent-decoding, plus-to-space, truncation, route, and
+security behavior. Independent review confirmed the equivalence, including
+incomplete escapes and embedded NUL behavior; the tracker is complete. The
+exact next action is to merge, tag, and live-validate `v2.8.8` before publication.
 
 ## Read only when needed
 
