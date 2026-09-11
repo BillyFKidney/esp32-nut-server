@@ -300,10 +300,8 @@ bool management_credentials_verify_admin_password(const char *password,
                                                      &credential_length);
     bool credential_loaded = false;
     bool legacy_loaded = false;
-    if (credential_result == ESP_OK && credential_length == sizeof(credential) &&
-        credential.version == MANAGEMENT_PASSWORD_CREDENTIAL_VERSION &&
-        credential.iterations >= MANAGEMENT_PASSWORD_MIN_ITERATIONS &&
-        credential.iterations <= MANAGEMENT_PASSWORD_MAX_ITERATIONS)
+    if (credential_result == ESP_OK &&
+        management_credentials_is_current_format(&credential, credential_length))
     {
         memcpy(salt, credential.salt, sizeof(salt));
         memcpy(stored_hash, credential.hash, sizeof(stored_hash));
