@@ -40,6 +40,9 @@ Release notes must begin with the practical upgrade benefit, then state the
 implementation change and preserved contracts. Do not present internal
 refactoring alone as the reason to upgrade.
 
+The full fresh `/src` review coverage, including clean files and deferred
+compatibility debt, is recorded in [ESP32_SRC_CODE_REVIEW_COVERAGE.md](ESP32_SRC_CODE_REVIEW_COVERAGE.md).
+
 ## Published baseline
 
 `v2.8.0` through `v2.8.12` are published and target-tested. The next focused
