@@ -36,17 +36,28 @@ target installation remains a separate authorization boundary.
 7. Update [ESP32_CURRENT_STATUS.md](ESP32_CURRENT_STATUS.md) with the
    publication, validation state, and next action.
 
-Release notes must begin with the practical upgrade benefit, then state the
-implementation change and preserved contracts. Do not present internal
-refactoring alone as the reason to upgrade.
+Every GitHub release body must use this exact Markdown structure:
+
+```markdown
+## Benefit
+
+## What changed
+
+## Verification
+
+## Artifact
+```
+
+Lead with the practical upgrade benefit, then state the implementation change
+and preserved contracts. List only checks actually performed, and record the
+versioned asset and SHA-256. Do not present internal refactoring alone as the
+reason to upgrade or replace these headings with unstructured prose.
 
 ## Published baseline
 
-`v2.8.0` through `v2.8.15` are published and target-tested. The reviewed,
-target-tested `v2.8.16` diagnostic-time candidate is pending publication; the
-target-tested `v2.8.17` time-storage import-order candidate is also pending
-publication. The inherited-compatibility debt requires a fresh bounded scan
-before it receives a release version.
+`v2.8.0` through `v2.8.17` are published and target-tested. The
+inherited-compatibility debt requires a fresh bounded scan before it receives a
+release version.
 
 ## Operational Management completion — `v2.x`
 
@@ -73,8 +84,8 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | `v2.8.13` | Released | [Fallback portal lifecycle maintenance](../archive/v2.8.13/evidence.md): the private AP/DNS/portal lifecycle now has one focused owner, reducing regression risk in future Wi-Fi work while preserving AP+STA/open-AP/DHCP-DNS behavior, critical-section/event-bit ordering, failure cleanup, task lifetime, provisioning validation, and station recovery. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, live captive-portal routes and malformed-input rejection, credential recovery, service-boundary checks, and a healthy full-NUT acceptance passed before publication. |
 | `v2.8.14` | Released | [Captive-DNS lifecycle maintenance](../archive/v2.8.14/evidence.md): a worker that outlives the retained one-second graceful-stop window cleans up its own state rather than racing semaphore or context destruction. This makes setup-network shutdown more reliable while preserving DNS answers, portal routes, provisioning, and normal station behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, live captive-DNS and portal acceptance, credential recovery, service-boundary checks, and healthy NUT acceptance passed before publication. |
 | `v2.8.15` | Released | [Wi-Fi credential lifecycle maintenance](../archive/v2.8.15/evidence.md): active and pending records share fixed private NVS helpers, preventing future storage-flow drift while preserving separate keys, schema, validation, errors, zeroization, provisioning, and recovery behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, unchanged-station recovery, service-boundary checks, and healthy NUT acceptance passed before publication. |
-| `v2.8.16` | `review/nut-diagnostics-time-constant` | Diagnostic simulation maintenance: names the duration conversion so future time-unit changes are less error-prone while preserving bounded RAM-only disconnect simulation, diagnostic timing, routes, and payloads. Independent scan/review passed. Requires exact-tag build, scoped OTA, and normal-station service-boundary/full-NUT acceptance. |
-| `v2.8.17` | `review/time-storage-import-order` | Time-storage import-order maintenance: aligns the standard-library include group, making the private storage module easier to audit while preserving NVS persistence, timezone behavior, and runtime contracts. Independent scan/review passed. Requires exact-tag build, scoped OTA, and normal-station service-boundary/full-NUT acceptance. |
+| `v2.8.16` | Released | [Diagnostic simulation maintenance](../archive/v2.8.16/evidence.md): names the duration conversion so future time-unit changes are less error-prone while preserving bounded RAM-only disconnect simulation, diagnostic timing, routes, and payloads. Independent scan/review, exact-tag build, scoped OTA, service-boundary checks, and full-NUT acceptance passed before publication. |
+| `v2.8.17` | Released | [Time-storage import-order maintenance](../archive/v2.8.17/evidence.md): aligns the standard-library include group, making the private storage module easier to audit while preserving NVS persistence, timezone behavior, and runtime contracts. Independent scan/review, exact-tag build, scoped OTA, service-boundary checks, and full-NUT acceptance passed before publication. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
 

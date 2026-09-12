@@ -99,3 +99,10 @@ action. Confirm whether an authorized release was published; if so, include the
 tag, GitHub release URL, and verified firmware/checksum artifacts, otherwise
 state that publication was not authorized or not performed. Do not push, merge,
 tag, OTA, flash, or release unless explicitly requested.
+
+For every GitHub release body, use the exact Markdown headings `## Benefit`,
+`## What changed`, `## Verification`, and `## Artifact`, in that order. Lead
+with the practical upgrade benefit; do not substitute an unstructured
+`Benefit:` paragraph. State preserved contracts in What changed, list only
+performed checks in Verification, and record the versioned asset plus its
+SHA-256 in Artifact.
