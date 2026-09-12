@@ -3,7 +3,7 @@
 - Source release commit: `0d613ca5d`
 - Annotated tag: `v2.8.16`
 - Firmware asset: `nut-esp32s3-v2.8.16.bin` (1,359,301 bytes)
-- SHA-256: `7075bf4b05faef20e5a8eed74c5aa1ee2994046ab2c343b7ac31ae63701e16b0`
+- SHA-256: `dbc6d441918bb0b2579012b8fa4f06db9a251ea3e11d07110a4482405b36e065`
 
 ## Benefit
 
@@ -15,8 +15,11 @@ mistake without changing the diagnostic simulation users rely on.
 
 - Independent scan and review accepted the narrow constant extraction and
   preserved duration bounds, RAM-only state, diagnostic routes, and payloads.
-- A clean ESP-IDF v6.0.2 build from the exact tag embedded `v2.8.16`, produced
-  the recorded artifact and SHA-256, and left 59% application-slot headroom.
+- An isolated clean ESP-IDF v6.0.2 publication build from the exact tag and
+  target configuration embedded `v2.8.16`, produced the recorded public
+  artifact and SHA-256, and left 59% application-slot headroom. ESP-IDF binary
+  output is build-context sensitive, so this public artifact differs bytewise
+  from the separately built image used for live OTA acceptance.
 - Scoped certificate-pinned OTA installed successfully on 3Dprinter. Pinned
   diagnostics report `v2.8.16`, normal Wi-Fi connection, update `installed`,
   and healthy NUT service.
