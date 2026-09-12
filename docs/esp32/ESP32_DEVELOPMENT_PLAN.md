@@ -42,8 +42,9 @@ refactoring alone as the reason to upgrade.
 
 ## Published baseline
 
-`v2.8.0` through `v2.8.15` are published and target-tested. The reviewed
-`v2.8.16` diagnostic-time candidate is the next focused release.
+`v2.8.0` through `v2.8.15` are published and target-tested. The reviewed,
+target-tested `v2.8.16` diagnostic-time candidate is pending publication; the
+next focused candidate is `v2.8.17` time-storage import ordering.
 
 ## Operational Management completion — `v2.x`
 
@@ -71,6 +72,7 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | `v2.8.14` | Released | [Captive-DNS lifecycle maintenance](../archive/v2.8.14/evidence.md): a worker that outlives the retained one-second graceful-stop window cleans up its own state rather than racing semaphore or context destruction. This makes setup-network shutdown more reliable while preserving DNS answers, portal routes, provisioning, and normal station behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, live captive-DNS and portal acceptance, credential recovery, service-boundary checks, and healthy NUT acceptance passed before publication. |
 | `v2.8.15` | Released | [Wi-Fi credential lifecycle maintenance](../archive/v2.8.15/evidence.md): active and pending records share fixed private NVS helpers, preventing future storage-flow drift while preserving separate keys, schema, validation, errors, zeroization, provisioning, and recovery behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, unchanged-station recovery, service-boundary checks, and healthy NUT acceptance passed before publication. |
 | `v2.8.16` | `review/nut-diagnostics-time-constant` | Diagnostic simulation maintenance: names the duration conversion so future time-unit changes are less error-prone while preserving bounded RAM-only disconnect simulation, diagnostic timing, routes, and payloads. Independent scan/review passed. Requires exact-tag build, scoped OTA, and normal-station service-boundary/full-NUT acceptance. |
+| `v2.8.17` | `review/time-storage-import-order` | Time-storage import-order maintenance: sort the existing local include after standard and third-party headers without changing time persistence, NVS schema, or runtime behavior. Requires independent review, exact-tag build, scoped OTA, and normal-station service-boundary/full-NUT acceptance. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
 
