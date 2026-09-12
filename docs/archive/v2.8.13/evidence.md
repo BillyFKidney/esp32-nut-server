@@ -2,6 +2,7 @@
 
 - Source release commit: `1c9207c8a`
 - Annotated tag: `v2.8.13`
+- GitHub release: <https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.13>
 - Firmware asset: `nut-esp32s3-v2.8.13.bin` (1,359,392 bytes)
 - SHA-256: `8501786485bd5331fd86fd359f8bb3987575ac4d841b85731bbbc71cfeabe96c`
 
