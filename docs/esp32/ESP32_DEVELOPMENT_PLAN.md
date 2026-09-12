@@ -44,7 +44,9 @@ refactoring alone as the reason to upgrade.
 
 `v2.8.0` through `v2.8.15` are published and target-tested. The reviewed,
 target-tested `v2.8.16` diagnostic-time candidate is pending publication; the
-next focused candidate is `v2.8.17` time-storage import ordering.
+target-tested `v2.8.17` time-storage import-order candidate is also pending
+publication. The inherited-compatibility debt requires a fresh bounded scan
+before it receives a release version.
 
 ## Operational Management completion — `v2.x`
 
