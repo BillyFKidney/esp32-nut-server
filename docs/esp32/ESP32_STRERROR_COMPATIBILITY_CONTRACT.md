@@ -39,3 +39,6 @@ Windows and other historical Autotools targets are not presently in the
 maintained fixture matrix. Adding them requires a runnable compiler fixture and
 an explicit expected errno/diagnostic contract before they can be used to
 justify a structural change.
+
+The first GitHub Actions matrix run passed on both `ubuntu-latest` and
+`macos-latest` for commit `0be577cd8`.
