@@ -56,8 +56,9 @@ reason to upgrade or replace these headings with unstructured prose.
 ## Published baseline
 
 `v2.8.0` through `v2.8.17` are published and target-tested. The
-inherited-compatibility debt requires a fresh bounded scan before it receives a
-release version.
+fresh bounded `src/common/strerror.c` review confirms inherited portability
+debt still requires a cross-platform errno/diagnostic compatibility contract
+and fixtures before it receives a release version.
 
 ## Operational Management completion — `v2.x`
 
@@ -86,6 +87,7 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | `v2.8.15` | Released | [Wi-Fi credential lifecycle maintenance](../archive/v2.8.15/evidence.md): active and pending records share fixed private NVS helpers, preventing future storage-flow drift while preserving separate keys, schema, validation, errors, zeroization, provisioning, and recovery behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, unchanged-station recovery, service-boundary checks, and healthy NUT acceptance passed before publication. |
 | `v2.8.16` | Released | [Diagnostic simulation maintenance](../archive/v2.8.16/evidence.md): names the duration conversion so future time-unit changes are less error-prone while preserving bounded RAM-only disconnect simulation, diagnostic timing, routes, and payloads. Independent scan/review, exact-tag build, scoped OTA, service-boundary checks, and full-NUT acceptance passed before publication. |
 | `v2.8.17` | Released | [Time-storage import-order maintenance](../archive/v2.8.17/evidence.md): aligns the standard-library include group, making the private storage module easier to audit while preserving NVS persistence, timezone behavior, and runtime contracts. Independent scan/review, exact-tag build, scoped OTA, service-boundary checks, and full-NUT acceptance passed before publication. |
+| Deferred | `review/inherited-compatibility-fresh-scan` | Fresh bounded review of `src/common/strerror.c` confirms its 526-line conditional errno table is inherited portability behavior. It remains `SKIP`: any split or modernization requires cross-platform errno/diagnostic fixtures and a compatibility contract, not an unscoped hygiene release. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
 
