@@ -42,8 +42,8 @@ refactoring alone as the reason to upgrade.
 
 ## Published baseline
 
-`v2.8.0` through `v2.8.14` are published and target-tested. The reviewed
-`v2.8.15` credential-storage candidate is the next focused release.
+`v2.8.0` through `v2.8.15` are published and target-tested. The reviewed
+`v2.8.16` diagnostic-time candidate is the next focused release.
 
 ## Operational Management completion — `v2.x`
 
@@ -69,7 +69,8 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | `v2.8.12` | Released | [Token-workflow maintenance](ESP32_CURRENT_STATUS.md): API and diagnostic issuance now share one fixed internal workflow, reducing future drift between security-sensitive paths without broadening either credential's authority. Independent scan/review, clean-reconfigured exact-tag ESP-IDF v6.0.2 build with embedded-version inspection, scoped OTA, full temporary token lifecycle/scope-isolation checks with revocation, authenticated ADMIN acceptance, service-boundary checks, and a healthy full-NUT acceptance passed before [publication](https://github.com/BillyFKidney/esp32-nut-server/releases/tag/v2.8.12); see [release evidence](../archive/v2.8.12/evidence.md). |
 | `v2.8.13` | Released | [Fallback portal lifecycle maintenance](../archive/v2.8.13/evidence.md): the private AP/DNS/portal lifecycle now has one focused owner, reducing regression risk in future Wi-Fi work while preserving AP+STA/open-AP/DHCP-DNS behavior, critical-section/event-bit ordering, failure cleanup, task lifetime, provisioning validation, and station recovery. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, live captive-portal routes and malformed-input rejection, credential recovery, service-boundary checks, and a healthy full-NUT acceptance passed before publication. |
 | `v2.8.14` | Released | [Captive-DNS lifecycle maintenance](../archive/v2.8.14/evidence.md): a worker that outlives the retained one-second graceful-stop window cleans up its own state rather than racing semaphore or context destruction. This makes setup-network shutdown more reliable while preserving DNS answers, portal routes, provisioning, and normal station behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, live captive-DNS and portal acceptance, credential recovery, service-boundary checks, and healthy NUT acceptance passed before publication. |
-| `v2.8.15` | `review/wifi-credentials-storage` | Wi-Fi credential lifecycle maintenance: active and pending records now share fixed private NVS helpers, reducing future storage-flow drift while preserving separate keys, schema, validation, errors, zeroization, and caller-owned credential buffers. Independent scan/review passed. Requires exact-tag build, scoped OTA, and normal-station service-boundary/full-NUT acceptance; no Wi-Fi credential mutation is required. |
+| `v2.8.15` | Released | [Wi-Fi credential lifecycle maintenance](../archive/v2.8.15/evidence.md): active and pending records share fixed private NVS helpers, preventing future storage-flow drift while preserving separate keys, schema, validation, errors, zeroization, provisioning, and recovery behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, unchanged-station recovery, service-boundary checks, and healthy NUT acceptance passed before publication. |
+| `v2.8.16` | `review/nut-diagnostics-time-constant` | Diagnostic-time maintenance: replace a repeated literal with one named constant without changing NUT diagnostics timing, routes, or payloads. Requires independent review, exact-tag build, scoped OTA, and normal-station service-boundary/full-NUT acceptance. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
 
