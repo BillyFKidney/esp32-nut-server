@@ -1,0 +1,34 @@
+name: strerror fallback
+
+on:
+  pull_request:
+    paths:
+      - "src/common/strerror.c"
+      - "tests/strerror_fallback_test.c"
+      - "tests/run-strerror-fallback-test.sh"
+      - "docs/esp32/ESP32_STRERROR_COMPATIBILITY_CONTRACT.md"
+      - ".github/workflows/strerror-fallback.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "src/common/strerror.c"
+      - "tests/strerror_fallback_test.c"
+      - "tests/run-strerror-fallback-test.sh"
+      - "docs/esp32/ESP32_STRERROR_COMPATIBILITY_CONTRACT.md"
+      - ".github/workflows/strerror-fallback.yml"
+
+jobs:
+  fallback-contract:
+    name: forced fallback (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the forced strerror fallback contract
+        run: tests/run-strerror-fallback-test.sh

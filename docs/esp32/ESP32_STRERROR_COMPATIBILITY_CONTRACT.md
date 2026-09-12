@@ -26,3 +26,16 @@ matrix for the supported portability configurations. A firmware release that
 touches this file also requires the ordinary exact-tag ESP32 build and
 3Dprinter OTA/service regression acceptance; that device check verifies the
 normal libc path, not the forced fallback path.
+
+## Supported target matrix
+
+| Target | Contract coverage | Gate |
+| --- | --- | --- |
+| macOS host | Forced fallback with the native `cc` toolchain | `tests/run-strerror-fallback-test.sh` locally and in GitHub Actions |
+| Ubuntu host | Forced fallback with the runner's native `cc` toolchain | `tests/run-strerror-fallback-test.sh` in GitHub Actions |
+| YD-ESP32-23 / ESP-IDF v6.0.2 | Normal libc path; fallback is not compiled | Exact-tag build plus authorized 3Dprinter OTA/service regression for source changes |
+
+Windows and other historical Autotools targets are not presently in the
+maintained fixture matrix. Adding them requires a runnable compiler fixture and
+an explicit expected errno/diagnostic contract before they can be used to
+justify a structural change.
