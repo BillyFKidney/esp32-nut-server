@@ -20,7 +20,8 @@ explicitly says, **“Tag vX.Y.Z and publish release.”** A build, upload, or
 target installation remains a separate authorization boundary.
 
 1. Create a release-evidence index and an unpushed evidence tag that identify
-   the merged commit, validation results, and intended firmware artifact.
+   the merged commit, validation results, and intended firmware artifact. Draft
+   the GitHub release body at the same time, using the required structure below.
 2. Await the Maintainer's explicit `Tag vX.Y.Z and publish release`
    authorization.
 3. Create the annotated release tag `vX.Y.Z` with a link to the
@@ -53,12 +54,31 @@ and preserved contracts. List only checks actually performed, and record the
 versioned asset and SHA-256. Do not present internal refactoring alone as the
 reason to upgrade or replace these headings with unstructured prose.
 
+### Documentation publication gate
+
+Before publishing every future release, the Agent must confirm all of the
+following in the prepared release material:
+
+- `## Benefit`, `## What changed`, `## Verification`, and `## Artifact` occur
+  once, in that order, as Markdown headings;
+- **Benefit** explains a user-visible operational or maintenance advantage,
+  not merely the internal code change;
+- **What changed** identifies the bounded change and the contracts preserved;
+- **Verification** contains only checks actually performed for that tag; and
+- **Artifact** names the versioned binary and its verified SHA-256.
+
+After publication, the Agent must retrieve the GitHub release body and verify
+the same heading order and content are rendered there before reporting the
+release complete. A release that fails this gate must have its body corrected
+before final handoff. This forward-only gate does not require reformatting
+historical releases or relocating their archived evidence.
+
 ## Published baseline
 
-`v2.8.0` through `v2.8.17` are published and target-tested. The
-fresh bounded `src/common/strerror.c` review confirms inherited portability
-debt still requires a cross-platform errno/diagnostic compatibility contract
-and fixtures before it receives a release version.
+`v2.8.0` through `v2.8.17` are published and target-tested. The fresh bounded
+`src/common/strerror.c` review added its portability contract and fixture
+matrix; this inactive ESP32 fallback is protected inherited code, not a future
+release candidate.
 
 ## Operational Management completion — `v2.x`
 
@@ -87,7 +107,7 @@ boundaries remain in force. The remaining umbrella-milestone slices are:
 | `v2.8.15` | Released | [Wi-Fi credential lifecycle maintenance](../archive/v2.8.15/evidence.md): active and pending records share fixed private NVS helpers, preventing future storage-flow drift while preserving separate keys, schema, validation, errors, zeroization, provisioning, and recovery behavior. Independent scan/review, exact-tag ESP-IDF v6.0.2 build, scoped OTA, unchanged-station recovery, service-boundary checks, and healthy NUT acceptance passed before publication. |
 | `v2.8.16` | Released | [Diagnostic simulation maintenance](../archive/v2.8.16/evidence.md): names the duration conversion so future time-unit changes are less error-prone while preserving bounded RAM-only disconnect simulation, diagnostic timing, routes, and payloads. Independent scan/review, exact-tag build, scoped OTA, service-boundary checks, and full-NUT acceptance passed before publication. |
 | `v2.8.17` | Released | [Time-storage import-order maintenance](../archive/v2.8.17/evidence.md): aligns the standard-library include group, making the private storage module easier to audit while preserving NVS persistence, timezone behavior, and runtime contracts. Independent scan/review, exact-tag build, scoped OTA, service-boundary checks, and full-NUT acceptance passed before publication. |
-| Deferred | `review/inherited-compatibility-fresh-scan` | Fresh bounded review of `src/common/strerror.c` confirms its 526-line conditional errno table is inherited portability behavior. The unversioned [compatibility contract](ESP32_STRERROR_COMPATIBILITY_CONTRACT.md) and forced-fallback host fixture pass; a 3Dprinter normal-libc regression also passed. Any split or modernization still requires a supported target matrix, not an unscoped hygiene release. |
+| Protected | `review/inherited-compatibility-fresh-scan` | Fresh bounded review of `src/common/strerror.c` confirms its 526-line conditional errno table is inherited portability behavior. The unversioned [compatibility contract](ESP32_STRERROR_COMPATIBILITY_CONTRACT.md), forced-fallback macOS/Ubuntu fixture matrix, and 3Dprinter normal-libc regression pass. No split or modernization is planned. |
 
 ## UPS state, identity, and compatibility — `v2.7.2`–`v2.7.9`
 

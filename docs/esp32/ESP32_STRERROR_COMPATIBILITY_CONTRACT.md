@@ -27,6 +27,10 @@ touches this file also requires the ordinary exact-tag ESP32 build and
 3Dprinter OTA/service regression acceptance; that device check verifies the
 normal libc path, not the forced fallback path.
 
+No structural change is currently planned. Keep this file and its fixture as
+protected inherited compatibility coverage unless a user-facing need supplies a
+separate, explicitly scoped reason to revisit it.
+
 ## Supported target matrix
 
 | Target | Contract coverage | Gate |
