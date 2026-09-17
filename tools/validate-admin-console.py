@@ -260,9 +260,9 @@ def main() -> int:
         require(status == 200, f"Full-log route returned HTTP {status}.")
         logs_json = json.loads(logs_body)
         require(isinstance(logs_json.get("logs"), list), "Full-log array is absent.")
-        require(logs_json.get("retained_capacity") == 24, "Retained capacity is not 24.")
+        require(logs_json.get("retained_capacity") == 50, "Retained capacity is not 50.")
         require(logs_json.get("status_window") == 6, "Status window is not 6.")
-        require(len(logs_json["logs"]) <= 24, "Full-log response exceeds 24 entries.")
+        require(len(logs_json["logs"]) <= 50, "Full-log response exceeds 50 entries.")
 
         status, _, wifi_scan_body = request(
             arguments.device,

@@ -4,28 +4,42 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/portmacro.h"
+#include "freertos/semphr.h"
 
+#define TAG "nut-log"
 #define MANAGEMENT_LOG_CHUNK_LENGTH 256U
 #define MANAGEMENT_LOG_VALID_EPOCH 1704067200LL
 #define MANAGEMENT_LOG_HTTPS_HANDSHAKE_MESSAGE "performing session handshake"
 
 typedef ManagementLogSnapshotEntry ManagementLogEntry;
 
-static portMUX_TYPE management_log_lock = portMUX_INITIALIZER_UNLOCKED;
-static ManagementLogEntry management_log_entries[MANAGEMENT_LOG_ENTRY_CAPACITY];
+static SemaphoreHandle_t management_log_lock;
+static ManagementLogEntry *management_log_entries;
 static char management_log_pending[MANAGEMENT_LOG_CHUNK_LENGTH];
 static size_t management_log_pending_length;
 static size_t management_log_next;
 static size_t management_log_count;
 static vprintf_like_t management_previous_log_vprintf;
 static bool management_log_capture_started;
+
+static bool management_log_take_lock(void)
+{
+    return management_log_lock != NULL &&
+           xSemaphoreTake(management_log_lock, portMAX_DELAY) == pdTRUE;
+}
+
+static void management_log_give_lock(void)
+{
+    xSemaphoreGive(management_log_lock);
+}
 
 static char management_log_level_from_line(const char *line)
 {
@@ -142,7 +156,10 @@ static void management_log_capture_chunk(const char *chunk)
 
     const uint64_t uptime_ms = (uint64_t)(esp_timer_get_time() / 1000LL);
     const time_t epoch_seconds = management_log_current_epoch();
-    taskENTER_CRITICAL(&management_log_lock);
+    if (!management_log_take_lock())
+    {
+        return;
+    }
     for (const char *cursor = chunk; *cursor != '\0'; cursor++)
     {
         if (*cursor == '\n')
@@ -164,7 +181,7 @@ static void management_log_capture_chunk(const char *chunk)
             }
         }
     }
-    taskEXIT_CRITICAL(&management_log_lock);
+    management_log_give_lock();
 }
 
 static int management_log_vprintf(const char *format, va_list arguments)
@@ -197,10 +214,28 @@ static int management_log_vprintf(const char *format, va_list arguments)
 
 void management_log_capture_start(void)
 {
+    /* app_main calls this before it creates Wi-Fi, HID, or NUT tasks. */
     if (management_log_capture_started)
     {
         return;
     }
+    management_log_entries = heap_caps_calloc(
+        MANAGEMENT_LOG_ENTRY_CAPACITY, sizeof(*management_log_entries),
+        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    management_log_lock = xSemaphoreCreateMutex();
+    if (management_log_entries == NULL || management_log_lock == NULL)
+    {
+        ESP_LOGE(TAG, "Unable to initialize PSRAM management-log retention");
+        free(management_log_entries);
+        management_log_entries = NULL;
+        if (management_log_lock != NULL)
+        {
+            vSemaphoreDelete(management_log_lock);
+            management_log_lock = NULL;
+        }
+        return;
+    }
+
     management_previous_log_vprintf = esp_log_set_vprintf(management_log_vprintf);
     management_log_capture_started = true;
 }
@@ -243,18 +278,25 @@ void management_log_capture_syslog(int priority, const char *format,
 
     const uint64_t uptime_ms = (uint64_t)(esp_timer_get_time() / 1000LL);
     const time_t epoch_seconds = management_log_current_epoch();
-    taskENTER_CRITICAL(&management_log_lock);
+    if (!management_log_take_lock())
+    {
+        return;
+    }
     management_log_store_locked(level, line, uptime_ms, epoch_seconds);
-    taskEXIT_CRITICAL(&management_log_lock);
+    management_log_give_lock();
 }
 
-static void management_log_flush_pending(void)
+static bool management_log_flush_pending(void)
 {
     const uint64_t uptime_ms = (uint64_t)(esp_timer_get_time() / 1000LL);
     const time_t epoch_seconds = management_log_current_epoch();
-    taskENTER_CRITICAL(&management_log_lock);
+    if (!management_log_take_lock())
+    {
+        return false;
+    }
     management_log_commit_pending_locked(uptime_ms, epoch_seconds);
-    taskEXIT_CRITICAL(&management_log_lock);
+    management_log_give_lock();
+    return true;
 }
 
 static bool management_log_format_timestamps(time_t epoch_seconds,
@@ -284,10 +326,21 @@ static bool management_log_format_timestamps(time_t epoch_seconds,
 bool management_log_append_snapshot(char *destination, size_t destination_size,
                                     size_t *used)
 {
-    ManagementLogEntry entries[MANAGEMENT_LOG_STATUS_WINDOW];
-    management_log_flush_pending();
+    if (!management_log_capture_started)
+    {
+        return management_json_append(destination, destination_size, used, ",\"logs\":[]");
+    }
 
-    taskENTER_CRITICAL(&management_log_lock);
+    ManagementLogEntry entries[MANAGEMENT_LOG_STATUS_WINDOW];
+    if (!management_log_flush_pending())
+    {
+        return false;
+    }
+
+    if (!management_log_take_lock())
+    {
+        return false;
+    }
     const size_t entry_count = management_log_count < MANAGEMENT_LOG_STATUS_WINDOW
                                    ? management_log_count
                                    : MANAGEMENT_LOG_STATUS_WINDOW;
@@ -299,7 +352,7 @@ bool management_log_append_snapshot(char *destination, size_t destination_size,
         entries[index] = management_log_entries[
             (first_entry + index) % MANAGEMENT_LOG_ENTRY_CAPACITY];
     }
-    taskEXIT_CRITICAL(&management_log_lock);
+    management_log_give_lock();
 
     if (!management_json_append(destination, destination_size, used, ",\"logs\":["))
     {
@@ -349,10 +402,21 @@ bool management_log_copy_snapshot(ManagementLogSnapshotEntry *entries,
     {
         return false;
     }
+    if (!management_log_capture_started)
+    {
+        *entry_count = 0U;
+        return true;
+    }
 
-    management_log_flush_pending();
+    if (!management_log_flush_pending())
+    {
+        return false;
+    }
 
-    taskENTER_CRITICAL(&management_log_lock);
+    if (!management_log_take_lock())
+    {
+        return false;
+    }
     const size_t retained_count = management_log_count;
     const size_t first_entry =
         (management_log_next + MANAGEMENT_LOG_ENTRY_CAPACITY - retained_count) %
@@ -362,7 +426,7 @@ bool management_log_copy_snapshot(ManagementLogSnapshotEntry *entries,
         entries[index] = management_log_entries[
             (first_entry + index) % MANAGEMENT_LOG_ENTRY_CAPACITY];
     }
-    taskEXIT_CRITICAL(&management_log_lock);
+    management_log_give_lock();
 
     *entry_count = retained_count;
     return true;
