@@ -299,7 +299,7 @@ def main() -> int:
 
         print(
             "PASS: authenticated streamed page, NUT favicon, removed notices, unchanged "
-            "six-entry status logs, 24-entry ADMIN logs, bounded Wi-Fi scan, "
+            "six-entry status logs, 50-entry ADMIN logs, bounded Wi-Fi scan, "
             "unauthenticated rejection, and CSRF rejection."
         )
         return 0
