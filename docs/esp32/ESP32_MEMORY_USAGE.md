@@ -71,3 +71,30 @@ its response. They therefore prove PSRAM availability and normal recovery, not
 a precise saved-byte result. The explicit capability allocations prove the
 two bounded live buffers now request PSRAM; their expected concurrent internal
 heap relief is 12,184 bytes plus allocator overhead.
+
+## `v2.9.1` candidate — PSRAM Wi-Fi scan records
+
+Both scan paths now share a PSRAM-first allocator for their driver-populated
+`wifi_ap_record_t` array. The ESP32-S3 target ABI is 92 bytes per record and
+each path retains at most 20 records, so the maximum transient allocation is
+1,840 bytes. The allocator requests `MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT` and
+uses ordinary internal allocation only when that request cannot be satisfied.
+
+Commit `f89d1cc37` clean-built with ESP-IDF v6.0.2 as a 1,359,309-byte image:
+
+| Measurement | `v2.9.0` candidate | `v2.9.1` candidate | Change |
+| --- | ---: | ---: | ---: |
+| Flash code | 926,674 | 926,698 | +24 bytes |
+| Flash data | 313,340 | 313,340 | 0 bytes |
+| DIRAM | 132,931 | 132,931 | 0 bytes |
+| Image | 1,359,285 | 1,359,309 | +24 bytes |
+| Runtime free internal (post-reboot idle sample) | 115,027 | 115,119 | +92 bytes |
+| Runtime free PSRAM (post-reboot idle sample) | 8,365,996 | 8,365,996 | 0 bytes |
+
+The idle samples occur after the transient scan array is freed, so they do not
+measure its 1,840-byte concurrent internal-heap relief. The certificate-pinned
+target scan returned HTTP 200 through `esp_wifi_scan_get_ap_records()` while
+PSRAM was available, proving the driver accepted the selected external-memory
+destination. The portal path uses the same allocator but was not independently
+activated on the connected appliance because doing so would require disruptive
+Wi-Fi recovery.
