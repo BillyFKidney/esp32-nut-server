@@ -15,11 +15,12 @@ partition selection, authorization, and check-only behavior are preserved.
 ## Verification
 
 - Completed independent scanner, fixer, and reviewer loop: clean.
-- Completed clean ESP-IDF v6.0.2 candidate build and certificate-pinned scoped
-  OTA on 3Dprinter.
-- Post-reboot candidate acceptance confirmed HTTPS `443`, read-only NUT
-  `3493`, refused `8080`, update `installed`, healthy NUT, and UPS `OL`.
+- Completed clean exact-tag ESP-IDF v6.0.2 build with 59% app-slot headroom.
+- Certificate-pinned scoped OTA installed the exact artifact on 3Dprinter.
+- Post-reboot acceptance confirmed firmware `v2.8.18`, HTTPS `443`, read-only
+  NUT `3493`, refused `8080`, update `installed`, healthy NUT, and UPS `OL`.
 
 ## Artifact
 
-Final versioned binary and SHA-256 are recorded after the exact-tag build.
+`nut-esp32s3-v2.8.18.bin` — SHA-256
+`faa4409567e39b700714bd092226cf9390d132b3ff99fa08340a44144f1a5159`
