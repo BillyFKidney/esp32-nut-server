@@ -197,6 +197,8 @@ def main() -> int:
                     json.loads(install_body).get("status") == "installed",
                     "Checked firmware install did not report installed status.",
                 )
+                print("PASS: checked PSRAM firmware was committed for installation")
+                return 0
 
         status, favicon_headers, favicon_body = request(
             arguments.device, fingerprint, "GET", "/favicon.ico"

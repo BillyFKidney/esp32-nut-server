@@ -298,7 +298,10 @@ static esp_err_t ota_validate_staged_image(const uint8_t *image, size_t image_si
                 return ESP_ERR_IMAGE_INVALID;
             }
             memcpy(&description, image + offset, sizeof(description));
-            if (description.magic_word != ESP_APP_DESC_MAGIC_WORD)
+            if (description.magic_word != ESP_APP_DESC_MAGIC_WORD ||
+                bootloader_common_check_efuse_blk_validity(
+                    description.min_efuse_blk_rev_full,
+                    description.max_efuse_blk_rev_full) != ESP_OK)
             {
                 psa_hash_abort(&hash);
                 return ESP_ERR_IMAGE_INVALID;
@@ -347,6 +350,7 @@ static esp_err_t ota_validate_staged_image(const uint8_t *image, size_t image_si
             !ota_image_range_is_valid(image_size, offset, sizeof(digest)) ||
             memcmp(digest, image + offset, sizeof(digest)) != 0)
         {
+            psa_hash_abort(&hash);
             return ESP_ERR_IMAGE_INVALID;
         }
         offset += sizeof(digest);
@@ -386,6 +390,12 @@ static void ota_stage_expiry_callback(void *argument)
             ota_clear_staged_image();
         }
         xSemaphoreGive(ota_stage_lock);
+    }
+    else if (ota_stage_expiry_timer != NULL)
+    {
+        /* A request may briefly hold the lock when expiry fires. Retry so the
+         * checked image is still discarded even if that request stalls. */
+        esp_timer_start_once(ota_stage_expiry_timer, 1000LL * 1000LL);
     }
 }
 
@@ -506,9 +516,9 @@ static esp_err_t ota_receive_image(httpd_req_t *request,
 
     while (remaining > 0)
     {
-        const size_t receive_size = remaining < (int)sizeof(receive_buffer)
+        const size_t receive_size = remaining < (int)OTA_RECEIVE_BUFFER_SIZE
                                         ? (size_t)remaining
-                                        : sizeof(receive_buffer);
+                                        : OTA_RECEIVE_BUFFER_SIZE;
         const int received = httpd_req_recv(request, receive_buffer, receive_size);
         if (received <= 0)
         {
@@ -822,7 +832,15 @@ static esp_err_t ota_process_from_request(httpd_req_t *request)
 
 esp_err_t ota_install_from_request(httpd_req_t *request)
 {
-    return ota_process_from_request(request);
+    const esp_err_t lock_result = ota_take_stage_lock(request);
+    if (lock_result != ESP_OK)
+    {
+        return lock_result;
+    }
+
+    const esp_err_t result = ota_process_from_request(request);
+    ota_give_stage_lock();
+    return result;
 }
 
 void ota_mark_running_image_valid(void)

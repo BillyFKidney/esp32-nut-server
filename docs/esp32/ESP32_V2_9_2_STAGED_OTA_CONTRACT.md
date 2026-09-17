@@ -34,7 +34,8 @@ v2.8.4 route-preservation contract.
 ESP-IDF v6.0.2's public `esp_image_verify()` reads only flash partitions.
 The PSRAM check must therefore mirror the active image-format checks for this
 target: header/chip compatibility, bounded aligned segments, application
-description, ROM checksum, and appended SHA-256. Secure Boot and anti-rollback
+description (including its eFuse block-revision range), ROM checksum, and
+appended SHA-256. Secure Boot and anti-rollback
 are disabled in this configured product; if either becomes enabled, staging
 must reject the configuration rather than claim equivalent pre-write
 verification. ESP-IDF `esp_ota_end()` remains the authoritative final check
