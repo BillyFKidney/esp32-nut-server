@@ -11,6 +11,8 @@
 #include "management-http.h"
 #include "management-log.h"
 
+#include "esp_heap_caps.h"
+
 static bool management_log_append_timestamp_pair(char *destination, size_t destination_size,
                                                  size_t *used, time_t epoch_seconds)
 {
@@ -140,8 +142,8 @@ esp_err_t management_logs_handler(httpd_req_t *request)
         return ESP_OK;
     }
 
-    ManagementLogSnapshotEntry *entries =
-        calloc(MANAGEMENT_LOG_ENTRY_CAPACITY, sizeof(*entries));
+    ManagementLogSnapshotEntry *entries = heap_caps_calloc(
+        MANAGEMENT_LOG_ENTRY_CAPACITY, sizeof(*entries), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     if (entries == NULL)
     {
         return management_send_json(

@@ -15,6 +15,7 @@
 #include "management-status.h"
 
 #include "esp_app_desc.h"
+#include "esp_heap_caps.h"
 #include "esp_netif.h"
 #include "esp_ota_ops.h"
 #include "esp_timer.h"
@@ -69,7 +70,8 @@ static esp_err_t management_status_send(httpd_req_t *request)
 
     const char *nut_health = nut_snapshot.available ? "ok" :
                              (nut_snapshot.stale ? "stale" : "unavailable");
-    char *response = calloc(1, MANAGEMENT_STATUS_RESPONSE_SIZE);
+    char *response = heap_caps_calloc(1, MANAGEMENT_STATUS_RESPONSE_SIZE,
+                                      MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     if (response == NULL)
     {
         return management_send_json(
