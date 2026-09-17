@@ -12,10 +12,17 @@
 esp_err_t ota_install_from_request(httpd_req_t *request);
 
 /**
- * Verify an authenticated HTTP(S) request containing a complete ESP-IDF
- * application image without selecting it for the next boot.
+ * Receive and validate an authenticated browser image in PSRAM without
+ * changing either OTA partition.
  */
-esp_err_t ota_check_from_request(httpd_req_t *request);
+esp_err_t ota_stage_from_request(httpd_req_t *request);
+
+/** Install one checked browser image identified by its opaque staging token. */
+esp_err_t ota_install_staged_from_request(httpd_req_t *request,
+                                          const char *stage_identifier);
+
+/** Initialize the serialized browser-stage lifetime before routes are served. */
+void ota_init(void);
 
 /**
  * Copy the most recent non-secret OTA result into the caller's buffer.

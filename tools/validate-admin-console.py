@@ -12,6 +12,7 @@ import os
 import re
 import ssl
 import sys
+from pathlib import Path
 from urllib.parse import urlencode
 
 
@@ -56,7 +57,18 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", required=True)
     parser.add_argument("--certificate-sha256", required=True)
+    parser.add_argument(
+        "--staged-ota-firmware",
+        help="optional firmware image to check through the PSRAM browser-stage route",
+    )
+    parser.add_argument(
+        "--install-staged-ota",
+        action="store_true",
+        help="after a successful staged check, commit that image for installation",
+    )
     arguments = parser.parse_args()
+    if arguments.install_staged_ota and not arguments.staged_ota_firmware:
+        parser.error("--install-staged-ota requires --staged-ota-firmware")
 
     password = os.environ.pop(PASSWORD_VARIABLE, "")
     if not password:
@@ -136,6 +148,55 @@ def main() -> int:
         )
         csrf_match = re.search(r"const csrf='([0-9a-f]{64})'", page)
         require(csrf_match is not None, "Rendered ADMIN page has no valid CSRF token.")
+        csrf = csrf_match.group(1)
+
+        if arguments.staged_ota_firmware:
+            firmware = Path(arguments.staged_ota_firmware).read_bytes()
+            require(firmware, "Staged OTA firmware is empty.")
+            stage_headers = {
+                "Cookie": cookie,
+                "Content-Type": "application/octet-stream",
+                "Content-Length": str(len(firmware)),
+                "X-ESP32-NUT-CSRF": csrf,
+            }
+            status, _, stage_body = request(
+                arguments.device,
+                fingerprint,
+                "POST",
+                "/api/v1/ota/check",
+                headers=stage_headers,
+                body=firmware,
+            )
+            require(status == 200, f"PSRAM firmware stage returned HTTP {status}.")
+            stage_json = json.loads(stage_body)
+            stage = stage_json.get("stage")
+            require(
+                isinstance(stage, str) and re.fullmatch(r"[0-9a-f]{32}", stage),
+                "PSRAM firmware stage did not return a valid opaque identifier.",
+            )
+            require(
+                stage_json.get("status") == "checked",
+                "PSRAM firmware stage did not report checked status.",
+            )
+            if arguments.install_staged_ota:
+                install_headers = {
+                    "Cookie": cookie,
+                    "Content-Length": "0",
+                    "X-ESP32-NUT-CSRF": csrf,
+                    "X-ESP32-NUT-OTA-Stage": stage,
+                }
+                status, _, install_body = request(
+                    arguments.device,
+                    fingerprint,
+                    "POST",
+                    "/api/v1/ota/install",
+                    headers=install_headers,
+                )
+                require(status == 200, f"Checked firmware install returned HTTP {status}.")
+                require(
+                    json.loads(install_body).get("status") == "installed",
+                    "Checked firmware install did not report installed status.",
+                )
 
         status, favicon_headers, favicon_body = request(
             arguments.device, fingerprint, "GET", "/favicon.ico"

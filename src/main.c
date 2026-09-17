@@ -175,6 +175,7 @@ void rtos_yield(void)
 void app_main()
 {
     management_log_capture_start();
+    ota_init();
     /* Production operation keeps NUT diagnostics at normal log severity. */
     nut_debug_level = 0;
 
