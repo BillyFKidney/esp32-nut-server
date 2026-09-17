@@ -98,3 +98,31 @@ PSRAM was available, proving the driver accepted the selected external-memory
 destination. The portal path uses the same allocator but was not independently
 activated on the connected appliance because doing so would require disruptive
 Wi-Fi recovery.
+
+## `v2.9.2` exact tag — browser staged PSRAM OTA
+
+The browser OTA check allocates exactly the request image length with
+`MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT`, with no internal fallback. It validates
+there and retains the allocation for at most ten minutes. The explicit install
+streams the checked PSRAM image to the inactive slot in 4,096-byte chunks, then
+zeroizes and frees the stage. The retained Agent route uses a 4,096-byte
+PSRAM-first receive buffer with an internal fallback so its existing update
+availability contract remains intact.
+
+| Measurement | `v2.9.1` exact tag | `v2.9.2` exact tag | Change |
+| --- | ---: | ---: | ---: |
+| Flash code | 926,698 | 929,026 | +2,328 bytes |
+| Flash data | 313,340 | 313,964 | +624 bytes |
+| DIRAM | 132,931 | 133,027 | +96 bytes |
+| Image | 1,359,309 | 1,362,384 | +3,075 bytes |
+| Runtime free internal (post-reboot idle sample) | 115,119 | 114,875 | -244 bytes |
+| Runtime free PSRAM (post-reboot idle sample) | 8,365,996 | 8,365,992 | -4 bytes |
+
+The exact-tag device stage/install test showed PSRAM return to its post-reboot
+baseline after installation. A pre-tag candidate stage reduced free PSRAM from
+8,366,468 to 6,990,132 bytes while retaining its 1,362,384-byte image; the
+remaining difference includes allocator behavior and contemporaneous runtime
+state, so it is evidence of placement rather than an exact overhead measure.
+The exact-tag idle samples are at different uptimes and are not a precise
+internal-SRAM saving measurement. They demonstrate that staging is transient
+and that idle PSRAM availability/recovery is preserved.
