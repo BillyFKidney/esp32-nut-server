@@ -3,11 +3,13 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "driver/gpio.h"
 #include "esp_check.h"
 #include "esp_event.h"
+#include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_netif_net_stack.h"
@@ -91,6 +93,17 @@ static WifiPortalLifecycle portal_lifecycle = {
     .state_lock = &wifi_state_lock,
     .web_context = &portal_web_context,
 };
+
+wifi_ap_record_t *wifi_provisioning_allocate_scan_records(size_t count)
+{
+    wifi_ap_record_t *records = heap_caps_calloc(count, sizeof(*records),
+                                                 MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (records == NULL)
+    {
+        records = calloc(count, sizeof(*records));
+    }
+    return records;
+}
 
 static void wifi_start_management_task(void *argument)
 {
@@ -464,7 +477,7 @@ static esp_err_t wifi_management_collect_scan_results(WifiManagementScanResults 
         return ESP_OK;
     }
 
-    wifi_ap_record_t *records = calloc(access_point_count, sizeof(*records));
+    wifi_ap_record_t *records = wifi_provisioning_allocate_scan_records(access_point_count);
     if (records == NULL)
     {
         esp_wifi_clear_ap_list();

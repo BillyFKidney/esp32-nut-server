@@ -108,7 +108,7 @@ static esp_err_t portal_networks_handler(httpd_req_t *request)
         access_point_count = WIFI_PROVISIONING_WEB_SCAN_RESULT_LIMIT;
     }
 
-    wifi_ap_record_t *records = calloc(access_point_count, sizeof(*records));
+    wifi_ap_record_t *records = wifi_provisioning_allocate_scan_records(access_point_count);
     if (access_point_count > 0 && records == NULL)
     {
         return http_send_json(request, "500 Internal Server Error", "{\"message\":\"Out of memory\"}");

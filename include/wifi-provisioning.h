@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #include "esp_err.h"
+#include "esp_wifi.h"
 
 #define WIFI_MANAGEMENT_SCAN_RESULT_LIMIT 20U
 #define WIFI_MANAGEMENT_SSID_MAX_LENGTH 32U
@@ -35,6 +36,13 @@ bool wifi_provisioning_is_connected(void);
 
 /** Scan visible 2.4 GHz networks for the authenticated management console. */
 esp_err_t wifi_management_scan(WifiManagementScanResults *results);
+
+/**
+ * Allocate the short-lived Wi-Fi driver scan-result array from PSRAM when
+ * available, retaining an internal-SRAM fallback for recovery operation.
+ * The caller releases the result with free().
+ */
+wifi_ap_record_t *wifi_provisioning_allocate_scan_records(size_t count);
 
 /** Stage credentials for a safe reboot-and-validate reconnect. */
 esp_err_t wifi_management_stage_credentials(const char *ssid, const char *password);
