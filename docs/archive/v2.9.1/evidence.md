@@ -27,4 +27,13 @@ unavailable; task stacks, locks, Wi-Fi state, and DMA buffers remain internal.
 
 ## Exact-tag acceptance
 
-Pending exact-tag build, certificate-pinned OTA, and post-reboot acceptance.
+- Annotated tag `v2.9.1` resolves to `e37f9f626`.
+- The exact ESP-IDF v6.0.2 build embedded `v2.9.1`, produced a 1,359,309-byte
+  image with 59% app-slot headroom, and SHA-256
+  `3d0f0478bb6ff9445cd42341d62f6285fd1609f0bcf227223bb3c1598935268d`.
+- Certificate-pinned scoped OTA installed that exact image on 3Dprinter in
+  `app0`. Post-reboot diagnostics report `v2.9.1`, update `installed`, PSRAM
+  available, healthy NUT, and UPS `OL`.
+- The authenticated ADMIN scan passed again with a valid bounded network array.
+  HTTPS `443` and read-only NUT `3493` responded, `8080` was refused, and a
+  read-only `LIST VAR` poll returned 57 variables.
