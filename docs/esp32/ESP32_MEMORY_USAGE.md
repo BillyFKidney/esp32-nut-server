@@ -126,3 +126,27 @@ state, so it is evidence of placement rather than an exact overhead measure.
 The exact-tag idle samples are at different uptimes and are not a precise
 internal-SRAM saving measurement. They demonstrate that staging is transient
 and that idle PSRAM availability/recovery is preserved.
+
+## `v2.9.3` exact tag — 50-entry PSRAM management-log ring
+
+The target ABI makes each `ManagementLogSnapshotEntry` 216 bytes. The ring is
+now `50 * 216 = 10,800` bytes in strict PSRAM; the prior static internal ring
+was `24 * 216 = 5,184` bytes. Its 256-byte partial-line buffer, lock, and
+indices intentionally remain internal because capture is frequent. The
+full-log route’s separate PSRAM snapshot grows to 10,800 bytes only during a
+retrieval; the six-entry status copy remains a 1,296-byte stack object.
+
+| Measurement | `v2.9.2` exact tag | `v2.9.3` exact tag | Change |
+| --- | ---: | ---: | ---: |
+| Flash code | 929,026 | 929,238 | +212 bytes |
+| Flash data | 313,964 | 314,044 | +80 bytes |
+| DIRAM | 133,027 | 127,843 | -5,184 bytes |
+| Image | 1,362,384 | 1,362,656 | +272 bytes |
+| Runtime free internal (post-reboot idle sample) | 114,875 | 118,383 | +3,508 bytes |
+| Runtime free PSRAM (post-reboot idle sample) | 8,365,992 | 8,355,372 | -10,620 bytes |
+
+The linked DIRAM delta exactly accounts for the previous static ring. The
+runtime samples are at different uptimes, so they do not precisely quantify
+allocator overhead; together with the strict capability allocation they prove
+the intended placement and retained-capacity increase. A 100-entry ring would
+need 21,600 PSRAM bytes and is deferred pending a dedicated soak.
