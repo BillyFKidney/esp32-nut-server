@@ -176,6 +176,20 @@ def main() -> int:
         require(logs_json.get("status_window") == 6, "Status window is not 6.")
         require(len(logs_json["logs"]) <= 24, "Full-log response exceeds 24 entries.")
 
+        status, _, wifi_scan_body = request(
+            arguments.device,
+            fingerprint,
+            "GET",
+            "/api/v1/admin/wifi/scan",
+            headers=session_headers,
+        )
+        require(status == 200, f"Wi-Fi scan returned HTTP {status}.")
+        wifi_scan_json = json.loads(wifi_scan_body)
+        networks = wifi_scan_json.get("networks")
+        require(isinstance(networks, list), "Wi-Fi scan network list is absent.")
+        require(wifi_scan_json.get("maximum") == 20, "Wi-Fi scan limit is not 20.")
+        require(len(networks) <= 20, "Wi-Fi scan returned more than 20 networks.")
+
         status, _, _ = request(
             arguments.device, fingerprint, "GET", "/api/v1/admin/logs"
         )
@@ -197,8 +211,8 @@ def main() -> int:
 
         print(
             "PASS: authenticated streamed page, NUT favicon, removed notices, unchanged "
-            "six-entry status logs, 24-entry ADMIN logs, unauthenticated rejection, "
-            "and CSRF rejection."
+            "six-entry status logs, 24-entry ADMIN logs, bounded Wi-Fi scan, "
+            "unauthenticated rejection, and CSRF rejection."
         )
         return 0
     except (OSError, ssl.SSLError, http.client.HTTPException, ValueError, RuntimeError) as error:
