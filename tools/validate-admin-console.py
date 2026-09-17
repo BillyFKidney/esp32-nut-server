@@ -66,9 +66,15 @@ def main() -> int:
         action="store_true",
         help="after a successful staged check, commit that image for installation",
     )
+    parser.add_argument(
+        "--reject-staged-ota-firmware",
+        help="firmware image expected to be rejected by the PSRAM browser-stage route",
+    )
     arguments = parser.parse_args()
     if arguments.install_staged_ota and not arguments.staged_ota_firmware:
         parser.error("--install-staged-ota requires --staged-ota-firmware")
+    if arguments.install_staged_ota and arguments.reject_staged_ota_firmware:
+        parser.error("--install-staged-ota cannot be combined with --reject-staged-ota-firmware")
 
     password = os.environ.pop(PASSWORD_VARIABLE, "")
     if not password:
@@ -199,6 +205,25 @@ def main() -> int:
                 )
                 print("PASS: checked PSRAM firmware was committed for installation")
                 return 0
+
+        if arguments.reject_staged_ota_firmware:
+            rejected_firmware = Path(arguments.reject_staged_ota_firmware).read_bytes()
+            require(rejected_firmware, "Rejected staged OTA firmware is empty.")
+            rejected_headers = {
+                "Cookie": cookie,
+                "Content-Type": "application/octet-stream",
+                "Content-Length": str(len(rejected_firmware)),
+                "X-ESP32-NUT-CSRF": csrf,
+            }
+            status, _, _ = request(
+                arguments.device,
+                fingerprint,
+                "POST",
+                "/api/v1/ota/check",
+                headers=rejected_headers,
+                body=rejected_firmware,
+            )
+            require(status == 422, f"Malformed PSRAM firmware stage returned HTTP {status}.")
 
         status, favicon_headers, favicon_body = request(
             arguments.device, fingerprint, "GET", "/favicon.ico"
