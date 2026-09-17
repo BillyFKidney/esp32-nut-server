@@ -13,8 +13,12 @@ error handling, zeroization, HTTPS `443`, read-only NUT `3493`, and refused
 
 ## Verification
 
-Pending exact-tag build and acceptance.
+- Exact-tag ESP-IDF v6.0.2 build with 59% app-slot headroom.
+- Certificate-pinned OTA on 3Dprinter, then authenticated status/full-log and
+  unauthorized/invalid-CSRF acceptance.
+- HTTPS `443`, read-only NUT `3493`, refused `8080`, and UPS `OL` after reboot.
 
 ## Artifact
 
-Pending exact-tag artifact and SHA-256.
+`nut-esp32s3-v2.9.0.bin` — SHA-256
+`a116275bbb0b24cacf1155a20e8444a7568f47f8789a7168c730e7858e375f0c`

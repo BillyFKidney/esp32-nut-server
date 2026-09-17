@@ -22,4 +22,10 @@ USB/DMA buffers, or OTA storage.
 
 ## Exact-tag acceptance
 
-Pending final release tag, exact build, OTA, and publication.
+- Annotated tag `v2.9.0` resolves to `0c02bd4a8`.
+- The exact ESP-IDF v6.0.2 build embedded `v2.9.0`, produced a
+  1,359,285-byte image with 59% app-slot headroom, and SHA-256
+  `a116275bbb0b24cacf1155a20e8444a7568f47f8789a7168c730e7858e375f0c`.
+- Certificate-pinned scoped OTA installed that exact image on 3Dprinter in
+  `app0`. Post-reboot diagnostics report `v2.9.0`, update `installed`, healthy
+  NUT, and UPS `OL`; HTTPS `443` and NUT `3493` respond while `8080` is refused.
