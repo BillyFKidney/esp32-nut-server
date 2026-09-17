@@ -44,5 +44,30 @@ runtime internal/PSRAM heap totals and minima under its exercised workload,
 and a signed direction-of-change statement rather than an inferred saving.
 
 Build evidence: clean ESP-IDF v6.0.2 build and `idf.py size` completed on
-2026-09-17. Runtime heap and task high-water-mark measurements remain pending
-the first scoped device validation.
+2026-09-17. Runtime samples taken before the `v2.9.0` candidate OTA reported
+114,503 bytes free internal and 8,365,988 bytes free PSRAM. The reported
+minimum-free value is a mixed-capability value, not an internal-heap minimum.
+Task high-water marks remain pending dedicated instrumentation.
+
+## `v2.9.0` candidate — PSRAM management response buffers
+
+The candidate explicitly allocates the 7,000-byte status response and the
+full-log route snapshot (24 entries, about 5.2 KiB) with
+`MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT`. The exact committed candidate
+`32a8176a6` was built with ESP-IDF v6.0.2 as a 1,359,285-byte image:
+
+| Measurement | `v2.8.18` baseline | `v2.9.0` candidate | Change |
+| --- | ---: | ---: | ---: |
+| Flash code | 926,690 | 926,674 | -16 bytes |
+| Flash data | 313,340 | 313,340 | 0 bytes |
+| DIRAM | 132,931 | 132,931 | 0 bytes |
+| Image | 1,359,301 | 1,359,285 | -16 bytes |
+| Runtime free internal (post-reboot idle status sample) | 114,503 | 115,027 | +524 bytes |
+| Runtime free PSRAM (post-reboot idle status sample) | 8,365,988 | 8,365,996 | +8 bytes |
+
+The runtime samples were taken at different uptimes and do not measure the
+transient buffers, because the status payload samples heap before allocating
+its response. They therefore prove PSRAM availability and normal recovery, not
+a precise saved-byte result. The explicit capability allocations prove the
+two bounded live buffers now request PSRAM; their expected concurrent internal
+heap relief is 12,184 bytes plus allocator overhead.
