@@ -371,6 +371,7 @@ static esp_err_t ota_process_from_request(httpd_req_t *request, bool install)
                     OTA_REBOOT_TASK_PRIORITY, NULL) != pdPASS)
     {
         ESP_LOGE(TAG, "Unable to schedule OTA reboot");
+        esp_restart();
     }
     return response_result;
 }
