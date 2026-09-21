@@ -20,5 +20,8 @@ boundary. No lock or authorization state moves in this release.
   8-byte target lock objects.
 - The unchanged session/CSRF, constant-time comparison, zeroization, login
   cooldown, NVS token persistence, and scoped-token contracts were reviewed.
-- Exact-tag build, scoped OTA, authenticated ADMIN, service-boundary, and
-  post-reboot NUT acceptance are recorded before publication.
+- Exact tag `v2.9.4` resolved to `f2d7c667e`; ESP-IDF v6.0.2 produced the
+  1,362,656-byte artifact (SHA-256
+  `3606faa44bf360a9d01875b2ec21fa869c99860fffa364a1a1b95c22ca21bc04`).
+- Scoped OTA installed the exact image on 3Dprinter. Authenticated ADMIN,
+  50-entry logs, NUT `OL`/57-variable poll, and service boundaries passed.

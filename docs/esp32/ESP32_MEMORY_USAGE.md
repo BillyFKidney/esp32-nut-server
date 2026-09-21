@@ -162,3 +162,9 @@ records are NVS-persisted and only exist in bounded, zeroized operation-local
 storage, so they are not persistent SRAM migration candidates. This release
 must append exact-tag linked/runtime values, expected to differ only in its
 version metadata, after its target acceptance.
+
+Exact `v2.9.4` evidence: Flash code 929,238 bytes, Flash data 314,044 bytes,
+DIRAM 127,843 bytes, and 1,362,656-byte image—unchanged from v2.9.3. The
+post-reboot sample reported 119,999 bytes free internal and 8,354,992 bytes
+free PSRAM. Differences from v2.9.3 are runtime/uptime variation, not a
+placement change; no auth or lock allocation moved.
