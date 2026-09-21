@@ -188,3 +188,9 @@ the allocator's internal-memory choice and existing low-latency polling
 behavior. Parser scratch and USB/DMA buffers remain internal. This is a
 deliberate no-move decision; the exact-tag linked and runtime values will be
 appended after target acceptance.
+
+Exact `v2.9.5` evidence: Flash code 929,238 bytes, Flash data 314,044 bytes,
+DIRAM 127,843 bytes, and a 1,362,656-byte artifact—unchanged from v2.9.4.
+The post-reboot sample reported 120,011 bytes free internal and 8,354,984 bytes
+free PSRAM. These small sample differences are runtime/uptime variation, not a
+placement change; HID descriptor allocation policy remains unchanged.
