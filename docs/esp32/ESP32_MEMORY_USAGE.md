@@ -27,7 +27,7 @@ neither is inferred from the module's advertised capacity.
 | Internal heap | Wi-Fi scan records | Up to `20 * sizeof(wifi_ap_record_t)` per active portal or management scan | Exact target ABI size is measured in `v2.9.1`; planned for PSRAM with capability fallback. |
 | Internal SRAM | OTA receive buffer | 4,096-byte stack object | Planned only with a recovery-safe PSRAM/internal fallback. |
 | Internal SRAM | Session/auth state and locks | Session about 152 bytes plus `portMUX_TYPE` locks and counters | Hot, secret/authorization state; expected to remain internal after `v2.9.4` audit. |
-| PSRAM by allocator policy | Initial HID descriptor array | `500 * sizeof(HIDData_t)`; about 42 KiB at the ESP32-S3 ABI | Current ordinary allocation crosses the 16 KiB threshold; placement is implicit and will be made contractual in `v2.9.5`. |
+| Internal/PSRAM by allocator policy | HID descriptor array | At most `500 * 84 = 42,000` bytes at the ESP32-S3 ABI | Retained after parsing; cached entries are dereferenced by recurring USB quick/full polls. `v2.9.5` records the no-move decision. |
 
 ### Flash
 
@@ -168,3 +168,23 @@ DIRAM 127,843 bytes, and 1,362,656-byte image—unchanged from v2.9.3. The
 post-reboot sample reported 119,999 bytes free internal and 8,354,992 bytes
 free PSRAM. Differences from v2.9.3 are runtime/uptime variation, not a
 placement change; no auth or lock allocation moved.
+
+## `v2.9.5` audit — HID descriptor array retained on the polling path
+
+The `MAX_REPORT` capacity is 500 and the ESP32-S3 ABI makes `HIDData_t` 84
+bytes, so the parser initially allocates at most 42,000 bytes and later shrinks
+it to the parsed item count. This is not an initialization-only array:
+`hid_ups_walk(HU_WALKMODE_INIT)` caches pointers to its entries in
+`hid_info_t::hiddata`, then quick/full updates pass those pointers to
+`HIDGetDataValue()`. That routine reads the report ID, offsets, logical and
+physical ranges, units, and paths during every applicable USB poll.
+
+The allocation already crosses the general allocator's external-memory
+threshold, but making it strict PSRAM would turn a placement preference into a
+hard requirement for a hot, long-lived USB descriptor. That does not meet the
+candidate rule that PSRAM holds infrequently accessed bulk data. Keep the
+ordinary allocation policy: it may use PSRAM when appropriate while preserving
+the allocator's internal-memory choice and existing low-latency polling
+behavior. Parser scratch and USB/DMA buffers remain internal. This is a
+deliberate no-move decision; the exact-tag linked and runtime values will be
+appended after target acceptance.
