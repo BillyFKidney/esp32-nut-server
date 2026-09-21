@@ -150,3 +150,15 @@ runtime samples are at different uptimes, so they do not precisely quantify
 allocator overhead; together with the strict capability allocation they prove
 the intended placement and retained-capacity increase. A 100-entry ring would
 need 21,600 PSRAM bytes and is deferred pending a dedicated soak.
+
+## `v2.9.4` audit — session/auth state and locks retained internally
+
+No PSRAM allocation is appropriate for the remaining persistent session/auth
+state. Target object evidence shows a 144-byte `ManagementSession`, two 8-byte
+`portMUX_TYPE` objects, and 12 bytes of login cooldown/failure state. These
+are hot and security-sensitive; moving them would trade a negligible internal
+saving for slower external access and a larger secret-memory exposure. Token
+records are NVS-persisted and only exist in bounded, zeroized operation-local
+storage, so they are not persistent SRAM migration candidates. This release
+must append exact-tag linked/runtime values, expected to differ only in its
+version metadata, after its target acceptance.
