@@ -75,7 +75,7 @@ historical releases or relocating their archived evidence.
 
 ## Published baseline
 
-`v2.8.0` through `v2.8.17` are published and target-tested. The fresh bounded
+`v2.8.0` through `v2.9.5` are published and target-tested. The fresh bounded
 `src/common/strerror.c` review added its portability contract and fixture
 matrix; this inactive ESP32 fallback is protected inherited code, not a future
 release candidate.
@@ -139,6 +139,30 @@ through the Mac mini. Root causes remain to be established per slice.
 Factory-reset state clearing remains the final persisted-state-clearing slice;
 the following identity and presentation slices do not expand its reset scope.
 
+## NUT and UPS compatibility — priority before API v2
+
+Complete this read-only compatibility track before beginning API v2 backend
+implementation. Limit support claims to exact UPS models that pass the target
+acceptance below; “Back-UPS” is an APC product family, not a separate brand.
+The current code already implements no-reboot USB UPS replacement: [v2.7.6
+physically accepted APC/CyberPower replacement](../archive/v2.7.6/evidence.md)
+without a manual restart or artificial reconnect wait. Reuse that path and fix
+only a reproduced gap.
+
+| Release | Prospective branch | Scope |
+| --- | --- | --- |
+| `v2.10.0` | `feature/nut-client-interoperability` | Validate representative read-only NUT clients, including available Home Assistant/NUT integrations and monitoring systems, with `upsc -l`, `upsc -L`, `upsc <name>`, and `upsc <name> <variable>`, plus NUT `LIST`/`GET` framing. Preserve read-only access and prohibit UPS writes. |
+| `v2.11.0` | `feature/owned-ups-compatibility` | Test each available, exact-model APC Back-UPS and CyberPower unit; record USB VID:PID, device strings, firmware, selected subdriver, successful full-poll variables, freshness, and stable operation. Do not infer family-wide support from one model. |
+| `v2.12.0` | `feature/usb-hid-compatibility` | Fix only evidenced HID descriptor, parsing, or driver-selection gaps. Preserve bounded parsing, stale protection, and automatic replacement reprobe. |
+| `v2.13.0` | `feature/nut-ups-acceptance` | Publish the exact supported-device/client matrix and sustained-operation evidence. Revalidate physical UPS replacement without reboot, firmware flash, or manual driver restart. |
+
+The exact inventory of additional owned models is pending. Use the upstream
+[`usbhid-ups` documentation](https://networkupstools.org/docs/man/usbhid-ups.html)
+and [driver list](https://github.com/networkupstools/nut/blob/master/data/driver.list.in)
+to select candidates; these lists do not replace target acceptance. If a model
+does not use a supported USB HID protocol, record it as unsupported or not
+tested rather than adding a guessed allowlist or promising compatibility.
+
 ## API v2, tokens, and Production OTA — `v3.x`
 
 - Begin the major-version family with an explicit API v2 and token-contract
@@ -164,20 +188,6 @@ the following identity and presentation slices do not expand its reset scope.
 | `v3.3.0` | `feature/remote-update-client` | Certificate-validated remote check/download with manual approval. |
 | `v3.4.0` | `feature/scheduled-updates` | Opt-in check scheduling; automatic installation remains disabled. |
 | `v3.5.0` | `feature/production-ota-acceptance` | Validate authorization, source resistance, rollback, recovery, and definition of done. |
-
-## NUT and UPS compatibility hardening — `v4.x`
-
-Test additional CyberPower and USB HID UPS models, improve evidenced
-descriptor/driver selection, and validate read-only NUT interoperability with
-`upsc`, Home Assistant/NUT clients, and monitoring systems. UPS writes remain
-blocked pending a separately reviewed control milestone.
-
-| Release | Prospective branch | Scope |
-| --- | --- | --- |
-| `v4.0.0` | `feature/nut-client-interoperability` | Validate representative read-only NUT clients. |
-| `v4.1.0` | `feature/cyberpower-compatibility` | Test additional available CyberPower devices. |
-| `v4.2.0` | `feature/usb-hid-compatibility` | Improve bounded diagnostics and driver selection for evidenced gaps. |
-| `v4.3.0` | `feature/nut-ups-acceptance` | Publish supported-device/client matrix and sustained-operation evidence. |
 
 ## Platform resilience and release automation — `v5.x`
 
