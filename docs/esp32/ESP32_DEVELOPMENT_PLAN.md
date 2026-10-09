@@ -142,8 +142,15 @@ the following identity and presentation slices do not expand its reset scope.
 ## NUT and UPS compatibility — priority before API v2
 
 Complete this read-only compatibility track before beginning API v2 backend
-implementation. Limit support claims to exact UPS models that pass the target
-acceptance below; “Back-UPS” is an APC product family, not a separate brand.
+implementation. Track upstream-inherited compatibility separately from models
+directly tested on ESP32-NUT. “Back-UPS” is an APC product family, not a
+separate brand. An exact model may be listed as **Compatible (inherited)** when
+upstream NUT lists it for `usbhid-ups` and its USB identity is handled by an
+enabled ESP32-NUT subdriver; label it **not directly tested on ESP32-NUT** until
+target acceptance passes. Models requiring an omitted driver/subdriver remain
+candidates or unsupported here, even if desktop NUT supports them. A model's
+inherited compatibility is a strong expectation, not a blanket brand claim.
+
 The current code already implements no-reboot USB UPS replacement: [v2.7.6
 physically accepted APC/CyberPower replacement](../archive/v2.7.6/evidence.md)
 without a manual restart or artificial reconnect wait. Reuse that path and fix
@@ -152,11 +159,25 @@ only a reproduced gap.
 | Release | Prospective branch | Scope |
 | --- | --- | --- |
 | `v2.10.0` | `feature/nut-client-interoperability` | Validate representative read-only NUT clients, including available Home Assistant/NUT integrations and monitoring systems, with `upsc -l`, `upsc -L`, `upsc <name>`, and `upsc <name> <variable>`, plus NUT `LIST`/`GET` framing. Preserve read-only access and prohibit UPS writes. |
-| `v2.11.0` | `feature/owned-ups-compatibility` | Test each available, exact-model APC Back-UPS and CyberPower unit; record USB VID:PID, device strings, firmware, selected subdriver, successful full-poll variables, freshness, and stable operation. Do not infer family-wide support from one model. |
+| `v2.11.0` | `feature/owned-ups-compatibility` | Inventory exact-model APC Back-UPS and CyberPower units and upstream `usbhid-ups` candidates handled by enabled local subdrivers. Record USB VID:PID, device strings, firmware, selected subdriver, and upstream versus target evidence. Test each owned model; do not infer family-wide support from one model. |
 | `v2.12.0` | `feature/usb-hid-compatibility` | Fix only evidenced HID descriptor, parsing, or driver-selection gaps. Preserve bounded parsing, stale protection, and automatic replacement reprobe. |
-| `v2.13.0` | `feature/nut-ups-acceptance` | Publish the exact supported-device/client matrix and sustained-operation evidence. Revalidate physical UPS replacement without reboot, firmware flash, or manual driver restart. |
+| `v2.13.0` | `feature/nut-ups-acceptance` | Publish an exact-model matrix with separate `Compatible (inherited)` and `Target-tested` states, the NUT client matrix, and sustained-operation evidence. Revalidate physical UPS replacement without reboot, firmware flash, or manual driver restart. |
 
-The exact inventory of additional owned models is pending. Use the upstream
+| Exact model | Existing evidence | Required compatibility follow-up |
+| --- | --- | --- |
+| APC Back-UPS RS 1500G | v2.7.4–v2.7.6 acceptance; PinBoard current-firmware physical replacement from CST150UC2 recovered automatically and returned to `OL`; read-only NUT `LIST`/`GET` returned 50 variables and `ups.status=OL`. | No current-firmware compatibility gap reproduced. Prior reported stale incident was not reproduced after the Maintainer's reimage/reset; see [2026-10-09 PinBoard evidence](../archive/ups-compatibility/2026-10-09-pinboard-replacement.md). |
+| CyberPower CST150UC2 | v2.7.5 full-poll and v2.7.6 physical A↔B replacement evidence; PinBoard current-firmware physical replacement from APC recovered automatically and returned `OL`; read-only NUT `LIST`/`GET` returned 54 variables and `ups.status=OL`. | No current-firmware compatibility gap reproduced. See [2026-10-09 PinBoard evidence](../archive/ups-compatibility/2026-10-09-pinboard-replacement.md). |
+| Other owned APC/CyberPower models | Exact-model inventory pending. | Add only after model, firmware, and USB identity are recorded and a full poll is tested. |
+
+For each `Target-tested` model, require a healthy full poll, repeated read-only
+NUT `LIST` and `GET` queries, exact identity/status/available measurements,
+stale invalidation on disconnect, and recovery only after that model's own
+successful poll. A replacement must not restore the previous model's identity
+or values. Keep inherited compatibility clearly labeled and do not promote it
+to target-tested without that evidence. Mark unsupported or unavailable units
+explicitly; do not infer family-wide support.
+
+Use the upstream
 [`usbhid-ups` documentation](https://networkupstools.org/docs/man/usbhid-ups.html)
 and [driver list](https://github.com/networkupstools/nut/blob/master/data/driver.list.in)
 to select candidates; these lists do not replace target acceptance. If a model
