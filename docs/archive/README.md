@@ -24,6 +24,7 @@ when a current document links to it or historical evidence is required.
 | [v2.7.4 validation evidence index](v2.7.4/evidence.md) | APC/CyberPower compatibility, stale/recovery, service-boundary, and token-isolation evidence |
 | [v2.7.5 validation evidence index](v2.7.5/evidence.md) | USB HID/NUT compatibility hardening, tagged OTA validation, APC/CyberPower evidence, and release boundaries |
 | [v2.7.6 validation evidence index](v2.7.6/evidence.md) | USB attachment-generation reprobe, APC/CyberPower replacement evidence, tagged OTA validation, and v2.7.6 release boundaries |
+| [2026-10-09 PinBoard APC/CyberPower replacement](ups-compatibility/2026-10-09-pinboard-replacement.md) | Current-firmware APC↔CST150UC2 physical replacement, stale-to-fresh reprobe, and read-only NUT evidence |
 | [v2.7.7 validation evidence index](v2.7.7/evidence.md) | Release-confirmed Wi-Fi/factory reset, credential invalidation, fault injection, tagged OTA, and release boundaries |
 | [v2.7.8 validation evidence index](v2.7.8/evidence.md) | Status API rename, dashboard/raw-status presentation, stale/recovery, serial recovery, and v2.7.7 rollback/v2.7.8 restore evidence |
 | [v2.7.9 device identity and retained log level validation evidence](v2.7.9/evidence.md) | Persisted device display name, safe hostname derivation, retained log level, reboot persistence, and candidate build validation |
